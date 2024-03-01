@@ -10,7 +10,6 @@ require (
 	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/google/uuid v1.4.0
 	github.com/hashicorp/vault/api v1.12.0
-	github.com/rarimo/passport-identity-provider v0.8.4
 	github.com/rubenv/sql-migrate v1.6.1
 	gitlab.com/distributed_lab/ape v1.7.1
 	gitlab.com/distributed_lab/dig v0.0.0-20230207152643-c44f80a4294c
@@ -54,8 +53,8 @@ require (
 	github.com/hashicorp/go-sockaddr v1.0.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/holiman/uint256 v1.2.4 // indirect
-	github.com/iden3/go-iden3-core/v2 v2.0.4 // indirect
 	github.com/jmoiron/sqlx v1.3.5 // indirect
+	github.com/klauspost/compress v1.17.4 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
