@@ -21,14 +21,6 @@ post:
   responses:
     '200':
       description: Success
-      content:
-        application/json:
-          schema:
-            type: object
-            properties:
-              data:
-                type: object
-                $ref: '#/components/schemas/Claim'
     '500':
       description: Internal Error
       content:

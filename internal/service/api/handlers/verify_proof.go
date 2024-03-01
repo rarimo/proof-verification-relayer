@@ -7,7 +7,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/rarimo/proof-verification-relayer/internal/data"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
-	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/ape"
 	"gitlab.com/distributed_lab/ape/problems"
 	"net/http"
@@ -52,7 +51,7 @@ func VerifyProof(w http.ResponseWriter, r *http.Request) {
 	NetworkConfig(r).LockNonce()
 	defer NetworkConfig(r).UnlockNonce()
 
-	tx, err := types.SignNewTx(
+	if _, err := types.SignNewTx(
 		NetworkConfig(r).PrivateKey,
 		types.NewCancunSigner(NetworkConfig(r).ChainID),
 		&types.LegacyTx{
@@ -62,8 +61,7 @@ func VerifyProof(w http.ResponseWriter, r *http.Request) {
 			To:       &verifierAddress,
 			Data:     dataBytes,
 		},
-	)
-	if err != nil {
+	); err != nil {
 		Log(r).WithError(err).Error("failed to sign new tx")
 		ape.RenderErr(w, problems.InternalError())
 		return
@@ -76,14 +74,4 @@ func VerifyProof(w http.ResponseWriter, r *http.Request) {
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
-
-	ape.Render(w, resources.Tx{
-		Key: resources.Key{
-			ID:   tx.Hash().String(),
-			Type: resources.TXS,
-		},
-		Attributes: resources.TxAttributes{
-			TxHash: tx.Hash().String(),
-		},
-	})
 }
