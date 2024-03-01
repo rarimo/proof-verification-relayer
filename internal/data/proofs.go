@@ -14,8 +14,9 @@ type ProofsQ interface {
 	ResetFilter() ProofsQ
 }
 
-type Proof struct { // TODO unique(voting session, nullifier)
-	ID        uuid.UUID `db:"id" structs:"-"`
-	TxData    string    `db:"tx_data" structs:"tx_data"`
-	CreatedAt time.Time `db:"created_at" structs:"-"`
+type Proof struct {
+	ID                uuid.UUID `db:"id" structs:"-"`
+	VotingSession     string    `db:"voting_session" structs:"voting_session"`
+	DocumentNullifier string    `db:"document_nullifier" structs:"document_nullifier"`
+	CreatedAt         time.Time `db:"created_at" structs:"-"`
 }
