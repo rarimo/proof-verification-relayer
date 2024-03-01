@@ -1,0 +1,13 @@
+allOf:
+  - $ref: '#/components/schemas/TxKey'
+  - type: object
+    required:
+      - attributes
+    properties:
+      attributes:
+        type: object
+        required:
+          - tx_hash
+        properties:
+          tx_hash:
+            type: string
