@@ -8,6 +8,7 @@ import (
 type ProofsQ interface {
 	New() ProofsQ
 	Insert(value Proof) error
+	FilterBy(column string, value any) ProofsQ
 	OrderBy(column, order string) ProofsQ
 	Select() ([]Proof, error)
 	DeleteByID(id uuid.UUID) error
@@ -16,7 +17,7 @@ type ProofsQ interface {
 
 type Proof struct {
 	ID                uuid.UUID `db:"id" structs:"-"`
-	VotingSession     string    `db:"voting_session" structs:"voting_session"`
+	Registration      string    `db:"registration" structs:"registration"`
 	DocumentNullifier string    `db:"document_nullifier" structs:"document_nullifier"`
 	CreatedAt         time.Time `db:"created_at" structs:"-"`
 }

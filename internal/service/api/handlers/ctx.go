@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"context"
-	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/rarimo/proof-verification-relayer/internal/config"
-	"github.com/rarimo/proof-verification-relayer/internal/data"
 	"net/http"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/rarimo/proof-verification-relayer/internal/config"
+	"github.com/rarimo/proof-verification-relayer/internal/contracts"
+	"github.com/rarimo/proof-verification-relayer/internal/data"
 	"gitlab.com/distributed_lab/logan/v3"
 )
 
@@ -17,6 +19,8 @@ const (
 	networkConfigCtxKey
 	ethClientCtxKey
 	masterQKey
+	voteVerifierRegisterMethodCtxKey
+	votingRegistryCtxKey
 )
 
 func CtxLog(entry *logan.Entry) func(context.Context) context.Context {
@@ -57,4 +61,24 @@ func CtxMasterQ(entry data.MasterQ) func(context.Context) context.Context {
 
 func MasterQ(r *http.Request) data.MasterQ {
 	return r.Context().Value(masterQKey).(data.MasterQ).New()
+}
+
+func CtxVoteVerifierRegisterMethod(method *abi.Method) func(context.Context) context.Context {
+	return func(ctx context.Context) context.Context {
+		return context.WithValue(ctx, voteVerifierRegisterMethodCtxKey, method)
+	}
+}
+
+func VoteVerifierRegisterMethod(r *http.Request) *abi.Method {
+	return r.Context().Value(voteVerifierRegisterMethodCtxKey).(*abi.Method)
+}
+
+func CtxVotingRegistry(registry *contracts.VotingRegistry) func(context.Context) context.Context {
+	return func(ctx context.Context) context.Context {
+		return context.WithValue(ctx, votingRegistryCtxKey, registry)
+	}
+}
+
+func VotingRegistry(r *http.Request) *contracts.VotingRegistry {
+	return r.Context().Value(votingRegistryCtxKey).(*contracts.VotingRegistry)
 }

@@ -32,10 +32,11 @@ type ethereum struct {
 }
 
 type NetworkConfig struct {
-	RPC             string         `fig:"rpc,required"`
-	VerifierAddress common.Address `fig:"verifier_address,required"`
-	Address         string         `fig:"vault_address,required"`
-	MountPath       string         `fig:"vault_mount_path,required"`
+	RPC            string         `fig:"rpc,required"`
+	Proposer       common.Address `fig:"proposer,required"`
+	VotingRegistry common.Address `fig:"voting_registry,required"`
+	Address        string         `fig:"vault_address,required"`
+	MountPath      string         `fig:"vault_mount_path,required"`
 
 	ChainID    *big.Int          `fig:"chain_id"`
 	Token      string            `dig:"VAULT_TOKEN,clear"`
@@ -74,7 +75,8 @@ func (e *ethereum) NetworkConfig() *NetworkConfig {
 		if err := dig.Out(&result).
 			Where(map[string]interface{}{
 				"rpc":              result.RPC,
-				"verifier_address": result.VerifierAddress,
+				"proposer":         result.Proposer,
+				"voting_registry":  result.VotingRegistry,
 				"vault_address":    result.Address,
 				"vault_mount_path": result.MountPath,
 			}).Now(); err != nil {
