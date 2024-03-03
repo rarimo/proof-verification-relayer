@@ -4,7 +4,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/go-chi/chi"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
-	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/handlers"
 	"gitlab.com/distributed_lab/ape"
 	"gitlab.com/distributed_lab/logan/v3/errors"
@@ -39,7 +38,6 @@ func (s *service) router() chi.Router {
 		ape.CtxMiddleware(
 			handlers.CtxLog(s.log),
 			handlers.CtxNetworkConfig(s.cfg.NetworkConfig()),
-			handlers.CtxMasterQ(pg.NewMasterQ(s.cfg.DB().Clone())),
 			handlers.CtxEthClient(ethClient),
 			handlers.CtxVoteVerifierRegisterMethod(&method),
 			handlers.CtxVotingRegistry(votingRegistry),

@@ -11,7 +11,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
-	"github.com/rarimo/proof-verification-relayer/internal/data"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/ape"
@@ -42,25 +41,6 @@ func VerifyProof(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	proofs, err := MasterQ(r).Proofs().
-		FilterBy("registration", registration.String()).
-		FilterBy("document_nullifier", registerProofParams.DocumentNullifier.String()).
-		Select()
-	if err != nil {
-		Log(r).WithError(err).Error("failed to get proofs by registration and nullifier")
-		ape.RenderErr(w, problems.InternalError())
-		return
-	}
-
-	if len(proofs) != 0 {
-		Log(r).WithFields(logan.F{
-			"registration":        registration.Hex(),
-			"document_nullififer": registerProofParams.DocumentNullifier.String(),
-		}).Error("too many requests for registration and document nullifier")
-		ape.RenderErr(w, problems.TooManyRequests())
-		return
-	}
-
 	exists, err := VotingRegistry(r).IsPoolExistByProposer(&bind.CallOpts{}, NetworkConfig(r).Proposer, registration)
 	if err != nil {
 		Log(r).WithError(err).Error("failed to check if registration exists by proposer")
@@ -72,7 +52,29 @@ func VerifyProof(w http.ResponseWriter, r *http.Request) {
 		Log(r).WithField("registration", registration.String()).Error("registration does not exist")
 		ape.RenderErr(w, problems.BadRequest(errors.New("registration does not exist"))...)
 		return
+	}
 
+	voteVerifier, err := contracts.NewVoteVerifier(registration, EthClient(r))
+	if err != nil {
+		Log(r).WithError(err).Error("failed to initialize new vote verifier")
+		ape.RenderErr(w, problems.InternalError())
+		return
+	}
+
+	isRegistered, err := voteVerifier.IsUserRegistered(&bind.CallOpts{}, registerProofParams.DocumentNullifier)
+	if err != nil {
+		Log(r).WithError(err).Error("failed to check if user is registered by document nullifier")
+		ape.RenderErr(w, problems.InternalError())
+		return
+	}
+
+	if isRegistered {
+		Log(r).WithFields(logan.F{
+			"registration":        registration.Hex(),
+			"document_nullififer": registerProofParams.DocumentNullifier.String(),
+		}).Error("too many requests for registration and document nullifier")
+		ape.RenderErr(w, problems.TooManyRequests())
+		return
 	}
 
 	gasPrice, err := EthClient(r).SuggestGasPrice(r.Context())
@@ -114,23 +116,9 @@ func VerifyProof(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := MasterQ(r).Transaction(func(db data.MasterQ) error {
-		if err := db.Proofs().Insert(data.Proof{
-			Registration:      registration.Hex(),
-			DocumentNullifier: registerProofParams.DocumentNullifier.String(),
-		}); err != nil {
-			ape.RenderErr(w, problems.InternalError())
-			return errors.Wrap(err, "failed to insert proof into the database")
-		}
-
-		if err := EthClient(r).SendTransaction(r.Context(), tx); err != nil {
-			ape.RenderErr(w, problems.InternalError())
-			return errors.Wrap(err, "failed to send transaction")
-		}
-
-		return nil
-	}); err != nil {
-		Log(r).WithError(err).Error("failed to perform SQL transaction")
+	if err := EthClient(r).SendTransaction(r.Context(), tx); err != nil {
+		Log(r).WithError(err).Error("failed to send transaction")
+		ape.RenderErr(w, problems.InternalError())
 		return
 	}
 

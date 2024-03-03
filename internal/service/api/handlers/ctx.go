@@ -8,7 +8,6 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
-	"github.com/rarimo/proof-verification-relayer/internal/data"
 	"gitlab.com/distributed_lab/logan/v3"
 )
 
@@ -18,7 +17,6 @@ const (
 	logCtxKey ctxKey = iota
 	networkConfigCtxKey
 	ethClientCtxKey
-	masterQKey
 	voteVerifierRegisterMethodCtxKey
 	votingRegistryCtxKey
 )
@@ -51,16 +49,6 @@ func CtxEthClient(client *ethclient.Client) func(context.Context) context.Contex
 
 func EthClient(r *http.Request) *ethclient.Client {
 	return r.Context().Value(ethClientCtxKey).(*ethclient.Client)
-}
-
-func CtxMasterQ(entry data.MasterQ) func(context.Context) context.Context {
-	return func(ctx context.Context) context.Context {
-		return context.WithValue(ctx, masterQKey, entry)
-	}
-}
-
-func MasterQ(r *http.Request) data.MasterQ {
-	return r.Context().Value(masterQKey).(data.MasterQ).New()
 }
 
 func CtxVoteVerifierRegisterMethod(method *abi.Method) func(context.Context) context.Context {
