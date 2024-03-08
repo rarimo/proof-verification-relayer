@@ -3,6 +3,7 @@ network:
   verifier_address: ""
   vault_address: "http://127.0.0.1:8200"
   vault_mount_path: "secret_data"
+  no_send: false
 
 log:
   level: debug

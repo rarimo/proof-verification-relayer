@@ -37,6 +37,7 @@ type NetworkConfig struct {
 	VotingRegistry common.Address `fig:"voting_registry,required"`
 	Address        string         `fig:"vault_address,required"`
 	MountPath      string         `fig:"vault_mount_path,required"`
+	NoSend         bool           `fig:"no_send"`
 
 	ChainID    *big.Int          `fig:"chain_id"`
 	Token      string            `dig:"VAULT_TOKEN,clear"`
@@ -79,6 +80,7 @@ func (e *ethereum) NetworkConfig() *NetworkConfig {
 				"voting_registry":  result.VotingRegistry,
 				"vault_address":    result.Address,
 				"vault_mount_path": result.MountPath,
+				"no_send":          result.NoSend,
 			}).Now(); err != nil {
 			panic(err)
 		}

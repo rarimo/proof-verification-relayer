@@ -116,10 +116,12 @@ func VerifyProof(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := EthClient(r).SendTransaction(r.Context(), tx); err != nil {
-		Log(r).WithError(err).Error("failed to send transaction")
-		ape.RenderErr(w, problems.InternalError())
-		return
+	if !NetworkConfig(r).NoSend {
+		if err := EthClient(r).SendTransaction(r.Context(), tx); err != nil {
+			Log(r).WithError(err).Error("failed to send transaction")
+			ape.RenderErr(w, problems.InternalError())
+			return
+		}
 	}
 
 	NetworkConfig(r).IncrementNonce()
