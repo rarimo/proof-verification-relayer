@@ -85,6 +85,9 @@ func VerifyProof(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	NetworkConfig(r).LockNonce()
+	defer NetworkConfig(r).UnlockNonce()
+
 	gas, err := EthClient(r).EstimateGas(r.Context(), ethereum.CallMsg{
 		From:     crypto.PubkeyToAddress(NetworkConfig(r).PrivateKey.PublicKey),
 		To:       &registration,
@@ -96,9 +99,6 @@ func VerifyProof(w http.ResponseWriter, r *http.Request) {
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
-
-	NetworkConfig(r).LockNonce()
-	defer NetworkConfig(r).UnlockNonce()
 
 	tx, err := types.SignNewTx(
 		NetworkConfig(r).PrivateKey,
