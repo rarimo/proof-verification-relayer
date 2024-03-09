@@ -37,7 +37,6 @@ type NetworkConfig struct {
 	VotingRegistry common.Address `fig:"voting_registry,required"`
 	Address        string         `fig:"vault_address,required"`
 	MountPath      string         `fig:"vault_mount_path,required"`
-	NoSend         bool           `fig:"no_send"`
 
 	ChainID    *big.Int          `fig:"chain_id"`
 	Token      string            `dig:"VAULT_TOKEN,clear"`
@@ -80,7 +79,6 @@ func (e *ethereum) NetworkConfig() *NetworkConfig {
 				"voting_registry":  result.VotingRegistry,
 				"vault_address":    result.Address,
 				"vault_mount_path": result.MountPath,
-				"no_send":          result.NoSend,
 			}).Now(); err != nil {
 			panic(err)
 		}
@@ -141,4 +139,14 @@ func (n *NetworkConfig) Nonce() uint64 {
 
 func (n *NetworkConfig) IncrementNonce() {
 	n.nonce++
+}
+
+// ResetNonce sets nonce to the value received from a node
+func (n *NetworkConfig) ResetNonce(client *ethclient.Client) error {
+	nonce, err := client.NonceAt(context.Background(), crypto.PubkeyToAddress(n.PrivateKey.PublicKey), nil)
+	if err != nil {
+		return errors.Wrap(err, "failed to get nonce")
+	}
+	n.nonce = nonce
+	return nil
 }

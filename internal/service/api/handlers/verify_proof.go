@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -116,8 +117,37 @@ func VerifyProof(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !NetworkConfig(r).NoSend {
-		if err := EthClient(r).SendTransaction(r.Context(), tx); err != nil {
+	if err := EthClient(r).SendTransaction(r.Context(), tx); err != nil {
+		if strings.Contains(err.Error(), "nonce") {
+			if err := NetworkConfig(r).ResetNonce(EthClient(r)); err != nil {
+				Log(r).WithError(err).Error("failed to reset nonce")
+				ape.RenderErr(w, problems.InternalError())
+				return
+			}
+
+			tx, err = types.SignNewTx(
+				NetworkConfig(r).PrivateKey,
+				types.NewCancunSigner(NetworkConfig(r).ChainID),
+				&types.LegacyTx{
+					Nonce:    NetworkConfig(r).Nonce(),
+					Gas:      gas,
+					GasPrice: gasPrice,
+					To:       &registration,
+					Data:     dataBytes,
+				},
+			)
+			if err != nil {
+				Log(r).WithError(err).Error("failed to sign new tx")
+				ape.RenderErr(w, problems.InternalError())
+				return
+			}
+
+			if err := EthClient(r).SendTransaction(r.Context(), tx); err != nil {
+				Log(r).WithError(err).Error("failed to send transaction")
+				ape.RenderErr(w, problems.InternalError())
+				return
+			}
+		} else {
 			Log(r).WithError(err).Error("failed to send transaction")
 			ape.RenderErr(w, problems.InternalError())
 			return
@@ -158,8 +188,8 @@ func getTxDataParams(r *http.Request, data []byte) (
 		return common.Address{}, contracts.IRegisterVerifierRegisterProofParams{}, errors.Wrap(err, "failed to unmarshal JSON")
 	}
 
-	addr1Bytes := proveIdentityParams.Inputs[len(proveIdentityParams.Inputs)-2].Bytes()
-	registration := common.BytesToAddress(addr1Bytes)
+	registrationAddressBytes := proveIdentityParams.Inputs[len(proveIdentityParams.Inputs)-2].Bytes()
+	registration := common.BytesToAddress(registrationAddressBytes)
 
 	registerProofParamsJSON, err := json.Marshal(unpackResult[1])
 	if err != nil {
