@@ -20,7 +20,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
-func VerifyProof(w http.ResponseWriter, r *http.Request) {
+func Register(w http.ResponseWriter, r *http.Request) {
 	req, err := requests.NewVerifyProofRequest(r)
 	if err != nil {
 		Log(r).WithError(err).Error("failed to get request")
@@ -35,7 +35,7 @@ func VerifyProof(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	registration, registerProofParams, err := getTxDataParams(r, dataBytes)
+	registration, registerProofParams, err := getRegistrationTxDataParams(r, dataBytes)
 	if err != nil {
 		Log(r).WithError(err).Error("failed to get tx data params")
 		ape.RenderErr(w, problems.InternalError())
@@ -71,8 +71,8 @@ func VerifyProof(w http.ResponseWriter, r *http.Request) {
 
 	if isRegistered {
 		Log(r).WithFields(logan.F{
-			"registration":        registration.Hex(),
-			"document_nullififer": registerProofParams.DocumentNullifier.String(),
+			"registration":       registration.Hex(),
+			"document_nullifier": registerProofParams.DocumentNullifier.String(),
 		}).Error("too many requests for registration and document nullifier")
 		ape.RenderErr(w, problems.TooManyRequests())
 		return
@@ -167,7 +167,7 @@ func VerifyProof(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func getTxDataParams(r *http.Request, data []byte) (
+func getRegistrationTxDataParams(r *http.Request, data []byte) (
 	common.Address, contracts.IRegisterVerifierRegisterProofParams, error,
 ) {
 	unpackResult, err := VoteVerifierRegisterMethod(r).Inputs.Unpack(data[4:])

@@ -15,6 +15,7 @@ type Config interface {
 	comfig.Listenerer
 
 	NetworkConfiger
+	IssuerConfiger
 }
 
 type config struct {
@@ -25,6 +26,7 @@ type config struct {
 	getter kv.Getter
 
 	NetworkConfiger
+	IssuerConfiger
 }
 
 func New(getter kv.Getter) Config {
@@ -35,5 +37,6 @@ func New(getter kv.Getter) Config {
 		Listenerer:      comfig.NewListenerer(getter),
 		Logger:          comfig.NewLogger(getter, comfig.LoggerOpts{}),
 		NetworkConfiger: NewNetworkConfiger(getter),
+		IssuerConfiger:  NewIssuerConfiger(getter),
 	}
 }

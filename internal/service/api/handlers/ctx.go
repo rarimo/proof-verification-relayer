@@ -18,6 +18,7 @@ const (
 	networkConfigCtxKey
 	ethClientCtxKey
 	voteVerifierRegisterMethodCtxKey
+	votingVoteMethodCtxKey
 	votingRegistryCtxKey
 )
 
@@ -59,6 +60,16 @@ func CtxVoteVerifierRegisterMethod(method *abi.Method) func(context.Context) con
 
 func VoteVerifierRegisterMethod(r *http.Request) *abi.Method {
 	return r.Context().Value(voteVerifierRegisterMethodCtxKey).(*abi.Method)
+}
+
+func CtxVotingVoteMethod(method *abi.Method) func(context.Context) context.Context {
+	return func(ctx context.Context) context.Context {
+		return context.WithValue(ctx, votingVoteMethodCtxKey, method)
+	}
+}
+
+func VotingVoteMethod(r *http.Request) *abi.Method {
+	return r.Context().Value(votingVoteMethodCtxKey).(*abi.Method)
 }
 
 func CtxVotingRegistry(registry *contracts.VotingRegistry) func(context.Context) context.Context {
