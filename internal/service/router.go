@@ -56,7 +56,7 @@ func (s *service) router() chi.Router {
 	)
 	r.Route("/integrations/proof-verification-relayer", func(r chi.Router) {
 		r.Route("/v1", func(r chi.Router) {
-			r.Post("/verify-proof", handlers.Register)
+			r.Post("/register", handlers.Register)
 			r.Post("/vote", handlers.Vote)
 		})
 	})
