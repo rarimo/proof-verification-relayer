@@ -47,7 +47,7 @@ func (s *service) router() chi.Router {
 		panic(errors.Wrap(err, "failed to initialize new lightweight state"))
 	}
 
-	lightweightStateABI, err := contracts.VotingMetaData.GetAbi()
+	lightweightStateABI, err := contracts.LightweightStateMetaData.GetAbi()
 	if err != nil {
 		panic(errors.Wrap(err, "failed to get lightweight state ABI"))
 	}
