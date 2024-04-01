@@ -1,0 +1,55 @@
+post:
+  tags:
+    - Votes
+  summary: The voting
+  operationId: vote
+  requestBody:
+    content:
+      application/json:
+        schema:
+          type: object
+          required:
+            - data
+          properties:
+            data:
+              type: object
+              required:
+                - tx_data
+                - voting
+                - registration
+              properties:
+                tx_data:
+                  type: string
+                voting:
+                  type: string
+                registration:
+                  type: string
+  responses:
+    '200':
+      description: Success
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                $ref: '#/components/schemas/Tx'
+    '400':
+      description: Bad Request Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Errors'
+    '429':
+      description: Too Many Requests Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Errors'
+    '500':
+      description: Internal Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Errors'

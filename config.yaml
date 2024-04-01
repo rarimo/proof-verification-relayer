@@ -1,6 +1,8 @@
 network:
   rpc: ""
-  verifier_address: ""
+  proposer: ""
+  voting_registry: ""
+  lightweight_state: ""
   vault_address: "http://127.0.0.1:8200"
   vault_mount_path: "secret_data"
 
