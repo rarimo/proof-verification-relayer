@@ -11,12 +11,10 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/ape"
 	"gitlab.com/distributed_lab/ape/problems"
-	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
@@ -47,36 +45,6 @@ func Vote(w http.ResponseWriter, r *http.Request) {
 	if !exists {
 		Log(r).WithField("registration", registration.String()).Error("registration does not exist")
 		ape.RenderErr(w, problems.BadRequest(errors.New("registration does not exist"))...)
-		return
-	}
-
-	voteVerifier, err := contracts.NewVoteVerifier(registration, EthClient(r))
-	if err != nil {
-		Log(r).WithError(err).Error("failed to initialize new vote verifier")
-		ape.RenderErr(w, problems.InternalError())
-		return
-	}
-
-	nullifier, err := getVoteTxDataParams(r, dataBytes)
-	if err != nil {
-		Log(r).WithError(err).Error("failed to get tx data params")
-		ape.RenderErr(w, problems.InternalError())
-		return
-	}
-
-	isRegistered, err := voteVerifier.IsUserRegistered(&bind.CallOpts{}, nullifier)
-	if err != nil {
-		Log(r).WithError(err).Error("failed to check if user is registered by document nullifier")
-		ape.RenderErr(w, problems.InternalError())
-		return
-	}
-
-	if !isRegistered {
-		Log(r).WithFields(logan.F{
-			"registration":       registration.Hex(),
-			"document_nullifier": nullifier.String(),
-		}).Error("user is not registered")
-		ape.RenderErr(w, problems.TooManyRequests())
 		return
 	}
 
