@@ -10,6 +10,7 @@ import (
 
 type VoteRequestData struct {
 	TxData       string `json:"tx_data"`
+	Voting       string `json:"voting"`
 	Registration string `json:"registration"`
 }
 
@@ -30,6 +31,8 @@ func NewVoteRequest(r *http.Request) (VoteRequest, error) {
 
 func validateVoteRequest(r VoteRequest) error {
 	return validation.Errors{
+		"/data/voting": validation.Validate(
+			r.Data.Voting, validation.Required, validation.By(isAddressRule)),
 		"/data/registration": validation.Validate(
 			r.Data.Registration, validation.Required, validation.By(isAddressRule)),
 	}.Filter()

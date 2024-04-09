@@ -15,9 +15,12 @@ post:
               type: object
               required:
                 - tx_data
+                - voting
                 - registration
               properties:
                 tx_data:
+                  type: string
+                voting:
                   type: string
                 registration:
                   type: string

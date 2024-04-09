@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"math/big"
 	"net/http"
 	"strings"
 
@@ -34,6 +33,7 @@ func Vote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	registration := common.HexToAddress(req.Data.Registration)
+	voting := common.HexToAddress(req.Data.Voting)
 
 	exists, err := VotingRegistry(r).IsPoolExistByProposer(&bind.CallOpts{}, NetworkConfig(r).Proposer, registration)
 	if err != nil {
@@ -60,7 +60,7 @@ func Vote(w http.ResponseWriter, r *http.Request) {
 
 	gas, err := EthClient(r).EstimateGas(r.Context(), ethereum.CallMsg{
 		From:     crypto.PubkeyToAddress(NetworkConfig(r).PrivateKey.PublicKey),
-		To:       &registration,
+		To:       &voting,
 		GasPrice: gasPrice,
 		Data:     dataBytes,
 	})
@@ -77,7 +77,7 @@ func Vote(w http.ResponseWriter, r *http.Request) {
 			Nonce:    NetworkConfig(r).Nonce(),
 			Gas:      gas,
 			GasPrice: gasPrice,
-			To:       &registration,
+			To:       &voting,
 			Data:     dataBytes,
 		},
 	)
@@ -102,7 +102,7 @@ func Vote(w http.ResponseWriter, r *http.Request) {
 					Nonce:    NetworkConfig(r).Nonce(),
 					Gas:      gas,
 					GasPrice: gasPrice,
-					To:       &registration,
+					To:       &voting,
 					Data:     dataBytes,
 				},
 			)
@@ -135,22 +135,4 @@ func Vote(w http.ResponseWriter, r *http.Request) {
 			TxHash: tx.Hash().String(),
 		},
 	})
-}
-
-func getVoteTxDataParams(r *http.Request, data []byte) (*big.Int, error) {
-	unpackResult, err := VotingVoteMethod(r).Inputs.Unpack(data[4:])
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to unpack tx data")
-	}
-
-	if len(unpackResult) != 4 {
-		return nil, errors.Wrap(err, "unpack result is not valid")
-	}
-
-	nullifier, ok := unpackResult[1].([32]byte)
-	if !ok {
-		return nil, errors.New("failed to convert interface to [32]byte")
-	}
-
-	return new(big.Int).SetBytes(nullifier[:]), nil
 }
