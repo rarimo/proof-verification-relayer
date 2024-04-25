@@ -39,6 +39,7 @@ type NetworkConfig struct {
 	LightweightState common.Address `fig:"lightweight_state,required"`
 	Address          string         `fig:"vault_address,required"`
 	MountPath        string         `fig:"vault_mount_path,required"`
+	GasMultiplier    float64        `fig:"gas_multiplier,required"`
 
 	ChainID    *big.Int          `fig:"chain_id"`
 	Token      string            `dig:"VAULT_TOKEN,clear"`
@@ -82,6 +83,7 @@ func (e *ethereum) NetworkConfig() *NetworkConfig {
 				"lightweight_state": result.LightweightState,
 				"vault_address":     result.Address,
 				"vault_mount_path":  result.MountPath,
+				"gas_multiplier":    result.GasMultiplier,
 			}).Now(); err != nil {
 			panic(err)
 		}

@@ -1,10 +1,11 @@
 network:
-  rpc: ""
-  proposer: ""
-  voting_registry: ""
-  lightweight_state: ""
+  rpc: "https://rpc.evm.node1.mainnet-beta.rarimo.com/"
+  proposer: "0xcB6Cd78e7527F4Ec032598E3aEe4dbd597fEFC97"
+  voting_registry: "0xcB6Cd78e7527F4Ec032598E3aEe4dbd597fEFC97"
+  lightweight_state: "0xcB6Cd78e7527F4Ec032598E3aEe4dbd597fEFC97"
   vault_address: "http://127.0.0.1:8200"
   vault_mount_path: "secret_data"
+  gas_multiplier: 1.23
 
 log:
   level: debug
