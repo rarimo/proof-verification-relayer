@@ -18,7 +18,10 @@ const (
 	networkConfigCtxKey
 	ethClientCtxKey
 	voteVerifierRegisterMethodCtxKey
+	votingVoteMethodCtxKey
 	votingRegistryCtxKey
+	lightweightStateCtxKey
+	signedTransitStateCtxKey
 )
 
 func CtxLog(entry *logan.Entry) func(context.Context) context.Context {
@@ -61,6 +64,16 @@ func VoteVerifierRegisterMethod(r *http.Request) *abi.Method {
 	return r.Context().Value(voteVerifierRegisterMethodCtxKey).(*abi.Method)
 }
 
+func CtxVotingVoteMethod(method *abi.Method) func(context.Context) context.Context {
+	return func(ctx context.Context) context.Context {
+		return context.WithValue(ctx, votingVoteMethodCtxKey, method)
+	}
+}
+
+func VotingVoteMethod(r *http.Request) *abi.Method {
+	return r.Context().Value(votingVoteMethodCtxKey).(*abi.Method)
+}
+
 func CtxVotingRegistry(registry *contracts.VotingRegistry) func(context.Context) context.Context {
 	return func(ctx context.Context) context.Context {
 		return context.WithValue(ctx, votingRegistryCtxKey, registry)
@@ -69,4 +82,24 @@ func CtxVotingRegistry(registry *contracts.VotingRegistry) func(context.Context)
 
 func VotingRegistry(r *http.Request) *contracts.VotingRegistry {
 	return r.Context().Value(votingRegistryCtxKey).(*contracts.VotingRegistry)
+}
+
+func CtxLightweightState(registry *contracts.LightweightState) func(context.Context) context.Context {
+	return func(ctx context.Context) context.Context {
+		return context.WithValue(ctx, lightweightStateCtxKey, registry)
+	}
+}
+
+func LightweightState(r *http.Request) *contracts.LightweightState {
+	return r.Context().Value(lightweightStateCtxKey).(*contracts.LightweightState)
+}
+
+func CtxSignedTransitStateMethod(method *abi.Method) func(context.Context) context.Context {
+	return func(ctx context.Context) context.Context {
+		return context.WithValue(ctx, signedTransitStateCtxKey, method)
+	}
+}
+
+func SignedTransitStateMethod(r *http.Request) *abi.Method {
+	return r.Context().Value(signedTransitStateCtxKey).(*abi.Method)
 }

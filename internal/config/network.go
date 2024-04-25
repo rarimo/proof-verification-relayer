@@ -3,6 +3,9 @@ package config
 import (
 	"context"
 	"crypto/ecdsa"
+	"math/big"
+	"sync"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
@@ -12,8 +15,6 @@ import (
 	"gitlab.com/distributed_lab/kit/comfig"
 	"gitlab.com/distributed_lab/kit/kv"
 	"gitlab.com/distributed_lab/logan/v3/errors"
-	"math/big"
-	"sync"
 )
 
 type NetworkConfiger interface {
@@ -32,11 +33,12 @@ type ethereum struct {
 }
 
 type NetworkConfig struct {
-	RPC            string         `fig:"rpc,required"`
-	Proposer       common.Address `fig:"proposer,required"`
-	VotingRegistry common.Address `fig:"voting_registry,required"`
-	Address        string         `fig:"vault_address,required"`
-	MountPath      string         `fig:"vault_mount_path,required"`
+	RPC              string         `fig:"rpc,required"`
+	Proposer         common.Address `fig:"proposer,required"`
+	VotingRegistry   common.Address `fig:"voting_registry,required"`
+	LightweightState common.Address `fig:"lightweight_state,required"`
+	Address          string         `fig:"vault_address,required"`
+	MountPath        string         `fig:"vault_mount_path,required"`
 
 	ChainID    *big.Int          `fig:"chain_id"`
 	Token      string            `dig:"VAULT_TOKEN,clear"`
@@ -74,11 +76,12 @@ func (e *ethereum) NetworkConfig() *NetworkConfig {
 
 		if err := dig.Out(&result).
 			Where(map[string]interface{}{
-				"rpc":              result.RPC,
-				"proposer":         result.Proposer,
-				"voting_registry":  result.VotingRegistry,
-				"vault_address":    result.Address,
-				"vault_mount_path": result.MountPath,
+				"rpc":               result.RPC,
+				"proposer":          result.Proposer,
+				"voting_registry":   result.VotingRegistry,
+				"lightweight_state": result.LightweightState,
+				"vault_address":     result.Address,
+				"vault_mount_path":  result.MountPath,
 			}).Now(); err != nil {
 			panic(err)
 		}
