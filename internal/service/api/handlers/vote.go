@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"math/big"
 	"net/http"
 	"strings"
 
@@ -54,6 +55,7 @@ func Vote(w http.ResponseWriter, r *http.Request) {
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
+	gasPrice = multiplyGasPrice(gasPrice, NetworkConfig(r).GasMultiplier)
 
 	NetworkConfig(r).LockNonce()
 	defer NetworkConfig(r).UnlockNonce()
@@ -135,4 +137,13 @@ func Vote(w http.ResponseWriter, r *http.Request) {
 			TxHash: tx.Hash().String(),
 		},
 	})
+}
+
+// ONE - One GWEI
+var ONE = 1000000000
+
+func multiplyGasPrice(gasPrice *big.Int, multiplier float64) *big.Int {
+	mult := big.NewFloat(0).Mul(big.NewFloat(multiplier), big.NewFloat(float64(ONE)))
+	gas, _ := big.NewFloat(0).Mul(big.NewFloat(0).SetInt(gasPrice), mult).Int(nil)
+	return big.NewInt(0).Div(gas, big.NewInt(int64(ONE)))
 }
