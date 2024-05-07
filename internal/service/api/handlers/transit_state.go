@@ -7,6 +7,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/types"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"github.com/rarimo/proof-verification-relayer/resources"
@@ -19,14 +21,18 @@ func TransitState(w http.ResponseWriter, r *http.Request) {
 	req, err := requests.TransitStateDataRequestRequest(r)
 	if err != nil {
 		Log(r).WithError(err).Error("failed to get request")
-		ape.RenderErr(w, problems.BadRequest(err)...)
+		ape.RenderErr(w, problems.BadRequest(validation.Errors{
+			"request": err,
+		})...)
 		return
 	}
 
 	dataBytes, err := hexutil.Decode(req.Data.TxData)
 	if err != nil {
 		Log(r).WithError(err).Error("failed to decode data")
-		ape.RenderErr(w, problems.BadRequest(err)...)
+		ape.RenderErr(w, problems.BadRequest(validation.Errors{
+			"tx_data": errors.Wrap(err, "failed to decode encoded tx data"),
+		})...)
 		return
 	}
 
@@ -37,33 +43,25 @@ func TransitState(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gasPrice, err := EthClient(r).SuggestGasPrice(r.Context())
+	NetworkConfig(r).LockNonce()
+	defer NetworkConfig(r).UnlockNonce()
+	txOpts, err := getTxOpts(r)
 	if err != nil {
-		Log(r).WithError(err).Error("failed to suggest gas price")
+		Log(r).WithError(err).Error("failed to get transaction options")
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
-	gasPrice = multiplyGasPrice(gasPrice, NetworkConfig(r).GasMultiplier)
 
-	NetworkConfig(r).LockNonce()
-	defer NetworkConfig(r).UnlockNonce()
-
-	tx, err := LightweightState(r).SignedTransitState(&bind.TransactOpts{
-		Nonce:    new(big.Int).SetUint64(NetworkConfig(r).Nonce()),
-		GasPrice: gasPrice,
-	}, newStatesRoot, gistData, proof)
+	tx, err := LightweightState(r).SignedTransitState(txOpts, newStatesRoot, gistData, proof)
+	if err != nil {
+		Log(r).WithError(err).Error("failed to make call to signed transit state")
+		ape.RenderErr(w, problems.InternalError())
+		return
+	}
 
 	NetworkConfig(r).IncrementNonce()
 
-	ape.Render(w, resources.Tx{
-		Key: resources.Key{
-			ID:   tx.Hash().String(),
-			Type: resources.TXS,
-		},
-		Attributes: resources.TxAttributes{
-			TxHash: tx.Hash().String(),
-		},
-	})
+	ape.Render(w, newTxModel(tx))
 }
 
 func getSignedTransitStateTxDataParams(r *http.Request, data []byte) ([32]byte, contracts.ILightweightStateGistRootData, []byte, error) {
@@ -99,4 +97,34 @@ func getSignedTransitStateTxDataParams(r *http.Request, data []byte) ([32]byte, 
 	}
 
 	return newStateRoot, gistRootData, lightweightStateProof, nil
+}
+
+func getTxOpts(r *http.Request) (*bind.TransactOpts, error) {
+	gasPrice, err := EthClient(r).SuggestGasPrice(r.Context())
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to suggest gas price")
+	}
+	gasPrice = multiplyGasPrice(gasPrice, NetworkConfig(r).GasMultiplier)
+
+	txOpts, err := bind.NewKeyedTransactorWithChainID(NetworkConfig(r).PrivateKey, NetworkConfig(r).ChainID)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create a transaction signer")
+	}
+
+	txOpts.Nonce = new(big.Int).SetUint64(NetworkConfig(r).Nonce())
+	txOpts.GasPrice = gasPrice
+
+	return txOpts, nil
+}
+
+func newTxModel(tx *types.Transaction) resources.Tx {
+	return resources.Tx{
+		Key: resources.Key{
+			ID:   tx.Hash().String(),
+			Type: resources.TXS,
+		},
+		Attributes: resources.TxAttributes{
+			TxHash: tx.Hash().String(),
+		},
+	}
 }
