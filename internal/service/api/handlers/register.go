@@ -13,7 +13,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
-	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/ape"
 	"gitlab.com/distributed_lab/ape/problems"
 	"gitlab.com/distributed_lab/logan/v3"
@@ -157,15 +156,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 	NetworkConfig(r).IncrementNonce()
 
-	ape.Render(w, resources.Tx{
-		Key: resources.Key{
-			ID:   tx.Hash().String(),
-			Type: resources.TXS,
-		},
-		Attributes: resources.TxAttributes{
-			TxHash: tx.Hash().String(),
-		},
-	})
+	ape.Render(w, newTxModel(tx))
 }
 
 func getRegistrationTxDataParams(r *http.Request, data []byte) (
