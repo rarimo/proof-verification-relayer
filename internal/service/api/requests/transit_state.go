@@ -21,7 +21,9 @@ func TransitStateDataRequestRequest(r *http.Request) (TransitStateDataRequest, e
 
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		return request, errors.Wrap(err, "failed to unmarshal")
+		return request, validation.Errors{
+			"body": errors.Wrap(err, "failed to unmarshal"),
+		}.Filter()
 	}
 
 	return request, validateTransitStateDataRequest(request)

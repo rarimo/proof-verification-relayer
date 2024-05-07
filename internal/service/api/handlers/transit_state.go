@@ -21,9 +21,7 @@ func TransitState(w http.ResponseWriter, r *http.Request) {
 	req, err := requests.TransitStateDataRequestRequest(r)
 	if err != nil {
 		Log(r).WithError(err).Error("failed to get request")
-		ape.RenderErr(w, problems.BadRequest(validation.Errors{
-			"request": err,
-		})...)
+		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
 	}
 
