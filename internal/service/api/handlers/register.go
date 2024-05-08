@@ -105,7 +105,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		types.NewCancunSigner(NetworkConfig(r).ChainID),
 		&types.LegacyTx{
 			Nonce:    NetworkConfig(r).Nonce(),
-			Gas:      gas,
+			Gas:      uint64(float64(gas) * NetworkConfig(r).GasMultiplier),
 			GasPrice: gasPrice,
 			To:       &registration,
 			Data:     dataBytes,
