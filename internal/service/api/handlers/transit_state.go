@@ -105,7 +105,6 @@ func getTxOpts(r *http.Request, receiver common.Address, txData []byte) (*bind.T
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to suggest gas price")
 	}
-	gasPrice = multiplyGasPrice(gasPrice, NetworkConfig(r).GasMultiplier)
 
 	gasLimit, err := EthClient(r).EstimateGas(r.Context(), ethereum.CallMsg{
 		From:     crypto.PubkeyToAddress(NetworkConfig(r).PrivateKey.PublicKey),
@@ -123,7 +122,7 @@ func getTxOpts(r *http.Request, receiver common.Address, txData []byte) (*bind.T
 	}
 
 	txOpts.Nonce = new(big.Int).SetUint64(NetworkConfig(r).Nonce())
-	txOpts.GasPrice = gasPrice
+	txOpts.GasPrice = multiplyGasPrice(gasPrice, NetworkConfig(r).GasMultiplier)
 	txOpts.GasLimit = uint64(float64(gasLimit) * NetworkConfig(r).GasMultiplier)
 
 	return txOpts, nil

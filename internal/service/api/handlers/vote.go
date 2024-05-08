@@ -54,7 +54,6 @@ func Vote(w http.ResponseWriter, r *http.Request) {
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
-	gasPrice = multiplyGasPrice(gasPrice, NetworkConfig(r).GasMultiplier)
 
 	NetworkConfig(r).LockNonce()
 	defer NetworkConfig(r).UnlockNonce()
@@ -77,7 +76,7 @@ func Vote(w http.ResponseWriter, r *http.Request) {
 		&types.LegacyTx{
 			Nonce:    NetworkConfig(r).Nonce(),
 			Gas:      uint64(float64(gas) * NetworkConfig(r).GasMultiplier),
-			GasPrice: gasPrice,
+			GasPrice: multiplyGasPrice(gasPrice, NetworkConfig(r).GasMultiplier),
 			To:       &voting,
 			Data:     dataBytes,
 		},
