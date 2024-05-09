@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -43,7 +44,7 @@ func TransitState(w http.ResponseWriter, r *http.Request) {
 
 	NetworkConfig(r).LockNonce()
 	defer NetworkConfig(r).UnlockNonce()
-	txOpts, err := getTxOpts(r)
+	txOpts, err := getTxOpts(r, NetworkConfig(r).LightweightState, dataBytes)
 	if err != nil {
 		Log(r).WithError(err).Error("failed to get transaction options")
 		ape.RenderErr(w, problems.InternalError())
@@ -97,12 +98,11 @@ func getSignedTransitStateTxDataParams(r *http.Request, data []byte) ([32]byte, 
 	return newStateRoot, gistRootData, lightweightStateProof, nil
 }
 
-func getTxOpts(r *http.Request) (*bind.TransactOpts, error) {
-	gasPrice, err := EthClient(r).SuggestGasPrice(r.Context())
+func getTxOpts(r *http.Request, receiver common.Address, txData []byte) (*bind.TransactOpts, error) {
+	gasPrice, gasLimit, err := getGasCosts(r, receiver, txData)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to suggest gas price")
+		return nil, errors.Wrap(err, "failed to get gas costs")
 	}
-	gasPrice = multiplyGasPrice(gasPrice, NetworkConfig(r).GasMultiplier)
 
 	txOpts, err := bind.NewKeyedTransactorWithChainID(NetworkConfig(r).PrivateKey, NetworkConfig(r).ChainID)
 	if err != nil {
@@ -111,6 +111,7 @@ func getTxOpts(r *http.Request) (*bind.TransactOpts, error) {
 
 	txOpts.Nonce = new(big.Int).SetUint64(NetworkConfig(r).Nonce())
 	txOpts.GasPrice = gasPrice
+	txOpts.GasLimit = gasLimit
 
 	return txOpts, nil
 }
