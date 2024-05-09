@@ -5,12 +5,10 @@ import (
 	"math/big"
 	"net/http"
 
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
@@ -101,19 +99,9 @@ func getSignedTransitStateTxDataParams(r *http.Request, data []byte) ([32]byte, 
 }
 
 func getTxOpts(r *http.Request, receiver common.Address, txData []byte) (*bind.TransactOpts, error) {
-	gasPrice, err := EthClient(r).SuggestGasPrice(r.Context())
+	gasPrice, gasLimit, err := getGasCosts(r, receiver, txData)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to suggest gas price")
-	}
-
-	gasLimit, err := EthClient(r).EstimateGas(r.Context(), ethereum.CallMsg{
-		From:     crypto.PubkeyToAddress(NetworkConfig(r).PrivateKey.PublicKey),
-		To:       &receiver,
-		GasPrice: gasPrice,
-		Data:     txData,
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to estimate gas limit")
+		return nil, errors.Wrap(err, "failed to get gas costs")
 	}
 
 	txOpts, err := bind.NewKeyedTransactorWithChainID(NetworkConfig(r).PrivateKey, NetworkConfig(r).ChainID)
@@ -122,8 +110,8 @@ func getTxOpts(r *http.Request, receiver common.Address, txData []byte) (*bind.T
 	}
 
 	txOpts.Nonce = new(big.Int).SetUint64(NetworkConfig(r).Nonce())
-	txOpts.GasPrice = multiplyGasPrice(gasPrice, NetworkConfig(r).GasMultiplier)
-	txOpts.GasLimit = uint64(float64(gasLimit) * NetworkConfig(r).GasMultiplier)
+	txOpts.GasPrice = gasPrice
+	txOpts.GasLimit = gasLimit
 
 	return txOpts, nil
 }

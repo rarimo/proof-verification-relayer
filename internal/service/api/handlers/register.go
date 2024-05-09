@@ -3,14 +3,10 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"gitlab.com/distributed_lab/ape"
@@ -77,80 +73,14 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	gasPrice, err := EthClient(r).SuggestGasPrice(r.Context())
-	if err != nil {
-		Log(r).WithError(err).Error("failed to suggest gas price")
-		ape.RenderErr(w, problems.InternalError())
-		return
-	}
-
 	NetworkConfig(r).LockNonce()
 	defer NetworkConfig(r).UnlockNonce()
 
-	gas, err := EthClient(r).EstimateGas(r.Context(), ethereum.CallMsg{
-		From:     crypto.PubkeyToAddress(NetworkConfig(r).PrivateKey.PublicKey),
-		To:       &registration,
-		GasPrice: gasPrice,
-		Data:     dataBytes,
-	})
+	tx, err := processLegacyTx(r, registration, dataBytes)
 	if err != nil {
-		Log(r).WithError(err).Error("failed to estimate gas")
+		Log(r).WithError(err).Error("failed to process legacy transaction")
 		ape.RenderErr(w, problems.InternalError())
 		return
-	}
-
-	tx, err := types.SignNewTx(
-		NetworkConfig(r).PrivateKey,
-		types.NewCancunSigner(NetworkConfig(r).ChainID),
-		&types.LegacyTx{
-			Nonce:    NetworkConfig(r).Nonce(),
-			Gas:      uint64(float64(gas) * NetworkConfig(r).GasMultiplier),
-			GasPrice: multiplyGasPrice(gasPrice, NetworkConfig(r).GasMultiplier),
-			To:       &registration,
-			Data:     dataBytes,
-		},
-	)
-	if err != nil {
-		Log(r).WithError(err).Error("failed to sign new tx")
-		ape.RenderErr(w, problems.InternalError())
-		return
-	}
-
-	if err := EthClient(r).SendTransaction(r.Context(), tx); err != nil {
-		if strings.Contains(err.Error(), "nonce") {
-			if err := NetworkConfig(r).ResetNonce(EthClient(r)); err != nil {
-				Log(r).WithError(err).Error("failed to reset nonce")
-				ape.RenderErr(w, problems.InternalError())
-				return
-			}
-
-			tx, err = types.SignNewTx(
-				NetworkConfig(r).PrivateKey,
-				types.NewCancunSigner(NetworkConfig(r).ChainID),
-				&types.LegacyTx{
-					Nonce:    NetworkConfig(r).Nonce(),
-					Gas:      gas,
-					GasPrice: gasPrice,
-					To:       &registration,
-					Data:     dataBytes,
-				},
-			)
-			if err != nil {
-				Log(r).WithError(err).Error("failed to sign new tx")
-				ape.RenderErr(w, problems.InternalError())
-				return
-			}
-
-			if err := EthClient(r).SendTransaction(r.Context(), tx); err != nil {
-				Log(r).WithError(err).Error("failed to send transaction")
-				ape.RenderErr(w, problems.InternalError())
-				return
-			}
-		} else {
-			Log(r).WithError(err).Error("failed to send transaction")
-			ape.RenderErr(w, problems.InternalError())
-			return
-		}
 	}
 
 	NetworkConfig(r).IncrementNonce()
