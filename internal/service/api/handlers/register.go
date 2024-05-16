@@ -22,50 +22,51 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
 	}
+	log := Log(r).WithField("calldata", req.Data.TxData)
 
 	dataBytes, err := hexutil.Decode(req.Data.TxData)
 	if err != nil {
-		Log(r).WithError(err).Error("failed to decode data")
+		log.WithError(err).Error("failed to decode data")
 		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
 	}
 
 	registration, registerProofParams, err := getRegistrationTxDataParams(r, dataBytes)
 	if err != nil {
-		Log(r).WithError(err).Error("failed to get tx data params")
+		log.WithError(err).Error("failed to get tx data params")
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
 
 	exists, err := VotingRegistry(r).IsPoolExistByProposer(&bind.CallOpts{}, NetworkConfig(r).Proposer, registration)
 	if err != nil {
-		Log(r).WithError(err).Error("failed to check if registration exists by proposer")
+		log.WithError(err).Error("failed to check if registration exists by proposer")
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
 
 	if !exists {
-		Log(r).WithField("registration", registration.String()).Error("registration does not exist")
+		log.WithField("registration", registration.String()).Error("registration does not exist")
 		ape.RenderErr(w, problems.BadRequest(errors.New("registration does not exist"))...)
 		return
 	}
 
 	voteVerifier, err := contracts.NewVoteVerifier(registration, EthClient(r))
 	if err != nil {
-		Log(r).WithError(err).Error("failed to initialize new vote verifier")
+		log.WithError(err).Error("failed to initialize new vote verifier")
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
 
 	isRegistered, err := voteVerifier.IsUserRegistered(&bind.CallOpts{}, registerProofParams.DocumentNullifier)
 	if err != nil {
-		Log(r).WithError(err).Error("failed to check if user is registered by document nullifier")
+		log.WithError(err).Error("failed to check if user is registered by document nullifier")
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
 
 	if isRegistered {
-		Log(r).WithFields(logan.F{
+		log.WithFields(logan.F{
 			"registration":       registration.Hex(),
 			"document_nullifier": registerProofParams.DocumentNullifier.String(),
 		}).Error("too many requests for registration and document nullifier")
@@ -78,7 +79,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 	tx, err := processLegacyTx(r, registration, dataBytes)
 	if err != nil {
-		Log(r).WithError(err).Error("failed to process legacy transaction")
+		log.WithError(err).Error("failed to process legacy transaction")
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
