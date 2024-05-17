@@ -7,6 +7,9 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/ethereum/go-ethereum/core/vm"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	pkgErrors "github.com/pkg/errors"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"gitlab.com/distributed_lab/ape"
@@ -80,6 +83,12 @@ func Register(w http.ResponseWriter, r *http.Request) {
 	tx, err := processLegacyTx(r, registration, dataBytes)
 	if err != nil {
 		log.WithError(err).Error("failed to process legacy transaction")
+		if pkgErrors.Is(err, vm.ErrExecutionReverted) {
+			ape.RenderErr(w, problems.BadRequest(validation.Errors{
+				"tx": pkgErrors.Cause(err),
+			}.Filter())...)
+			return
+		}
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
