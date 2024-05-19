@@ -25,7 +25,10 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
 	}
-	log := Log(r).WithField("calldata", req.Data.TxData)
+	log := Log(r).WithFields(logan.F{
+		"user-agent": r.Header.Get("User-Agent"),
+		"calldata":   req.Data.TxData,
+	})
 
 	dataBytes, err := hexutil.Decode(req.Data.TxData)
 	if err != nil {
