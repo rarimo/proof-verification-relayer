@@ -6,7 +6,6 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	vaultapi "github.com/hashicorp/vault/api"
@@ -33,13 +32,10 @@ type ethereum struct {
 }
 
 type NetworkConfig struct {
-	RPC              string         `fig:"rpc,required"`
-	Proposer         common.Address `fig:"proposer,required"`
-	VotingRegistry   common.Address `fig:"voting_registry,required"`
-	LightweightState common.Address `fig:"lightweight_state,required"`
-	Address          string         `fig:"vault_address,required"`
-	MountPath        string         `fig:"vault_mount_path,required"`
-	GasMultiplier    float64        `fig:"gas_multiplier,required"`
+	Client        *ethclient.Client `fig:"rpc,required"`
+	Address       string            `fig:"vault_address,required"`
+	MountPath     string            `fig:"vault_mount_path,required"`
+	GasMultiplier float64           `fig:"gas_multiplier,required"`
 
 	ChainID    *big.Int          `fig:"chain_id"`
 	Token      string            `dig:"VAULT_TOKEN,clear"`
@@ -62,62 +58,21 @@ func (e *ethereum) NetworkConfig() *NetworkConfig {
 			panic(errors.Wrap(err, "failed to figure out ethereum config"))
 		}
 
-		ethClient, err := ethclient.Dial(result.RPC)
-		if err != nil {
-			panic(errors.Wrap(err, "failed to create connection"))
-		}
-		defer ethClient.Close()
-
-		chainID, err := ethClient.ChainID(context.Background())
+		chainID, err := result.Client.ChainID(context.Background())
 		if err != nil {
 			return errors.Wrap(err, "failed to get chain ID")
 		}
 
 		result.ChainID = chainID
 
-		if err := dig.Out(&result).
-			Where(map[string]interface{}{
-				"rpc":               result.RPC,
-				"proposer":          result.Proposer,
-				"voting_registry":   result.VotingRegistry,
-				"lightweight_state": result.LightweightState,
-				"vault_address":     result.Address,
-				"vault_mount_path":  result.MountPath,
-				"gas_multiplier":    result.GasMultiplier,
-			}).Now(); err != nil {
-			panic(err)
+		if result.PrivateKey == nil {
+			result.PrivateKey, err = retrieveVaultPrivateKey(result)
+			if err != nil {
+				panic(errors.Wrap(err, "failed to retrieve vault private key"))
+			}
 		}
 
-		conf := vaultapi.DefaultConfig()
-		conf.Address = result.Address
-
-		vaultClient, err := vaultapi.NewClient(conf)
-		if err != nil {
-			panic(errors.Wrap(err, "failed to initialize new client"))
-		}
-
-		vaultClient.SetToken(result.Token)
-
-		secret, err := vaultClient.KVv2(result.MountPath).Get(context.Background(), "relayer")
-		if err != nil {
-			panic(errors.Wrap(err, "failed to get secret"))
-		}
-
-		vaultRelayerConf := struct {
-			PrivateKey *ecdsa.PrivateKey `fig:"private_key,required"`
-		}{}
-
-		if err := figure.
-			Out(&vaultRelayerConf).
-			With(figure.BaseHooks, figure.EthereumHooks).
-			From(secret.Data).
-			Please(); err != nil {
-			panic(errors.Wrap(err, "failed to figure out"))
-		}
-
-		result.PrivateKey = vaultRelayerConf.PrivateKey
-
-		nonce, err := ethClient.NonceAt(context.Background(), crypto.PubkeyToAddress(result.PrivateKey.PublicKey), nil)
+		nonce, err := result.Client.NonceAt(context.Background(), crypto.PubkeyToAddress(result.PrivateKey.PublicKey), nil)
 		if err != nil {
 			panic(errors.Wrap(err, "failed to get nonce"))
 		}
@@ -128,6 +83,46 @@ func (e *ethereum) NetworkConfig() *NetworkConfig {
 
 		return &result
 	}).(*NetworkConfig)
+}
+
+func retrieveVaultPrivateKey(result NetworkConfig) (*ecdsa.PrivateKey, error) {
+	if err := dig.Out(&result).
+		Where(map[string]interface{}{
+			"vault_address":    result.Address,
+			"vault_mount_path": result.MountPath,
+			"gas_multiplier":   result.GasMultiplier,
+		}).Now(); err != nil {
+		panic(err)
+	}
+
+	conf := vaultapi.DefaultConfig()
+	conf.Address = result.Address
+
+	vaultClient, err := vaultapi.NewClient(conf)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to initialize new client"))
+	}
+
+	vaultClient.SetToken(result.Token)
+
+	secret, err := vaultClient.KVv2(result.MountPath).Get(context.Background(), "relayer")
+	if err != nil {
+		panic(errors.Wrap(err, "failed to get secret"))
+	}
+
+	vaultRelayerConf := struct {
+		PrivateKey *ecdsa.PrivateKey `fig:"private_key,required"`
+	}{}
+
+	if err := figure.
+		Out(&vaultRelayerConf).
+		With(figure.BaseHooks, figure.EthereumHooks).
+		From(secret.Data).
+		Please(); err != nil {
+		panic(errors.Wrap(err, "failed to figure out"))
+	}
+
+	return vaultRelayerConf.PrivateKey, nil
 }
 
 func (n *NetworkConfig) LockNonce() {
