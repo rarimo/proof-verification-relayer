@@ -1,13 +1,13 @@
-package service
+package api
 
 import (
+	"context"
 	"net"
-	"net/http"
 
 	"github.com/rarimo/proof-verification-relayer/internal/config"
+	"gitlab.com/distributed_lab/ape"
 	"gitlab.com/distributed_lab/kit/copus/types"
 	"gitlab.com/distributed_lab/logan/v3"
-	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 type service struct {
@@ -17,28 +17,20 @@ type service struct {
 	cfg      config.Config
 }
 
-func (s *service) run() error {
+func (s *service) run(ctx context.Context) {
 	s.log.Info("Service started")
-	r := s.router()
-
-	if err := s.copus.RegisterChi(r); err != nil {
-		return errors.Wrap(err, "cop failed")
-	}
-
-	return http.Serve(s.listener, r)
+	ape.Serve(ctx, s.router(), s.cfg, ape.ServeOpts{})
 }
 
 func newService(cfg config.Config) *service {
 	return &service{
-		log:      cfg.Log(),
+		log:      cfg.Log().WithField("service", "api"),
 		copus:    cfg.Copus(),
 		listener: cfg.Listener(),
 		cfg:      cfg,
 	}
 }
 
-func Run(cfg config.Config) {
-	if err := newService(cfg).run(); err != nil {
-		panic(err)
-	}
+func Run(ctx context.Context, cfg config.Config) {
+	newService(cfg).run(ctx)
 }
