@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"gitlab.com/distributed_lab/ape"
@@ -37,7 +38,11 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exists, err := VotingRegistry(r).IsPoolExistByProposer(&bind.CallOpts{}, NetworkConfig(r).Proposer, registration)
+	exists, err := VotingRegistry(r).IsPoolExistByProposer(
+		&bind.CallOpts{},
+		Config(r).ContractsConfig()[config.Proposer].Address,
+		registration,
+	)
 	if err != nil {
 		Log(r).WithError(err).Error("failed to check if registration exists by proposer")
 		ape.RenderErr(w, problems.InternalError())
@@ -50,7 +55,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	voteVerifier, err := contracts.NewVoteVerifier(registration, EthClient(r))
+	voteVerifier, err := contracts.NewVoteVerifier(registration, Config(r).NetworkConfig().Client)
 	if err != nil {
 		Log(r).WithError(err).Error("failed to initialize new vote verifier")
 		ape.RenderErr(w, problems.InternalError())
@@ -73,8 +78,8 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	NetworkConfig(r).LockNonce()
-	defer NetworkConfig(r).UnlockNonce()
+	Config(r).NetworkConfig().LockNonce()
+	defer Config(r).NetworkConfig().UnlockNonce()
 
 	tx, err := processLegacyTx(r, registration, dataBytes)
 	if err != nil {
@@ -83,7 +88,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	NetworkConfig(r).IncrementNonce()
+	Config(r).NetworkConfig().IncrementNonce()
 
 	ape.Render(w, newTxModel(tx))
 }

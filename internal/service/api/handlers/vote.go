@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"gitlab.com/distributed_lab/ape"
 	"gitlab.com/distributed_lab/ape/problems"
@@ -35,7 +36,11 @@ func Vote(w http.ResponseWriter, r *http.Request) {
 	registration := common.HexToAddress(req.Data.Registration)
 	voting := common.HexToAddress(req.Data.Voting)
 
-	exists, err := VotingRegistry(r).IsPoolExistByProposer(&bind.CallOpts{}, NetworkConfig(r).Proposer, registration)
+	exists, err := VotingRegistry(r).IsPoolExistByProposer(
+		&bind.CallOpts{},
+		Config(r).ContractsConfig()[config.Proposer].Address,
+		registration,
+	)
 	if err != nil {
 		Log(r).WithError(err).Error("failed to check if registration exists by proposer")
 		ape.RenderErr(w, problems.InternalError())
@@ -48,8 +53,8 @@ func Vote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	NetworkConfig(r).LockNonce()
-	defer NetworkConfig(r).UnlockNonce()
+	Config(r).NetworkConfig().LockNonce()
+	defer Config(r).NetworkConfig().UnlockNonce()
 
 	tx, err := processLegacyTx(r, voting, dataBytes)
 	if err != nil {
@@ -58,7 +63,7 @@ func Vote(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	NetworkConfig(r).IncrementNonce()
+	Config(r).NetworkConfig().IncrementNonce()
 
 	ape.Render(w, newTxModel(tx))
 }
@@ -79,10 +84,10 @@ func processLegacyTx(r *http.Request, receiver common.Address, txData []byte) (*
 	}
 
 	tx, err := types.SignNewTx(
-		NetworkConfig(r).PrivateKey,
-		types.NewCancunSigner(NetworkConfig(r).ChainID),
+		Config(r).NetworkConfig().PrivateKey,
+		types.NewCancunSigner(Config(r).NetworkConfig().ChainID),
 		&types.LegacyTx{
-			Nonce:    NetworkConfig(r).Nonce(),
+			Nonce:    Config(r).NetworkConfig().Nonce(),
 			Gas:      gasLimit,
 			GasPrice: gasPrice,
 			To:       &receiver,
@@ -105,14 +110,14 @@ func getGasCosts(
 	receiver common.Address,
 	txData []byte,
 ) (gasPrice *big.Int, gasLimit uint64, err error) {
-	gasPrice, err = EthClient(r).SuggestGasPrice(r.Context())
+	gasPrice, err = Config(r).NetworkConfig().Client.SuggestGasPrice(r.Context())
 	if err != nil {
 		return nil, 0, errors.Wrap(err, "failed to suggest gas price")
 	}
-	gasPrice = multiplyGasPrice(gasPrice, NetworkConfig(r).GasMultiplier)
+	gasPrice = multiplyGasPrice(gasPrice, Config(r).NetworkConfig().GasMultiplier)
 
-	gasLimit, err = EthClient(r).EstimateGas(r.Context(), ethereum.CallMsg{
-		From:     crypto.PubkeyToAddress(NetworkConfig(r).PrivateKey.PublicKey),
+	gasLimit, err = Config(r).NetworkConfig().Client.EstimateGas(r.Context(), ethereum.CallMsg{
+		From:     crypto.PubkeyToAddress(Config(r).NetworkConfig().PrivateKey.PublicKey),
 		To:       &receiver,
 		GasPrice: gasPrice,
 		Data:     txData,
@@ -120,23 +125,23 @@ func getGasCosts(
 	if err != nil {
 		return nil, 0, errors.Wrap(err, "failed to estimate gas costs limit")
 	}
-	gasLimit = uint64(float64(gasLimit) * NetworkConfig(r).GasMultiplier)
+	gasLimit = uint64(float64(gasLimit) * Config(r).NetworkConfig().GasMultiplier)
 
 	return
 }
 
 func sendTransaction(r *http.Request, tx *types.Transaction) error {
-	if err := EthClient(r).SendTransaction(r.Context(), tx); err != nil {
+	if err := Config(r).NetworkConfig().Client.SendTransaction(r.Context(), tx); err != nil {
 		if strings.Contains(err.Error(), "nonce") {
-			if err = NetworkConfig(r).ResetNonce(EthClient(r)); err != nil {
+			if err = Config(r).NetworkConfig().ResetNonce(Config(r).NetworkConfig().Client); err != nil {
 				return errors.Wrap(err, "failed to reset nonce")
 			}
 
 			tx, err = types.SignNewTx(
-				NetworkConfig(r).PrivateKey,
-				types.NewCancunSigner(NetworkConfig(r).ChainID),
+				Config(r).NetworkConfig().PrivateKey,
+				types.NewCancunSigner(Config(r).NetworkConfig().ChainID),
 				&types.LegacyTx{
-					Nonce:    NetworkConfig(r).Nonce(),
+					Nonce:    Config(r).NetworkConfig().Nonce(),
 					Gas:      tx.Gas(),
 					GasPrice: tx.GasPrice(),
 					To:       tx.To(),
@@ -147,7 +152,7 @@ func sendTransaction(r *http.Request, tx *types.Transaction) error {
 				return errors.Wrap(err, "failed to sign new tx")
 			}
 
-			if err := EthClient(r).SendTransaction(r.Context(), tx); err != nil {
+			if err := Config(r).NetworkConfig().Client.SendTransaction(r.Context(), tx); err != nil {
 				return errors.Wrap(err, "failed to resend transaction")
 			}
 		} else {
