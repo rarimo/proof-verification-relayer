@@ -17,7 +17,7 @@ type StateQ interface {
 }
 
 type State struct {
-	ID        int64     `db:"id" structs:"-"`
+	ID        string    `db:"id" structs:"-"`
 	Root      string    `db:"root" structs:"root"`
 	TxHash    string    `db:"tx_hash" structs:"tx_hash"`
 	Block     uint64    `db:"block" structs:"block"`

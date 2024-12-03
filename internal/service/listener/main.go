@@ -95,7 +95,7 @@ func (l *listener) getStartBlockNumber(ctx context.Context) (uint64, error) {
 		return l.contract.Block, nil
 	}
 
-	return max(l.contract.Block, 0), nil
+	return max(l.contract.Block, state.Block), nil
 }
 
 func (l *listener) readEvents(ctx context.Context, block uint64) (uint64, error) {
@@ -106,12 +106,13 @@ func (l *listener) readEvents(ctx context.Context, block uint64) (uint64, error)
 		return block, errors.Wrap(err, "failed to get latest block header")
 	}
 
-	for ; block <= header.Number.Uint64(); block += blocksDistanceDelta {
+	for ; block < header.Number.Uint64(); block = min(header.Number.Uint64(), block+blocksDistanceDelta) {
+		toBlock := min(header.Number.Uint64(), block+blocksDistanceDelta)
 		logs, err := l.client.FilterLogs(ctx, ethereum.FilterQuery{
 			Topics:    [][]common.Hash{{common.HexToHash(RootUpdatedEventTopic)}},
 			Addresses: []common.Address{l.contract.Address},
 			FromBlock: new(big.Int).SetUint64(block),
-			ToBlock:   new(big.Int).SetUint64(block + blocksDistanceDelta),
+			ToBlock:   new(big.Int).SetUint64(toBlock),
 		})
 		if err != nil {
 			return block, errors.Wrap(err, "failed to filter logs", logan.F{"address": l.contract.Address, "start_block": block})
@@ -125,7 +126,7 @@ func (l *listener) readEvents(ctx context.Context, block uint64) (uint64, error)
 
 		l.log.WithFields(logan.F{
 			"from":   block,
-			"to":     block + blocksDistanceDelta,
+			"to":     toBlock,
 			"events": len(logs),
 		}).Debug("found events")
 	}
@@ -165,7 +166,7 @@ func (l *listener) handleLog(event types.Log) error {
 	copy(root[:], event.Data[:32])
 
 	if err := l.stateQ.Upsert(data.State{
-		TxHash:    event.TxHash.String(),
+		TxHash:    hex.EncodeToString(event.TxHash.Bytes()),
 		Block:     event.BlockNumber,
 		Root:      hex.EncodeToString(root[:]),
 		CreatedAt: time.Now(),
