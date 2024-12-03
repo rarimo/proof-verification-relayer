@@ -1,35 +1,37 @@
 package cli
 
 import (
+	"context"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
+
 	"github.com/alecthomas/kingpin"
 	"github.com/rarimo/proof-verification-relayer/internal/config"
-	"github.com/rarimo/proof-verification-relayer/internal/service"
+	"github.com/rarimo/proof-verification-relayer/internal/service/api"
+	"github.com/rarimo/proof-verification-relayer/internal/service/listener"
 	"gitlab.com/distributed_lab/kit/kv"
 	"gitlab.com/distributed_lab/logan/v3"
 )
 
 func Run(args []string) bool {
-	log := logan.New()
-
 	defer func() {
 		if rvr := recover(); rvr != nil {
-			log.WithRecover(rvr).Error("app panicked")
+			logan.New().WithRecover(rvr).Error("app panicked")
 		}
 	}()
 
-	cfg := config.New(kv.MustFromEnv())
-	log = cfg.Log()
-
-	app := kingpin.New("proof-verification-relayer", "")
-
-	runCmd := app.Command("run", "run command")
-	serviceCmd := runCmd.Command("service", "run service") // you can insert custom help
-
-	migrateCmd := app.Command("migrate", "migrate command")
-	migrateUpCmd := migrateCmd.Command("up", "migrate db up")
-	migrateDownCmd := migrateCmd.Command("down", "migrate db down")
-
-	// custom commands go here...
+	var (
+		cfg            = config.New(kv.MustFromEnv())
+		log            = cfg.Log()
+		app            = kingpin.New("proof-verification-relayer", "")
+		runCmd         = app.Command("run", "run command")
+		serviceCmd     = runCmd.Command("service", "run service")
+		migrateCmd     = app.Command("migrate", "migrate command")
+		migrateUpCmd   = migrateCmd.Command("up", "migrate db up")
+		migrateDownCmd = migrateCmd.Command("down", "migrate db down")
+	)
 
 	cmd, err := app.Parse(args[1:])
 	if err != nil {
@@ -37,9 +39,22 @@ func Run(args []string) bool {
 		return false
 	}
 
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	var wg sync.WaitGroup
+	run := func(f func(context.Context, config.Config)) {
+		wg.Add(1)
+		go func() {
+			f(ctx, cfg)
+			wg.Done()
+		}()
+	}
+
 	switch cmd {
 	case serviceCmd.FullCommand():
-		service.Run(cfg)
+		run(api.Run)
+		run(listener.Run)
 	case migrateUpCmd.FullCommand():
 		err = MigrateUp(cfg)
 	case migrateDownCmd.FullCommand():
@@ -53,5 +68,24 @@ func Run(args []string) bool {
 		log.WithError(err).Error("failed to exec cmd")
 		return false
 	}
+
+	gracefulStop := make(chan os.Signal, 1)
+	signal.Notify(gracefulStop, syscall.SIGTERM, syscall.SIGINT)
+
+	wgch := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(wgch)
+	}()
+
+	select {
+	case <-ctx.Done():
+		cfg.Log().WithError(ctx.Err()).Info("Interrupt signal received")
+		stop()
+		<-wgch
+	case <-wgch:
+		cfg.Log().Warn("all services stopped")
+	}
+
 	return true
 }
