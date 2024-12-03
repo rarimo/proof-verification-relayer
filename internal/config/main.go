@@ -15,6 +15,9 @@ type Config interface {
 	comfig.Listenerer
 
 	NetworkConfiger
+	ContractsConfiger
+
+	Pinger() Pinger
 }
 
 type config struct {
@@ -25,15 +28,18 @@ type config struct {
 	getter kv.Getter
 
 	NetworkConfiger
+	ContractsConfiger
+	pinger comfig.Once
 }
 
 func New(getter kv.Getter) Config {
 	return &config{
-		getter:          getter,
-		Databaser:       pgdb.NewDatabaser(getter),
-		Copuser:         copus.NewCopuser(getter),
-		Listenerer:      comfig.NewListenerer(getter),
-		Logger:          comfig.NewLogger(getter, comfig.LoggerOpts{}),
-		NetworkConfiger: NewNetworkConfiger(getter),
+		getter:            getter,
+		Databaser:         pgdb.NewDatabaser(getter),
+		Copuser:           copus.NewCopuser(getter),
+		Listenerer:        comfig.NewListenerer(getter),
+		Logger:            comfig.NewLogger(getter, comfig.LoggerOpts{}),
+		NetworkConfiger:   NewNetworkConfiger(getter),
+		ContractsConfiger: NewContractsConfiger(getter),
 	}
 }
