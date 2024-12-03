@@ -45,7 +45,7 @@ func (q stateQ) Get() (*data.State, error) {
 }
 
 func (q stateQ) Upsert(value data.State) error {
-	return q.db.Exec(sq.Insert(stateTableName).SetMap(structs.Map(value)).Suffix("ON CONFLICT (block, root) DO NOTHING"))
+	return q.db.Exec(sq.Insert(stateTableName).SetMap(structs.Map(value)).Suffix("ON CONFLICT (root, tx_hash) DO NOTHING"))
 }
 
 func (q stateQ) FilterByRoot(root ...string) data.StateQ {

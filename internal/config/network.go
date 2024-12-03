@@ -60,7 +60,7 @@ func (e *ethereum) NetworkConfig() *NetworkConfig {
 
 		chainID, err := result.Client.ChainID(context.Background())
 		if err != nil {
-			return errors.Wrap(err, "failed to get chain ID")
+			panic(errors.Wrap(err, "failed to get chain ID"))
 		}
 
 		result.ChainID = chainID
