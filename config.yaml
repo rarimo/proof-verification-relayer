@@ -12,7 +12,7 @@ contracts:
     address: null
   lightweight_state:
     address: null
-  register2:
+  smt_replicator:
     address: "0xA25a197d26Cad659A8fFf7F268cA4F9e0283de03"
     block: 4939333 # Block is optional field for contract listeners, default value is 0 if nothing set
 
@@ -24,11 +24,15 @@ db:
   url: db_url
 
 pinger:
+  blocks_distance: 10000
   timeout: 5s # timeout to ping logs when 'subscribed' via http
   normal_period: 10s
   min_abnormal_period: 10s
   max_abnormal_period: 10s
 
+replicator:
+  source_smt: 0xc1534912902BBe8C54626e2D69288C76a843bc0E
+  root_prefix: Rarimo root
 
 listener:
   addr: :8000

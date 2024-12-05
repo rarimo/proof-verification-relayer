@@ -2,9 +2,11 @@ package handlers
 
 import (
 	"encoding/hex"
+	"math/big"
 	"net/http"
 
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/data"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"github.com/rarimo/proof-verification-relayer/resources"
@@ -57,16 +59,31 @@ func GetSignedState(w http.ResponseWriter, r *http.Request) {
 		},
 		Attributes: resources.StateAttributes{
 			Signature: hex.EncodeToString(signature),
-			Timestamp: state.CreatedAt.Unix(),
+			Timestamp: int64(state.Timestamp),
 		},
 	})
 }
 
 func signState(state data.State, r *http.Request) ([]byte, error) {
-	digest, err := hex.DecodeString(state.Root)
+	rootBytes, err := hex.DecodeString(state.Root)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to decode signature digest", logan.F{"root": state.Root})
 	}
+
+	//keccak256(abi.encodePacked(
+	//	REGISTRATION_ROOT_PREFIX,
+	//	sourceSMT,
+	//	address(this),
+	//	newRoot_,
+	//	transitionTimestamp_
+	//));
+	digest := crypto.Keccak256(
+		[]byte(Config(r).Replicator().RootPrefix),
+		Config(r).Replicator().SourceSMT.Bytes(),
+		Config(r).ContractsConfig()[config.SMTReplicator].Address.Bytes(),
+		rootBytes,
+		new(big.Int).SetUint64(state.Timestamp).Bytes(),
+	)
 
 	signature, err := crypto.Sign(digest, Config(r).NetworkConfig().PrivateKey)
 	if err != nil {

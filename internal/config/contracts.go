@@ -14,12 +14,12 @@ const (
 	Proposer         = "proposer"
 	VotingRegistry   = "voting_registry"
 	LightweightState = "lightweight_state"
-	Register2        = "register2"
+	SMTReplicator    = "smt_replicator"
 )
 
 var (
 	errMissingContract = errors.New("missing contract")
-	contracts          = []string{Proposer, VotingRegistry, LightweightState, Register2}
+	contracts          = []string{Proposer, VotingRegistry, LightweightState, SMTReplicator}
 )
 
 type ContractsConfiger interface {

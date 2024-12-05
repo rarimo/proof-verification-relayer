@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/rarimo/proof-verification-relayer/internal/config"
+	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/data"
 	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
 	"gitlab.com/distributed_lab/logan/v3"
@@ -19,13 +20,8 @@ import (
 )
 
 const (
-	blocksDistanceDelta   = 10000
-	serviceName           = "listener"
-	RootUpdatedEventTopic = "0x2cbc14f49c068133583f7cb530018af451c87c1cf1327cf2a4ff4698c4730aa4"
-)
-
-var (
-	ErrInvalidEventDataLen = errors.New("invalid data length for event")
+	serviceName                = "listener"
+	RootTransitionedEventTopic = "0x287d7075e3fdd1ee3cb7eef1d33839a4b50939e7bc33a68d8f6031eb3a1a14c6"
 )
 
 type Listener interface {
@@ -33,27 +29,37 @@ type Listener interface {
 }
 
 type listener struct {
-	log      *logan.Entry
-	client   *ethclient.Client
-	stateQ   data.StateQ
-	contract config.ContractConfig
-	pinger   config.Pinger
+	log           *logan.Entry
+	client        *ethclient.Client
+	stateQ        data.StateQ
+	smtReplicator *contracts.RegistrationSMTReplicator
+	contractCfg   config.ContractConfig
+	pinger        config.Pinger
 }
 
 func NewListener(
 	cfg config.Config,
-) Listener {
-	register2Contract := cfg.ContractsConfig()[config.Register2]
+) (Listener, error) {
+	smtReplicatorCfg := cfg.ContractsConfig()[config.SMTReplicator]
+	smtReplicatorContract, err := contracts.NewRegistrationSMTReplicator(
+		smtReplicatorCfg.Address,
+		cfg.NetworkConfig().Client,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create smtReplicator contractCfg")
+	}
+
 	return &listener{
 		log: cfg.Log().WithFields(logan.F{
 			"service": serviceName,
-			"address": register2Contract.Address.String(),
+			"address": smtReplicatorCfg.Address.String(),
 		}),
-		client:   cfg.NetworkConfig().Client,
-		stateQ:   pg.NewStateQ(cfg.DB().Clone()),
-		contract: register2Contract,
-		pinger:   cfg.Pinger(),
-	}
+		client:        cfg.NetworkConfig().Client,
+		stateQ:        pg.NewStateQ(cfg.DB().Clone()),
+		smtReplicator: smtReplicatorContract,
+		contractCfg:   smtReplicatorCfg,
+		pinger:        cfg.Pinger(),
+	}, nil
 }
 
 func (l *listener) Start(ctx context.Context) {
@@ -88,14 +94,14 @@ func (l *listener) getStartBlockNumber(ctx context.Context) (uint64, error) {
 
 	state, err := l.stateQ.SortByBlockHeight(data.DESC).Get()
 	if err != nil {
-		return 0, errors.Wrap(err, "failed to get states", logan.F{"chain_id": chainID.Uint64(), "address": l.contract.Address.String()})
+		return 0, errors.Wrap(err, "failed to get states", logan.F{"chain_id": chainID.Uint64(), "address": l.contractCfg.Address.String()})
 	}
 
 	if state == nil {
-		return l.contract.Block, nil
+		return l.contractCfg.Block, nil
 	}
 
-	return max(l.contract.Block, state.Block), nil
+	return max(l.contractCfg.Block, state.Block), nil
 }
 
 func (l *listener) readEvents(ctx context.Context, block uint64) (uint64, error) {
@@ -106,16 +112,16 @@ func (l *listener) readEvents(ctx context.Context, block uint64) (uint64, error)
 		return block, errors.Wrap(err, "failed to get latest block header")
 	}
 
-	for ; block < header.Number.Uint64(); block = min(header.Number.Uint64(), block+blocksDistanceDelta) {
-		toBlock := min(header.Number.Uint64(), block+blocksDistanceDelta)
+	for ; block < header.Number.Uint64(); block = min(header.Number.Uint64(), block+l.pinger.BlocksDistance) {
+		toBlock := min(header.Number.Uint64(), block+l.pinger.BlocksDistance)
 		logs, err := l.client.FilterLogs(ctx, ethereum.FilterQuery{
-			Topics:    [][]common.Hash{{common.HexToHash(RootUpdatedEventTopic)}},
-			Addresses: []common.Address{l.contract.Address},
+			Topics:    [][]common.Hash{{common.HexToHash(RootTransitionedEventTopic)}},
+			Addresses: []common.Address{l.contractCfg.Address},
 			FromBlock: new(big.Int).SetUint64(block),
 			ToBlock:   new(big.Int).SetUint64(toBlock),
 		})
 		if err != nil {
-			return block, errors.Wrap(err, "failed to filter logs", logan.F{"address": l.contract.Address, "start_block": block})
+			return block, errors.Wrap(err, "failed to filter logs", logan.F{"address": l.contractCfg.Address, "start_block": block})
 		}
 
 		for _, event := range logs {
@@ -159,17 +165,16 @@ func (l *listener) listenEvents(ctx context.Context, block uint64) error {
 }
 
 func (l *listener) handleLog(event types.Log) error {
-	var root [32]byte
-	if len(event.Data) != 32 {
-		return ErrInvalidEventDataLen
+	rootTransitioned, err := l.smtReplicator.ParseRootTransitioned(event)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse root transitioned event")
 	}
-	copy(root[:], event.Data[:32])
 
 	if err := l.stateQ.Upsert(data.State{
 		TxHash:    hex.EncodeToString(event.TxHash.Bytes()),
 		Block:     event.BlockNumber,
-		Root:      hex.EncodeToString(root[:]),
-		CreatedAt: time.Now(),
+		Root:      hex.EncodeToString(rootTransitioned.NewRoot[:]),
+		Timestamp: rootTransitioned.TransitionTimestamp.Uint64(),
 	}); err != nil {
 		return errors.Wrap(err, "failed to insert new root state")
 	}
@@ -178,5 +183,10 @@ func (l *listener) handleLog(event types.Log) error {
 }
 
 func Run(ctx context.Context, cfg config.Config) {
-	NewListener(cfg).Start(ctx)
+	pinger, err := NewListener(cfg)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to create listener"))
+	}
+
+	pinger.Start(ctx)
 }
