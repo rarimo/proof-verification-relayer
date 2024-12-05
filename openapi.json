@@ -12,6 +12,90 @@
     }
   ],
   "paths": {
+    "/integrations/proof-verification-relayer/v1/state": {
+      "get": {
+        "tags": [
+          "State"
+        ],
+        "summary": "Get signed root state",
+        "description": "Endpoint to get transited root state.    \nThe service listens for the new `RootUpdated` event and fetches them. By request it might return any root by \nits block number or root hex string if none of them provided last signed root returned.   \nResponse contain signature of root signed by relayer private key.\n",
+        "operationId": "GetState",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "filter[block]",
+            "required": false,
+            "description": "Block number to filter root by",
+            "example": "666",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "in": "query",
+            "name": "filter[root]",
+            "required": false,
+            "description": "Transited root in hex format stated to filter root by.",
+            "example": "0x234693c352a217d95c3a0e2e7ea17a340ac1b2290e9ab573ef97c2a86b1a5a6e",
+            "schema": {
+              "type": "string",
+              "pattern": "^0x([0-9a-fA-F]+)$"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "data"
+                  ],
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/State"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Errors"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/integrations/proof-verification-relayer/v1/transit-state": {
       "post": {
         "tags": [
@@ -312,6 +396,60 @@
                 }
               }
             }
+          }
+        }
+      },
+      "State": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/StateKey"
+          },
+          {
+            "type": "object",
+            "required": [
+              "attributes"
+            ],
+            "properties": {
+              "attributes": {
+                "type": "object",
+                "required": [
+                  "signature",
+                  "timestamp"
+                ],
+                "properties": {
+                  "signature": {
+                    "example": "0xd0bf2f6c2270874d8870a1081b67fcb0280b61db000778f159ba39c38fb2595639c2e1d81d085916ba6ec77f2bd4c4a2ae6dfbdbaf8703da7d9fe629b2e1218a00",
+                    "type": "string",
+                    "pattern": "^0x([0-9a-fA-F]+)$",
+                    "description": "Signature of root state signed by relayer private key."
+                  },
+                  "timestamp": {
+                    "example": "1733395652",
+                    "type": "integer",
+                    "format": "int64",
+                    "description": "Time indicates when the event was caught, a.k.a state transition timestamp"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "StateKey": {
+        "type": "object",
+        "required": [
+          "id",
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "state"
+            ]
           }
         }
       },
