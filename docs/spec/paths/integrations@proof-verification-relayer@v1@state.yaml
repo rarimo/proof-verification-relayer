@@ -36,7 +36,7 @@ get:
               - data
             properties:
               data:
-                $ref: '#/components/schemas/Signature'
+                $ref: '#/components/schemas/State'
     '400':
       description: Bad Request Error
       content:
