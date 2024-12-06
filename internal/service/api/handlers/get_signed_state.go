@@ -28,7 +28,11 @@ func GetSignedState(w http.ResponseWriter, r *http.Request) {
 		query = query.FilterByBlock(*req.Block)
 	}
 	if req.Root != nil {
-		query = query.FilterByRoot(*req.Root)
+		root := *req.Root
+		if root[:2] == "0x" {
+			root = root[2:]
+		}
+		query = query.FilterByRoot(root)
 	}
 
 	state, err := query.SortByBlockHeight(data.DESC).Get()
@@ -39,7 +43,7 @@ func GetSignedState(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if state == nil {
-		Log(r).Error("no block found")
+		Log(r).Error("no state found")
 		ape.RenderErr(w, problems.NotFound())
 		return
 	}
