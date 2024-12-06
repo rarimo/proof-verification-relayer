@@ -1,7 +1,5 @@
 package data
 
-import "time"
-
 type SortOrder string
 
 type StateQ interface {
@@ -17,11 +15,11 @@ type StateQ interface {
 }
 
 type State struct {
-	ID        string    `db:"id" structs:"-"`
-	Root      string    `db:"root" structs:"root"`
-	TxHash    string    `db:"tx_hash" structs:"tx_hash"`
-	Block     uint64    `db:"block" structs:"block"`
-	CreatedAt time.Time `db:"created_at" structs:"created_at"`
+	ID        string `db:"id" structs:"-"`
+	Root      string `db:"root" structs:"root"`
+	TxHash    string `db:"tx_hash" structs:"tx_hash"`
+	Block     uint64 `db:"block" structs:"block"`
+	Timestamp uint64 `db:"timestamp" structs:"timestamp"`
 }
 
 const (

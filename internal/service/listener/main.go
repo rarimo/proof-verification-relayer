@@ -19,7 +19,6 @@ import (
 )
 
 const (
-	blocksDistanceDelta   = 10000
 	serviceName           = "listener"
 	RootUpdatedEventTopic = "0x2cbc14f49c068133583f7cb530018af451c87c1cf1327cf2a4ff4698c4730aa4"
 )
@@ -106,8 +105,8 @@ func (l *listener) readEvents(ctx context.Context, block uint64) (uint64, error)
 		return block, errors.Wrap(err, "failed to get latest block header")
 	}
 
-	for ; block < header.Number.Uint64(); block = min(header.Number.Uint64(), block+blocksDistanceDelta) {
-		toBlock := min(header.Number.Uint64(), block+blocksDistanceDelta)
+	for ; block < header.Number.Uint64(); block = min(header.Number.Uint64(), block+l.pinger.BlocksDistance) {
+		toBlock := min(header.Number.Uint64(), block+l.pinger.BlocksDistance)
 		logs, err := l.client.FilterLogs(ctx, ethereum.FilterQuery{
 			Topics:    [][]common.Hash{{common.HexToHash(RootUpdatedEventTopic)}},
 			Addresses: []common.Address{l.contract.Address},
@@ -169,7 +168,7 @@ func (l *listener) handleLog(event types.Log) error {
 		TxHash:    hex.EncodeToString(event.TxHash.Bytes()),
 		Block:     event.BlockNumber,
 		Root:      hex.EncodeToString(root[:]),
-		CreatedAt: time.Now(),
+		Timestamp: uint64(time.Now().Unix()),
 	}); err != nil {
 		return errors.Wrap(err, "failed to insert new root state")
 	}

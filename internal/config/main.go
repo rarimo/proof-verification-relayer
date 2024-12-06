@@ -18,6 +18,7 @@ type Config interface {
 	ContractsConfiger
 
 	Pinger() Pinger
+	Replicator() Replicator
 }
 
 type config struct {
@@ -29,7 +30,9 @@ type config struct {
 
 	NetworkConfiger
 	ContractsConfiger
-	pinger comfig.Once
+
+	pinger     comfig.Once
+	replicator comfig.Once
 }
 
 func New(getter kv.Getter) Config {

@@ -14,6 +14,7 @@ const (
 )
 
 type Pinger struct {
+	BlocksDistance    uint64        `fig:"blocks_distance"`
 	Timeout           time.Duration `fig:"timeout"`
 	NormalPeriod      time.Duration `fig:"normal_period"`
 	MinAbnormalPeriod time.Duration `fig:"min_abnormal_period"`
@@ -23,6 +24,7 @@ type Pinger struct {
 func (c *config) Pinger() Pinger {
 	return c.pinger.Do(func() interface{} {
 		var result = Pinger{
+			BlocksDistance:    0,
 			Timeout:           5 * time.Second,
 			NormalPeriod:      30 * time.Second,
 			MinAbnormalPeriod: 30 * time.Second,
