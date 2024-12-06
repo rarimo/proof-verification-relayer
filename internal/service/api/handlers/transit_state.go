@@ -10,6 +10,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"github.com/rarimo/proof-verification-relayer/resources"
@@ -42,9 +43,9 @@ func TransitState(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	NetworkConfig(r).LockNonce()
-	defer NetworkConfig(r).UnlockNonce()
-	txOpts, err := getTxOpts(r, NetworkConfig(r).LightweightState, dataBytes)
+	Config(r).NetworkConfig().LockNonce()
+	defer Config(r).NetworkConfig().UnlockNonce()
+	txOpts, err := getTxOpts(r, Config(r).ContractsConfig()[config.LightweightState].Address, dataBytes)
 	if err != nil {
 		Log(r).WithError(err).Error("failed to get transaction options")
 		ape.RenderErr(w, problems.InternalError())
@@ -58,7 +59,7 @@ func TransitState(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	NetworkConfig(r).IncrementNonce()
+	Config(r).NetworkConfig().IncrementNonce()
 
 	ape.Render(w, newTxModel(tx))
 }
@@ -104,12 +105,12 @@ func getTxOpts(r *http.Request, receiver common.Address, txData []byte) (*bind.T
 		return nil, errors.Wrap(err, "failed to get gas costs")
 	}
 
-	txOpts, err := bind.NewKeyedTransactorWithChainID(NetworkConfig(r).PrivateKey, NetworkConfig(r).ChainID)
+	txOpts, err := bind.NewKeyedTransactorWithChainID(Config(r).NetworkConfig().PrivateKey, Config(r).NetworkConfig().ChainID)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create a transaction signer")
 	}
 
-	txOpts.Nonce = new(big.Int).SetUint64(NetworkConfig(r).Nonce())
+	txOpts.Nonce = new(big.Int).SetUint64(Config(r).NetworkConfig().Nonce())
 	txOpts.GasPrice = gasPrice
 	txOpts.GasLimit = gasLimit
 

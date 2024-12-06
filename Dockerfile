@@ -1,4 +1,4 @@
-FROM golang:1.20-alpine as buildbase
+FROM golang:1.22.0-alpine as buildbase
 
 ARG CI_JOB_TOKEN
 

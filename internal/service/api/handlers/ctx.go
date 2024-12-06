@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
+	"github.com/rarimo/proof-verification-relayer/internal/data"
 	"gitlab.com/distributed_lab/logan/v3"
 )
 
@@ -15,6 +15,7 @@ type ctxKey int
 
 const (
 	logCtxKey ctxKey = iota
+	configCtxKey
 	networkConfigCtxKey
 	ethClientCtxKey
 	voteVerifierRegisterMethodCtxKey
@@ -22,6 +23,7 @@ const (
 	votingRegistryCtxKey
 	lightweightStateCtxKey
 	signedTransitStateCtxKey
+	stateQCtxKey
 )
 
 func CtxLog(entry *logan.Entry) func(context.Context) context.Context {
@@ -34,24 +36,14 @@ func Log(r *http.Request) *logan.Entry {
 	return r.Context().Value(logCtxKey).(*logan.Entry)
 }
 
-func CtxNetworkConfig(cfg *config.NetworkConfig) func(context.Context) context.Context {
+func CtxConfig(cfg config.Config) func(context.Context) context.Context {
 	return func(ctx context.Context) context.Context {
-		return context.WithValue(ctx, networkConfigCtxKey, cfg)
+		return context.WithValue(ctx, configCtxKey, cfg)
 	}
 }
 
-func NetworkConfig(r *http.Request) *config.NetworkConfig {
-	return r.Context().Value(networkConfigCtxKey).(*config.NetworkConfig)
-}
-
-func CtxEthClient(client *ethclient.Client) func(context.Context) context.Context {
-	return func(ctx context.Context) context.Context {
-		return context.WithValue(ctx, ethClientCtxKey, client)
-	}
-}
-
-func EthClient(r *http.Request) *ethclient.Client {
-	return r.Context().Value(ethClientCtxKey).(*ethclient.Client)
+func Config(r *http.Request) config.Config {
+	return r.Context().Value(configCtxKey).(config.Config)
 }
 
 func CtxVoteVerifierRegisterMethod(method *abi.Method) func(context.Context) context.Context {
@@ -62,16 +54,6 @@ func CtxVoteVerifierRegisterMethod(method *abi.Method) func(context.Context) con
 
 func VoteVerifierRegisterMethod(r *http.Request) *abi.Method {
 	return r.Context().Value(voteVerifierRegisterMethodCtxKey).(*abi.Method)
-}
-
-func CtxVotingVoteMethod(method *abi.Method) func(context.Context) context.Context {
-	return func(ctx context.Context) context.Context {
-		return context.WithValue(ctx, votingVoteMethodCtxKey, method)
-	}
-}
-
-func VotingVoteMethod(r *http.Request) *abi.Method {
-	return r.Context().Value(votingVoteMethodCtxKey).(*abi.Method)
 }
 
 func CtxVotingRegistry(registry *contracts.VotingRegistry) func(context.Context) context.Context {
@@ -102,4 +84,14 @@ func CtxSignedTransitStateMethod(method *abi.Method) func(context.Context) conte
 
 func SignedTransitStateMethod(r *http.Request) *abi.Method {
 	return r.Context().Value(signedTransitStateCtxKey).(*abi.Method)
+}
+
+func CtxStateQ(stateQ data.StateQ) func(context.Context) context.Context {
+	return func(ctx context.Context) context.Context {
+		return context.WithValue(ctx, stateQCtxKey, stateQ)
+	}
+}
+
+func StateQ(r *http.Request) data.StateQ {
+	return r.Context().Value(stateQCtxKey).(data.StateQ)
 }

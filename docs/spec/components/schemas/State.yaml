@@ -1,0 +1,22 @@
+allOf:
+  - $ref: '#/components/schemas/StateKey'
+  - type: object
+    required:
+      - attributes
+    properties:
+      attributes:
+        type: object
+        required:
+          - signature
+          - timestamp
+        properties:
+          signature:
+            example: "0xd0bf2f6c2270874d8870a1081b67fcb0280b61db000778f159ba39c38fb2595639c2e1d81d085916ba6ec77f2bd4c4a2ae6dfbdbaf8703da7d9fe629b2e1218a00"
+            type: string
+            pattern: '^0x([0-9a-fA-F]+)$'
+            description: Signature of root state signed by relayer private key.
+          timestamp:
+            example: "1733395652"
+            type: integer
+            format: int64
+            description: Time indicates when the event was caught, a.k.a state transition timestamp

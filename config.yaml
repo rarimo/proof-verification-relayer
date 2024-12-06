@@ -1,11 +1,20 @@
 network:
-  rpc: "https://rpc.evm.node1.mainnet-beta.rarimo.com/"
-  proposer: "0xcB6Cd78e7527F4Ec032598E3aEe4dbd597fEFC97"
-  voting_registry: "0xcB6Cd78e7527F4Ec032598E3aEe4dbd597fEFC97"
-  lightweight_state: "0xcB6Cd78e7527F4Ec032598E3aEe4dbd597fEFC97"
+  rpc: "https://rpc.evm.mainnet.rarimo.com/"
   vault_address: "http://127.0.0.1:8200"
   vault_mount_path: "secret_data"
   gas_multiplier: 1.23
+  private_key: without '0x' # For security purposes this key may be omitted and flow with Vault would be used
+
+contracts:
+  proposer:
+    address: null
+  voting_registry:
+    address: null
+  lightweight_state:
+    address: null
+  register2:
+    address: "0xA25a197d26Cad659A8fFf7F268cA4F9e0283de03"
+    block: 4939333 # Block is optional field for contract listeners, default value is 0 if nothing set
 
 log:
   level: debug
@@ -13,6 +22,18 @@ log:
 
 db:
   url: db_url
+
+pinger:
+  blocks_distance: 10000
+  timeout: 5s # timeout to ping logs when 'subscribed' via http
+  normal_period: 10s
+  min_abnormal_period: 10s
+  max_abnormal_period: 10s
+
+replicator:
+  address: 0x10f370A6d8782E0e0E85ba948be6DA2465Aab4E2
+  source_smt: 0xc1534912902BBe8C54626e2D69288C76a843bc0E
+  root_prefix: Rarimo root
 
 listener:
   addr: :8000
