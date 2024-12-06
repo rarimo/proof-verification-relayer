@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/data"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"github.com/rarimo/proof-verification-relayer/resources"
@@ -80,7 +79,7 @@ func signState(state data.State, r *http.Request) ([]byte, error) {
 	digest := crypto.Keccak256(
 		[]byte(Config(r).Replicator().RootPrefix),
 		Config(r).Replicator().SourceSMT.Bytes(),
-		Config(r).ContractsConfig()[config.SMTReplicator].Address.Bytes(),
+		Config(r).Replicator().Address.Bytes(),
 		rootBytes,
 		new(big.Int).SetUint64(state.Timestamp).Bytes(),
 	)

@@ -13,6 +13,7 @@ const (
 )
 
 type Replicator struct {
+	Address    common.Address `fig:"address,required"`
 	SourceSMT  common.Address `fig:"source_smt,required"`
 	RootPrefix string         `fig:"root_prefix,required"`
 }

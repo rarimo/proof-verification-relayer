@@ -31,6 +31,7 @@ pinger:
   max_abnormal_period: 10s
 
 replicator:
+  address: 0x10f370A6d8782E0e0E85ba948be6DA2465Aab4E2
   source_smt: 0xc1534912902BBe8C54626e2D69288C76a843bc0E
   root_prefix: Rarimo root
 
