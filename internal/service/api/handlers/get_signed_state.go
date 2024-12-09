@@ -1,11 +1,12 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/hex"
 	"math/big"
 	"net/http"
 
-	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/rarimo/proof-verification-relayer/internal/data"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
@@ -86,11 +87,6 @@ func buildMessageDigest(state data.State, r *http.Request) ([]byte, error) {
 		return nil, errors.Wrap(err, "failed to decode signature digest", logan.F{"root": state.Root})
 	}
 
-	uint256Ty, _ := abi.NewType("uint256", "uint256", nil)
-	bytes32Ty, _ := abi.NewType("bytes32", "bytes32", nil)
-	addressTy, _ := abi.NewType("address", "address", nil)
-	stringTy, _ := abi.NewType("string", "string", nil)
-
 	//keccak256(abi.encodePacked(
 	//	REGISTRATION_ROOT_PREFIX,
 	//	sourceSMT,
@@ -99,26 +95,14 @@ func buildMessageDigest(state data.State, r *http.Request) ([]byte, error) {
 	//	transitionTimestamp_
 	//));
 
-	args := abi.Arguments{
-		{Type: stringTy},
-		{Type: addressTy},
-		{Type: addressTy},
-		{Type: bytes32Ty},
-		{Type: uint256Ty},
-	}
+	replicator := Config(r).Replicator()
+	var msgBuf bytes.Buffer
 
-	rootBytes32 := [32]byte{}
-	copy(rootBytes32[:], rootBytes[:32])
-	packed, err := args.Pack(
-		Config(r).Replicator().RootPrefix,
-		Config(r).Replicator().SourceSMT,
-		Config(r).Replicator().Address,
-		rootBytes32,
-		new(big.Int).SetUint64(state.Timestamp),
-	)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to pack signature msg digest")
-	}
+	msgBuf.Write([]byte(replicator.RootPrefix))
+	msgBuf.Write(replicator.SourceSMT.Bytes())
+	msgBuf.Write(replicator.Address.Bytes())
+	msgBuf.Write(rootBytes)
+	msgBuf.Write(common.LeftPadBytes(new(big.Int).SetUint64(state.Timestamp).Bytes(), 32))
 
-	return crypto.Keccak256(packed), nil
+	return crypto.Keccak256(msgBuf.Bytes()), nil
 }
