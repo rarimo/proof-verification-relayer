@@ -51,14 +51,16 @@ func GetSignedState(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ape.Render(w, resources.State{
-		Key: resources.Key{
-			ID:   state.ID,
-			Type: resources.STATE,
-		},
-		Attributes: resources.StateAttributes{
-			Signature: hex.EncodeToString(signature),
-			Timestamp: int64(state.Timestamp),
+	ape.Render(w, resources.StateResponse{
+		Data: resources.State{
+			Key: resources.Key{
+				ID:   state.ID,
+				Type: resources.STATE,
+			},
+			Attributes: resources.StateAttributes{
+				Signature: hex.EncodeToString(signature),
+				Timestamp: int64(state.Timestamp),
+			},
 		},
 	})
 }
