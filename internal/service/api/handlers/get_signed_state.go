@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/hex"
 	"math/big"
 	"net/http"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/rarimo/proof-verification-relayer/internal/data"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
@@ -66,6 +68,20 @@ func GetSignedState(w http.ResponseWriter, r *http.Request) {
 }
 
 func signState(state data.State, r *http.Request) ([]byte, error) {
+	digest, err := buildMessageDigest(state, r)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to build message digest")
+	}
+
+	signature, err := crypto.Sign(digest, Config(r).NetworkConfig().PrivateKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to sign state")
+	}
+
+	return signature, nil
+}
+
+func buildMessageDigest(state data.State, r *http.Request) ([]byte, error) {
 	rootBytes, err := hex.DecodeString(state.Root)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to decode signature digest", logan.F{"root": state.Root})
@@ -78,18 +94,15 @@ func signState(state data.State, r *http.Request) ([]byte, error) {
 	//	newRoot_,
 	//	transitionTimestamp_
 	//));
-	digest := crypto.Keccak256(
-		[]byte(Config(r).Replicator().RootPrefix),
-		Config(r).Replicator().SourceSMT.Bytes(),
-		Config(r).Replicator().Address.Bytes(),
-		rootBytes,
-		new(big.Int).SetUint64(state.Timestamp).Bytes(),
-	)
 
-	signature, err := crypto.Sign(digest, Config(r).NetworkConfig().PrivateKey)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to sign state")
-	}
+	replicator := Config(r).Replicator()
+	var msgBuf bytes.Buffer
 
-	return signature, nil
+	msgBuf.Write([]byte(replicator.RootPrefix))
+	msgBuf.Write(replicator.SourceSMT.Bytes())
+	msgBuf.Write(replicator.Address.Bytes())
+	msgBuf.Write(rootBytes)
+	msgBuf.Write(common.LeftPadBytes(new(big.Int).SetUint64(state.Timestamp).Bytes(), 32))
+
+	return crypto.Keccak256(msgBuf.Bytes()), nil
 }
