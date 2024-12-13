@@ -88,6 +88,7 @@ func (e *ethereum) NetworkConfig() *NetworkConfig {
 func retrieveVaultPrivateKey(result NetworkConfig) (*ecdsa.PrivateKey, error) {
 	if err := dig.Out(&result).
 		Where(map[string]interface{}{
+			"rpc":              result.Client,
 			"vault_address":    result.Address,
 			"vault_mount_path": result.MountPath,
 			"gas_multiplier":   result.GasMultiplier,
