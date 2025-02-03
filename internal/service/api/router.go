@@ -2,12 +2,12 @@ package api
 
 import (
 	"github.com/go-chi/chi"
+	"github.com/pkg/errors"
 	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/handlers"
 	"gitlab.com/distributed_lab/ape"
-	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 func (s *service) router() chi.Router {
@@ -54,6 +54,7 @@ func (s *service) router() chi.Router {
 			handlers.CtxLightweightState(lightweightState),
 			handlers.CtxSignedTransitStateMethod(&signedTransitState),
 			handlers.CtxStateQ(pg.NewStateQ(s.cfg.DB().Clone())),
+			handlers.CtxRelayerConfig(s.cfg.RelayerConfig()),
 		),
 	)
 	r.Route("/integrations/proof-verification-relayer", func(r chi.Router) {
@@ -62,6 +63,14 @@ func (s *service) router() chi.Router {
 			r.Post("/vote", handlers.Vote)
 			r.Post("/transit-state", handlers.TransitState)
 			r.Get("/state", handlers.GetSignedState)
+		})
+		r.Route("/v2", func(r chi.Router) {
+			r.Get("/predict/{address}", handlers.PredictHandlers)
+			r.Get("/is-enough/{address}", handlers.IsEnoughHandler)
+			r.Route("/vote", func(r chi.Router) {
+				r.Post("/", handlers.Voting)
+			})
+
 		})
 	})
 

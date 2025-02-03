@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	"github.com/alecthomas/kingpin"
+	"github.com/rarimo/proof-verification-relayer/internal/checker"
 	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api"
 	"github.com/rarimo/proof-verification-relayer/internal/service/listener"
@@ -31,6 +32,7 @@ func Run(args []string) bool {
 		migrateCmd     = app.Command("migrate", "migrate command")
 		migrateUpCmd   = migrateCmd.Command("up", "migrate db up")
 		migrateDownCmd = migrateCmd.Command("down", "migrate db down")
+		checkerCmd     = runCmd.Command("checker", "run checker")
 	)
 
 	cmd, err := app.Parse(args[1:])
@@ -55,11 +57,15 @@ func Run(args []string) bool {
 	case serviceCmd.FullCommand():
 		run(api.Run)
 		run(listener.Run)
+		run(checker.CheckEvents)
 	case migrateUpCmd.FullCommand():
 		err = MigrateUp(cfg)
 	case migrateDownCmd.FullCommand():
 		err = MigrateDown(cfg)
 	// handle any custom commands here in the same way
+	case checkerCmd.FullCommand():
+		run(api.Run)
+		run(checker.CheckEvents)
 	default:
 		log.Errorf("unknown command %s", cmd)
 		return false

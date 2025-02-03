@@ -24,6 +24,7 @@ const (
 	lightweightStateCtxKey
 	signedTransitStateCtxKey
 	stateQCtxKey
+	relayerConfigCtxKey
 )
 
 func CtxLog(entry *logan.Entry) func(context.Context) context.Context {
@@ -94,4 +95,14 @@ func CtxStateQ(stateQ data.StateQ) func(context.Context) context.Context {
 
 func StateQ(r *http.Request) data.StateQ {
 	return r.Context().Value(stateQCtxKey).(data.StateQ)
+}
+
+func CtxRelayerConfig(cfg *config.RelayerConfig) func(context.Context) context.Context {
+	return func(ctx context.Context) context.Context {
+		return context.WithValue(ctx, relayerConfigCtxKey, cfg)
+	}
+}
+
+func RelayerConfig(r *http.Request) *config.RelayerConfig {
+	return r.Context().Value(relayerConfigCtxKey).(*config.RelayerConfig)
 }

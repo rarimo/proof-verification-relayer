@@ -13,10 +13,10 @@ type Config interface {
 	pgdb.Databaser
 	types.Copuser
 	comfig.Listenerer
-
+	Checker
 	NetworkConfiger
 	ContractsConfiger
-
+	RelayerConfiger
 	Pinger() Pinger
 	Replicator() Replicator
 }
@@ -27,9 +27,10 @@ type config struct {
 	types.Copuser
 	comfig.Listenerer
 	getter kv.Getter
-
+	Checker
 	NetworkConfiger
 	ContractsConfiger
+	RelayerConfiger
 
 	pinger     comfig.Once
 	replicator comfig.Once
@@ -44,5 +45,7 @@ func New(getter kv.Getter) Config {
 		Logger:            comfig.NewLogger(getter, comfig.LoggerOpts{}),
 		NetworkConfiger:   NewNetworkConfiger(getter),
 		ContractsConfiger: NewContractsConfiger(getter),
+		Checker:           NewCheckerCfg(getter),
+		RelayerConfiger:   NewRelayerConfiger(getter),
 	}
 }
