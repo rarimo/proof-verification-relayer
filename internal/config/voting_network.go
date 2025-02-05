@@ -42,10 +42,28 @@ type RelayerConfig struct {
 	mut        *sync.Mutex
 	GasLimit   uint64
 	Block      uint64
+	Enable     bool
 }
 
 func (e *ethereumVoting) RelayerConfig() *RelayerConfig {
 	return e.once.Do(func() interface{} {
+
+		raw := kv.MustGetStringMap(e.getter, "network_voting")
+
+		var probe struct {
+			Enable bool `fig:"enable"`
+		}
+
+		if err := figure.Out(&probe).From(raw).Please(); err != nil {
+			panic(errors.Wrap(err, "failed to figure out ethereum probe"))
+		}
+
+		if !probe.Enable {
+			return &RelayerConfig{
+				Enable: false,
+			}
+		}
+
 		var result RelayerConfig
 
 		networkConfig := struct {
@@ -56,11 +74,12 @@ func (e *ethereumVoting) RelayerConfig() *RelayerConfig {
 			Address        common.Address    `fig:"address,required"`
 			Block          uint64            `fig:"block"`
 			GasLimit       uint64            `fig:"gas_limit"`
+			Enable         bool              `fig:"enable"`
 		}{}
 		err := figure.
 			Out(&networkConfig).
 			With(figure.EthereumHooks).
-			From(kv.MustGetStringMap(e.getter, "network_voting")).
+			From(raw).
 			Please()
 		if err != nil {
 			panic(errors.Wrap(err, "failed to figure out ethereum config"))

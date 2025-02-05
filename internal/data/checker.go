@@ -22,7 +22,6 @@ type CheckerDB interface {
 }
 
 type CheckerQ interface {
-	// Select(toids []string, fromids []string, stIndx uint64, pgLen uint64) ([]Wallet, error)
 	InsertVotingInfo(value VotingInfo) error
 	GetVotingInfo(address string) (VotingInfo, error)
 	UpdateVotingInfo(value VotingInfo) error

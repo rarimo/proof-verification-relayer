@@ -12,7 +12,7 @@ import (
 
 	// Instead of "proposalsstate", use the package
 	// that will be generated for the required contract.
-	"github.com/rarimo/voting-relayer/pkg/contracts/proposalsstate"
+	"github.com/rarimo/proof-verification-relayer/internal/checker/proposalsstate"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"

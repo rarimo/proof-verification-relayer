@@ -64,11 +64,14 @@ func (s *service) router() chi.Router {
 			r.Post("/transit-state", handlers.TransitState)
 			r.Get("/state", handlers.GetSignedState)
 		})
-		r.Route("/v2", func(r chi.Router) {
-			r.Get("/predict/{address}", handlers.PredictHandlers)
-			r.Get("/is-enough/{address}", handlers.IsEnoughHandler)
-			r.Post("/vote", handlers.Voting)
-		})
+		if s.cfg.RelayerConfig().Enable {
+			r.Route("/v2", func(r chi.Router) {
+				r.Get("/predict/{address}", handlers.PredictHandlers)
+				r.Get("/is-enough/{address}", handlers.IsEnoughHandler)
+				r.Post("/vote", handlers.Voting)
+
+			})
+		}
 	})
 
 	return r

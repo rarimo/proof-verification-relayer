@@ -13,5 +13,5 @@ properties:
     type: string
     example: "vote_count" 
   attributes:
-    $ref: "#/components/schemas/VotePredictionAttributes"  # Правильне посилання на схему
+    $ref: "#/components/schemas/VotePredictionAttributes"  
 

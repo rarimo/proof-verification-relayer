@@ -57,7 +57,9 @@ func Run(args []string) bool {
 	case serviceCmd.FullCommand():
 		run(api.Run)
 		run(listener.Run)
-		run(checker.CheckEvents)
+		if cfg.RelayerConfig().Enable {
+			run(checker.CheckEvents)
+		}
 	case migrateUpCmd.FullCommand():
 		err = MigrateUp(cfg)
 	case migrateDownCmd.FullCommand():
@@ -65,7 +67,9 @@ func Run(args []string) bool {
 	// handle any custom commands here in the same way
 	case checkerCmd.FullCommand():
 		run(api.Run)
-		run(checker.CheckEvents)
+		if cfg.RelayerConfig().Enable {
+			run(checker.CheckEvents)
+		}
 	default:
 		log.Errorf("unknown command %s", cmd)
 		return false

@@ -25,6 +25,11 @@ import (
 // Instead of "abiusdc", use the ABI package
 // that will be generated for the required contract.
 func CheckEvents(ctx context.Context, cfg config.Config) {
+
+	if !cfg.RelayerConfig().Enable {
+		return
+	}
+
 	pgDB := pg.NewMaterDB(cfg.DB())
 	logger := cfg.Log()
 	networkParam := cfg.RelayerConfig()
