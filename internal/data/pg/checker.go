@@ -18,7 +18,6 @@ func NewMaterDB(db *pgdb.DB) data.CheckerDB {
 
 func (m *masterDB) CheckerQ() data.CheckerQ {
 	return NewCheckerQ(m.db)
-
 }
 
 type masterDB struct {
@@ -27,85 +26,91 @@ type masterDB struct {
 
 func (mdb *masterDB) New() data.CheckerDB {
 	return NewMaterDB(mdb.db)
-
 }
 
 func NewCheckerQ(db *pgdb.DB) data.CheckerQ {
-	return &transactionQ{
+	return &checkerQ{
 		db:  db,
 		sql: sq.StatementBuilder,
 	}
 }
 
-type transactionQ struct {
+type checkerQ struct {
 	db  *pgdb.DB
 	sql sq.StatementBuilderType
 }
 
-func (cq *transactionQ) GetBalance(address string) (uint64, error) {
+func (cq *checkerQ) GetVotingInfo(address string) (data.VotingInfo, error) {
+	var votingInfo data.VotingInfo
+	query := sq.Select("*").From("voting_contract_accounts").Where(sq.Eq{"voting_address": address})
 
+	err := cq.db.Get(&votingInfo, query)
+	if err == sql.ErrNoRows {
+		return votingInfo, err
+	}
+	if err != nil {
+		return votingInfo, errors.Wrap(err, "failed to get voting residual balance from db")
+	}
+	return votingInfo, nil
+}
+
+func (cq *checkerQ) GetBalance(address string) (uint64, error) {
 	var balance uint64
-
-	query := sq.Select("balance").From("wallets").Where(sq.Eq{"address": address})
+	query := sq.Select("residual_balance").From("voting_contract_accounts").Where(sq.Eq{"voting_address": address})
 
 	err := cq.db.Get(&balance, query)
-
 	if err == sql.ErrNoRows {
 		return 0, err
 	}
 	if err != nil {
-		return 0, errors.Wrap(err, "failed to get wallet balance from db")
+		return 0, errors.Wrap(err, "failed to get voting residual balance from db")
 	}
 	return balance, nil
-
 }
 
-func (q *transactionQ) Insert(value data.Wallet) error {
-
-	query := sq.Insert("wallets").Columns("address", "balance").Values(value.Address, value.Balance)
+func (q *checkerQ) InsertVotingInfo(value data.VotingInfo) error {
+	query := sq.Insert("voting_contract_accounts").
+		Columns("voting_address", "residual_balance", "gas_limit").
+		Values(value.Address, value.Balance, value.GasLimit)
 
 	err := q.db.Exec(query)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil {
 		return errors.Wrap(err, "failed to insert wallet to db")
 	}
 	return nil
-
 }
 
-func (q *transactionQ) UpdateBalance(value data.Wallet) error {
-
-	query := sq.Update("wallets").Set("balance", value.Balance).Where(sq.Eq{"address": value.Address})
+func (q *checkerQ) UpdateVotingInfo(value data.VotingInfo) error {
+	query := sq.Update("voting_contract_accounts").
+		Set("residual_balance", value.Balance).
+		Set("gas_limit", value.GasLimit).
+		Where(sq.Eq{"voting_address": value.Address})
 
 	err := q.db.Exec(query)
 	if err != nil && err != sql.ErrNoRows {
 		return errors.Wrap(err, "failed to update balance to db")
 	}
 	return nil
-
 }
 
-func (cq *transactionQ) GetBlock() (uint64, error) {
-
+func (cq *checkerQ) GetLastBlock() (uint64, error) {
 	var block uint64
-
-	query := sq.Select("block").From("blocks").Limit(1)
+	query := sq.Select("block_number").
+		From("processed_events").
+		OrderBy("block_number DESC").
+		Limit(1)
 
 	err := cq.db.Get(&block, query)
-
 	if err == sql.ErrNoRows {
 		return 0, nil
 	}
-
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to get block from db")
 	}
-
 	return block, nil
-
 }
 
-func (q *transactionQ) InsertBlock(value uint64) error {
-
+func (q *checkerQ) InsertBlock(value uint64) error {
 	query := sq.Insert("blocks").Columns("block").Values(value)
 
 	err := q.db.Exec(query)
@@ -113,11 +118,9 @@ func (q *transactionQ) InsertBlock(value uint64) error {
 		return errors.Wrap(err, "failed to insert block to db")
 	}
 	return nil
-
 }
 
-func (q *transactionQ) UpdateBlock(value uint64) error {
-
+func (q *checkerQ) UpdateBlock(value uint64) error {
 	query := sq.Update("blocks").Set("block", value)
 
 	err := q.db.Exec(query)
@@ -125,47 +128,16 @@ func (q *transactionQ) UpdateBlock(value uint64) error {
 		return errors.Wrap(err, "failed to update block to db")
 	}
 	return nil
-
 }
 
-func (cq *transactionQ) GetGasLimit() (uint64, error) {
+func (q *checkerQ) InsertProcessedEvent(value data.ProcessedEvent) error {
+	query := sq.Insert("processed_events").
+		Columns("transaction_hash", "log_index", "emitted_at", "block_number").
+		Values(value.TransactionHash, value.LogIndex, value.EmittedAt, value.BlockNumber)
 
-	var gas_limit uint64
-
-	query := sq.Select("gas_limit").From("gas_limits").Limit(1)
-
-	err := cq.db.Get(&gas_limit, query)
-
-	if err == sql.ErrNoRows {
-		return 0, nil
-	}
+	err := q.db.Exec(query)
 	if err != nil {
-		return 0, errors.Wrap(err, "failed to get gas_limit from db")
-	}
-	return gas_limit, nil
-
-}
-
-func (q *transactionQ) InsertGasLimit(value uint64) error {
-
-	query := sq.Insert("gas_limits").Columns("gas_limit").Values(value)
-
-	err := q.db.Exec(query)
-	if err != nil && err != sql.ErrNoRows {
-		return errors.Wrap(err, "failed to insert gas_limit to db")
+		return errors.Wrap(err, "failed to insert processed event to db")
 	}
 	return nil
-
-}
-
-func (q *transactionQ) SetGasLimit(value uint64, defaultGasLimit uint64) error {
-
-	query := sq.Update("gas_limits").Set("gas_limit", value).Where(sq.Eq{"gas_limit": defaultGasLimit})
-
-	err := q.db.Exec(query)
-	if err != nil && err != sql.ErrNoRows {
-		return errors.Wrap(err, "failed to update gas_limit to db")
-	}
-	return nil
-
 }

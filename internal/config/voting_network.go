@@ -7,8 +7,8 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
-
 	"github.com/ethereum/go-ethereum/crypto"
+
 	"github.com/ethereum/go-ethereum/ethclient"
 	vaultapi "github.com/hashicorp/vault/api"
 	"gitlab.com/distributed_lab/dig"
@@ -40,6 +40,8 @@ type RelayerConfig struct {
 	nonce      uint64
 	Address    common.Address
 	mut        *sync.Mutex
+	GasLimit   uint64
+	Block      uint64
 }
 
 func (e *ethereumVoting) RelayerConfig() *RelayerConfig {
@@ -52,6 +54,8 @@ func (e *ethereumVoting) RelayerConfig() *RelayerConfig {
 			VaultAddress   string            `fig:"vault_address"`
 			VaultMountPath string            `fig:"vault_mount_path"`
 			Address        common.Address    `fig:"address,required"`
+			Block          uint64            `fig:"block"`
+			GasLimit       uint64            `fig:"gas_limit"`
 		}{}
 		err := figure.
 			Out(&networkConfig).
@@ -80,6 +84,8 @@ func (e *ethereumVoting) RelayerConfig() *RelayerConfig {
 		}
 		result.Address = networkConfig.Address
 		result.mut = &sync.Mutex{}
+		result.Block = networkConfig.Block
+		result.GasLimit = networkConfig.GasLimit
 
 		return &result
 	}).(*RelayerConfig)

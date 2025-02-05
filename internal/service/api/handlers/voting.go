@@ -60,7 +60,7 @@ func Voting(w http.ResponseWriter, r *http.Request) {
 	var (
 		destination = req.Data.Attributes.Destination
 		calldata    = req.Data.Attributes.TxData
-		proposalID  = req.Data.Attributes.ProposalID
+		proposalID  = req.Data.Attributes.ProposalId
 	)
 
 	log := Log(r).WithFields(logan.F{
@@ -161,7 +161,7 @@ func confGas(r *http.Request, txd *txData, receiver *common.Address) (err error)
 		return fmt.Errorf("failed to estimate gas: %w", err)
 	}
 
-	err = checker.CheckUpdateGasLimit(txd.gas, Config(r))
+	err = checker.CheckUpdateGasLimit(txd.gas, Config(r), receiver)
 
 	return nil
 }

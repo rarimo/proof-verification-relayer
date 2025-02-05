@@ -67,10 +67,7 @@ func (s *service) router() chi.Router {
 		r.Route("/v2", func(r chi.Router) {
 			r.Get("/predict/{address}", handlers.PredictHandlers)
 			r.Get("/is-enough/{address}", handlers.IsEnoughHandler)
-			r.Route("/vote", func(r chi.Router) {
-				r.Post("/", handlers.Voting)
-			})
-
+			r.Post("/vote", handlers.Voting)
 		})
 	})
 
