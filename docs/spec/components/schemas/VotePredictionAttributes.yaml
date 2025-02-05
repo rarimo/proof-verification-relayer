@@ -1,0 +1,6 @@
+type: object
+properties:
+  vote_count:
+    type: integer
+    format: uint64
+    example: 0

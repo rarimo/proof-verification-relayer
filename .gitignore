@@ -4,5 +4,8 @@
 config.*.yaml
 docs/node_modules
 docs/web_deploy
+docs/web_deploy/*
 vendor/
 public/
+internal/checker/usdc_abi/*
+internal/checker/usdc_abi

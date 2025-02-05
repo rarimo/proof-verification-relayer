@@ -1,0 +1,16 @@
+x-go-is-request: true
+type: object
+required:
+  - id
+  - type
+  - attributes
+properties:
+  id:
+    type: string
+    pattern: "^0x[0-9a-fA-F]{40}"
+    example: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
+  type:
+    type: string
+    example: "is_enough" 
+  attributes:
+    $ref: "#/components/schemas/VotingAvailabilityAttributes"

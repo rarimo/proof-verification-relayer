@@ -30,6 +30,15 @@ pinger:
   min_abnormal_period: 10s
   max_abnormal_period: 10s
 
+network_voting: # Used to execute the POST /v2/vote route, borrowed from https://github.com/rarimo/voting-relayer and used for the checker service
+  rpc: ""
+  private_key: ""
+  vault_address: "https://127.0.0.1:8200"
+  vault_mount_path: "secret_data"
+  address: ""
+  block: 0
+  gas_limit: 800000
+
 replicator:
   address: 0x10f370A6d8782E0e0E85ba948be6DA2465Aab4E2
   source_smt: 0xc1534912902BBe8C54626e2D69288C76a843bc0E
