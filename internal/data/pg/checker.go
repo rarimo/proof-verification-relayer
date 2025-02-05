@@ -110,26 +110,6 @@ func (cq *checkerQ) GetLastBlock() (uint64, error) {
 	return block, nil
 }
 
-func (q *checkerQ) InsertBlock(value uint64) error {
-	query := sq.Insert("blocks").Columns("block").Values(value)
-
-	err := q.db.Exec(query)
-	if err != nil && err != sql.ErrNoRows {
-		return errors.Wrap(err, "failed to insert block to db")
-	}
-	return nil
-}
-
-func (q *checkerQ) UpdateBlock(value uint64) error {
-	query := sq.Update("blocks").Set("block", value)
-
-	err := q.db.Exec(query)
-	if err != nil && err != sql.ErrNoRows {
-		return errors.Wrap(err, "failed to update block to db")
-	}
-	return nil
-}
-
 func (q *checkerQ) InsertProcessedEvent(value data.ProcessedEvent) error {
 	query := sq.Insert("processed_events").
 		Columns("transaction_hash", "log_index", "emitted_at", "block_number").
