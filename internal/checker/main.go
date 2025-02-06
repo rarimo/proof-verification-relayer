@@ -109,7 +109,6 @@ func processLog(vLog types.Log, pg data.CheckerDB, logger *logan.Entry, defaultG
 		processedEvent.TransactionHash = vLog.TxHash[:]
 
 		err = pg.CheckerQ().InsertProcessedEvent(processedEvent)
-
 		if err != nil {
 			return
 		}
@@ -118,7 +117,6 @@ func processLog(vLog types.Log, pg data.CheckerDB, logger *logan.Entry, defaultG
 		value := transferEvent.Value
 
 		votingInfo, err := checkVoteAndGetBalance(pg, ToAddress, logger, defaultGasLimit)
-
 		if err != nil {
 			return
 		}
@@ -127,7 +125,7 @@ func processLog(vLog types.Log, pg data.CheckerDB, logger *logan.Entry, defaultG
 
 		err = pg.CheckerQ().UpdateVotingInfo(votingInfo)
 		if err != nil {
-			logger.Errorf("Failed Update user balance: %v", err)
+			logger.Errorf("Failed Update voting balance: %v", err)
 			return
 		}
 	}

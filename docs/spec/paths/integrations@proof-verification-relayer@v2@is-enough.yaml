@@ -1,6 +1,6 @@
 get:
   tags:
-    - Voting
+    - Voting Info
   summary: Retrieve the predicted voting availability for a given address
   operationId: checkVotingAvailability
   parameters:
@@ -26,10 +26,10 @@ get:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Errors'
+            $ref: '#/components/schemas/NotFoundError'
     500:
       description: Internal Error
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Errors'
+            $ref: '#/components/schemas/InternalError'

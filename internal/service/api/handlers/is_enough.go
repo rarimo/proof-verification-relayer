@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"database/sql"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -14,6 +15,10 @@ func IsEnoughHandler(w http.ResponseWriter, r *http.Request) {
 	address := chi.URLParam(r, "address")
 
 	isEnough, err := checker.IsEnough(Config(r), address)
+	if err == sql.ErrNoRows {
+		ape.RenderErr(w, problems.NotFound())
+		return
+	}
 	if err != nil {
 		Log(r).Warnf("Failed check is enough balance: %v", err)
 		ape.RenderErr(w, problems.InternalError())
