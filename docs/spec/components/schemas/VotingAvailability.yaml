@@ -11,6 +11,7 @@ properties:
     example: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
   type:
     type: string
-    example: "is_enough" 
+    enum: 
+      - "is_enough" 
   attributes:
     $ref: "#/components/schemas/VotingAvailabilityAttributes"

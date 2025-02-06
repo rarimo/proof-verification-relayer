@@ -112,8 +112,8 @@ func (cq *checkerQ) GetLastBlock() (uint64, error) {
 
 func (q *checkerQ) InsertProcessedEvent(value data.ProcessedEvent) error {
 	query := sq.Insert("processed_events").
-		Columns("transaction_hash", "log_index", "emitted_at", "block_number").
-		Values(value.TransactionHash, value.LogIndex, value.EmittedAt, value.BlockNumber)
+		Columns("transaction_hash", "log_index", "block_number").
+		Values(value.TransactionHash, value.LogIndex, value.BlockNumber)
 
 	err := q.db.Exec(query)
 	if err != nil {

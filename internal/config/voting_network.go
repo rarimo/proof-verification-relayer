@@ -86,7 +86,7 @@ func (e *ethereumVoting) RelayerConfig() *RelayerConfig {
 		}
 
 		result.RPC = networkConfig.RPC
-
+		result.Enable = networkConfig.Enable
 		result.ChainID, err = result.RPC.ChainID(context.Background())
 		if err != nil {
 			panic(errors.Wrap(err, "failed to get chain ID"))

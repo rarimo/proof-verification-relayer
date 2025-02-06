@@ -11,7 +11,8 @@ properties:
     example: "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef"
   type:
     type: string
-    example: "vote_count" 
+    enum: 
+      - "vote_count" 
   attributes:
     $ref: "#/components/schemas/VotePredictionAttributes"  
 

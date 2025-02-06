@@ -12,7 +12,6 @@ CREATE INDEX IF NOT EXISTS idx_voting_address ON voting_contract_accounts(voting
 CREATE TABLE IF NOT EXISTS processed_events (
     transaction_hash BYTEA NOT NULL,
     log_index BIGINT NOT NULL,
-    emitted_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT (NOW() AT TIME ZONE 'utc'),
     block_number BIGINT NOT NULL,
     CONSTRAINT processed_events_transaction_hash_log_index_primary_key PRIMARY KEY(transaction_hash, log_index)

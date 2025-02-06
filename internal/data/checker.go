@@ -11,7 +11,6 @@ type VotingInfo struct {
 type ProcessedEvent struct {
 	TransactionHash []byte    `db:"transaction_hash"`
 	LogIndex        int64     `db:"log_index"`
-	EmittedAt       time.Time `db:"emitted_at"`
 	CreatedAt       time.Time `db:"created_at"`
 	BlockNumber     int64     `db:"block_number"`
 }

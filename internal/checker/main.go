@@ -3,18 +3,15 @@ package checker
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"log"
 	"math/big"
 	"strings"
-	"time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-	"github.com/ethereum/go-ethereum/ethclient"
 	usdcabi "github.com/rarimo/proof-verification-relayer/internal/checker/usdc_abi"
 	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/data"
@@ -25,7 +22,6 @@ import (
 // Instead of "abiusdc", use the ABI package
 // that will be generated for the required contract.
 func CheckEvents(ctx context.Context, cfg config.Config) {
-
 	if !cfg.RelayerConfig().Enable {
 		return
 	}
@@ -36,6 +32,7 @@ func CheckEvents(ctx context.Context, cfg config.Config) {
 	gasLimit := networkParam.GasLimit
 	contractAddress := networkParam.Address
 
+	logger.Info("Start Checker...")
 	client := networkParam.RPC
 	defer client.Close()
 
@@ -70,7 +67,7 @@ func CheckEvents(ctx context.Context, cfg config.Config) {
 		case err := <-sub.Err():
 			logger.Infof("Failed subscribe event: %v", err)
 		case vLog := <-logs:
-			processLog(vLog, pgDB, logger, &gasLimit, client)
+			processLog(vLog, pgDB, logger, &gasLimit)
 			startBlock = startBlock + 1
 
 		}
@@ -80,7 +77,7 @@ func CheckEvents(ctx context.Context, cfg config.Config) {
 
 // Instead of "abiusdc", use the ABI package
 // that will be generated for the required contract.
-func processLog(vLog types.Log, pg data.CheckerDB, logger *logan.Entry, defaultGasLimit *uint64, client *ethclient.Client) {
+func processLog(vLog types.Log, pg data.CheckerDB, logger *logan.Entry, defaultGasLimit *uint64) {
 	if len(vLog.Topics) < 3 {
 		logger.Warn("Invalid log format for Transfer event")
 		return
@@ -94,7 +91,8 @@ func processLog(vLog types.Log, pg data.CheckerDB, logger *logan.Entry, defaultG
 
 		parsedABI, err := abi.JSON(strings.NewReader(usdcabi.UsdcAbiABI))
 		if err != nil {
-			log.Fatalf("Failed to parse contract ABI: %v", err)
+			logger.Errorf("Failed to parse contract ABI: %v", err)
+			return
 		}
 
 		var transferEvent struct {
@@ -102,16 +100,11 @@ func processLog(vLog types.Log, pg data.CheckerDB, logger *logan.Entry, defaultG
 		}
 		err = parsedABI.UnpackIntoInterface(&transferEvent, "Transfer", vLog.Data)
 		if err != nil {
-			log.Printf("Failed to unpack log data: %v", err)
+			logger.Errorf("Failed to unpack log data: %v", err)
 			return
 		}
 		block := int64(vLog.BlockNumber)
 		processedEvent.BlockNumber = block
-
-		processedEvent.EmittedAt, err = getEmittedAt(client, vLog)
-		if err != nil {
-			return
-		}
 		processedEvent.LogIndex = int64(vLog.Index)
 		processedEvent.TransactionHash = vLog.TxHash[:]
 
@@ -247,17 +240,4 @@ func getStartBlockNumber(pgDB data.CheckerDB, logger *logan.Entry, defaultSBlock
 	default:
 	}
 	return block, nil
-}
-
-func getEmittedAt(client *ethclient.Client, log types.Log) (time.Time, error) {
-	blockNumber := big.NewInt(int64(log.BlockNumber))
-
-	block, err := client.BlockByNumber(context.Background(), blockNumber)
-	if err != nil {
-		return time.Time{}, fmt.Errorf("failed to get block: %v", err)
-	}
-
-	timestamp := block.Time()
-	emittedAt := time.Unix(int64(timestamp), 0).UTC()
-	return emittedAt, nil
 }
