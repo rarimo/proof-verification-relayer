@@ -14,5 +14,5 @@ properties:
     enum: 
       - "vote_count" 
   attributes:
-    $ref: "#/components/schemas/VotePredictionAttributes"  
+    $ref: "#/components/schemas/VoteCountAttributes"  
 

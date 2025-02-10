@@ -2,17 +2,20 @@ package handlers
 
 import (
 	"bytes"
+	"database/sql"
 	"fmt"
 	"math/big"
 	"net/http"
 	"strings"
 
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/google/jsonapi"
 	"github.com/rarimo/proof-verification-relayer/internal/checker"
+	"github.com/rarimo/proof-verification-relayer/internal/checker/proposalsstate"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 
 	// Instead of "proposalsstate", use the package
 	// that will be generated for the required contract.
-	"github.com/rarimo/proof-verification-relayer/internal/checker/proposalsstate"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -20,7 +23,6 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
-	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/ape"
 	"gitlab.com/distributed_lab/ape/problems"
@@ -71,6 +73,23 @@ func Voting(w http.ResponseWriter, r *http.Request) {
 	})
 	log.Debug("voting request")
 
+	checkIsEnough, err := checker.IsEnough(Config(r), destination)
+	if err == sql.ErrNoRows {
+		ape.RenderErr(w, problems.NotFound())
+		return
+	}
+	if err != nil {
+		Log(r).Warnf("Failed check is predict Tx count: %v", err)
+		ape.RenderErr(w, problems.InternalError())
+		return
+	}
+	if !checkIsEnough {
+
+		ape.RenderErr(w, &jsonapi.ErrorObject{
+			Title:  "Not Allowed",
+			Status: "405",
+		})
+	}
 	// destination is valid hex address because of request validation
 	votingAddress := common.HexToAddress(destination)
 
@@ -86,7 +105,7 @@ func Voting(w http.ResponseWriter, r *http.Request) {
 
 	// Instead of "proposalsstate", use the package
 	// that will be generated for the required contract.
-	session, err := proposalsstate.NewProposalsStateCaller(RelayerConfig(r).Address, RelayerConfig(r).RPC)
+	session, err := proposalsstate.NewProposalsStateCallerMock(VotingV2Config(r).Address, VotingV2Config(r).RPC)
 
 	if err != nil {
 		log.WithError(err).Error("Failed to get proposal state caller")
@@ -108,8 +127,8 @@ func Voting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	defer RelayerConfig(r).UnlockNonce()
-	RelayerConfig(r).LockNonce()
+	defer VotingV2Config(r).UnlockNonce()
+	VotingV2Config(r).LockNonce()
 
 	err = confGas(r, &txd, &votingAddress)
 
@@ -135,7 +154,7 @@ func Voting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	RelayerConfig(r).IncrementNonce()
+	VotingV2Config(r).IncrementNonce()
 
 	ape.Render(w, resources.Relation{
 		Data: &resources.Key{
@@ -146,13 +165,13 @@ func Voting(w http.ResponseWriter, r *http.Request) {
 }
 
 func confGas(r *http.Request, txd *txData, receiver *common.Address) (err error) {
-	txd.gasPrice, err = RelayerConfig(r).RPC.SuggestGasPrice(r.Context())
+	txd.gasPrice, err = VotingV2Config(r).RPC.SuggestGasPrice(r.Context())
 	if err != nil {
 		return fmt.Errorf("failed to suggest gas price: %w", err)
 	}
 
-	txd.gas, err = RelayerConfig(r).RPC.EstimateGas(r.Context(), ethereum.CallMsg{
-		From:     crypto.PubkeyToAddress(RelayerConfig(r).PrivateKey.PublicKey),
+	txd.gas, err = VotingV2Config(r).RPC.EstimateGas(r.Context(), ethereum.CallMsg{
+		From:     crypto.PubkeyToAddress(VotingV2Config(r).PrivateKey.PublicKey),
 		To:       receiver,
 		GasPrice: txd.gasPrice,
 		Data:     txd.dataBytes,
@@ -162,7 +181,9 @@ func confGas(r *http.Request, txd *txData, receiver *common.Address) (err error)
 	}
 
 	err = checker.CheckUpdateGasLimit(txd.gas, Config(r), receiver)
-
+	if err != nil {
+		return fmt.Errorf("failed to check and update gas price: %w", err)
+	}
 	return nil
 }
 
@@ -172,9 +193,9 @@ func sendTx(r *http.Request, txd *txData, receiver *common.Address) (tx *types.T
 		return nil, fmt.Errorf("failed to sign new tx: %w", err)
 	}
 
-	if err = RelayerConfig(r).RPC.SendTransaction(r.Context(), tx); err != nil {
+	if err = VotingV2Config(r).RPC.SendTransaction(r.Context(), tx); err != nil {
 		if strings.Contains(err.Error(), "nonce") {
-			if err = RelayerConfig(r).ResetNonce(RelayerConfig(r).RPC); err != nil {
+			if err = VotingV2Config(r).ResetNonce(VotingV2Config(r).RPC); err != nil {
 				return nil, fmt.Errorf("failed to reset nonce: %w", err)
 			}
 
@@ -183,7 +204,7 @@ func sendTx(r *http.Request, txd *txData, receiver *common.Address) (tx *types.T
 				return nil, fmt.Errorf("failed to sign new tx: %w", err)
 			}
 
-			if err := RelayerConfig(r).RPC.SendTransaction(r.Context(), tx); err != nil {
+			if err := VotingV2Config(r).RPC.SendTransaction(r.Context(), tx); err != nil {
 				return nil, fmt.Errorf("failed to send transaction: %w", err)
 			}
 		} else {
@@ -196,10 +217,10 @@ func sendTx(r *http.Request, txd *txData, receiver *common.Address) (tx *types.T
 
 func signTx(r *http.Request, txd *txData, receiver *common.Address) (tx *types.Transaction, err error) {
 	tx, err = types.SignNewTx(
-		RelayerConfig(r).PrivateKey,
-		types.NewCancunSigner(RelayerConfig(r).ChainID),
+		VotingV2Config(r).PrivateKey,
+		types.NewCancunSigner(VotingV2Config(r).ChainID),
 		&types.LegacyTx{
-			Nonce:    RelayerConfig(r).Nonce(),
+			Nonce:    VotingV2Config(r).Nonce(),
 			Gas:      txd.gas,
 			GasPrice: txd.gasPrice,
 			To:       receiver,

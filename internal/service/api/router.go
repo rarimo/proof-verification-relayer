@@ -54,7 +54,7 @@ func (s *service) router() chi.Router {
 			handlers.CtxLightweightState(lightweightState),
 			handlers.CtxSignedTransitStateMethod(&signedTransitState),
 			handlers.CtxStateQ(pg.NewStateQ(s.cfg.DB().Clone())),
-			handlers.CtxRelayerConfig(s.cfg.RelayerConfig()),
+			handlers.CtxVotingV2Config(s.cfg.VotingV2Config()),
 		),
 	)
 	r.Route("/integrations/proof-verification-relayer", func(r chi.Router) {
@@ -64,11 +64,12 @@ func (s *service) router() chi.Router {
 			r.Post("/transit-state", handlers.TransitState)
 			r.Get("/state", handlers.GetSignedState)
 		})
-		if s.cfg.RelayerConfig().Enable {
+		if s.cfg.VotingV2Config().Enable {
 			r.Route("/v2", func(r chi.Router) {
-				r.Get("/predict/{address}", handlers.PredictHandlers)
+				r.Get("/count-remaining-votes/{address}", handlers.VoteCountHandlers)
 				r.Get("/is-enough/{address}", handlers.IsEnoughHandler)
 				r.Post("/vote", handlers.Voting)
+				r.Post("/predict/", handlers.PredictHandlers)
 
 			})
 		}

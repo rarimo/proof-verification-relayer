@@ -17,24 +17,26 @@ import (
 	"github.com/rarimo/proof-verification-relayer/internal/data"
 	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 // Instead of "abiusdc", use the ABI package
 // that will be generated for the required contract.
 func CheckEvents(ctx context.Context, cfg config.Config) {
-	if !cfg.RelayerConfig().Enable {
+	if !cfg.VotingV2Config().Enable {
+		cfg.Log().WithField("Enable checker", cfg.VotingV2Config().Enable).Info("stop reading events")
+
 		return
 	}
 
 	pgDB := pg.NewMaterDB(cfg.DB())
 	logger := cfg.Log()
-	networkParam := cfg.RelayerConfig()
+	networkParam := cfg.VotingV2Config()
 	gasLimit := networkParam.GasLimit
 	contractAddress := networkParam.Address
 
 	logger.Info("Start Checker...")
 	client := networkParam.RPC
-	defer client.Close()
 
 	startBlock, err := getStartBlockNumber(pgDB, logger, networkParam.Block)
 	if err != nil {
@@ -49,8 +51,9 @@ func CheckEvents(ctx context.Context, cfg config.Config) {
 		}
 	}
 
+	go readEvents(ctx, startBlock, cfg, pgDB, gasLimit)
+
 	query := ethereum.FilterQuery{
-		FromBlock: big.NewInt(int64(startBlock)),
 		Addresses: []common.Address{contractAddress},
 	}
 	logs := make(chan types.Log)
@@ -67,7 +70,7 @@ func CheckEvents(ctx context.Context, cfg config.Config) {
 		case err := <-sub.Err():
 			logger.Infof("Failed subscribe event: %v", err)
 		case vLog := <-logs:
-			processLog(vLog, pgDB, logger, &gasLimit)
+			processLog(vLog, pgDB, logger, gasLimit)
 			startBlock = startBlock + 1
 
 		}
@@ -77,9 +80,8 @@ func CheckEvents(ctx context.Context, cfg config.Config) {
 
 // Instead of "abiusdc", use the ABI package
 // that will be generated for the required contract.
-func processLog(vLog types.Log, pg data.CheckerDB, logger *logan.Entry, defaultGasLimit *uint64) {
+func processLog(vLog types.Log, pg data.CheckerDB, logger *logan.Entry, defaultGasLimit uint64) {
 	if len(vLog.Topics) < 3 {
-		logger.Warn("Invalid log format for Transfer event")
 		return
 	}
 	transferEventSignature := []byte("Transfer(address,address,uint256)")
@@ -120,7 +122,8 @@ func processLog(vLog types.Log, pg data.CheckerDB, logger *logan.Entry, defaultG
 		if err != nil {
 			return
 		}
-		votingInfo.Address = ToAddress
+		votingInfo.Address = strings.ToLower(ToAddress)
+
 		votingInfo.Balance = votingInfo.Balance + value.Uint64()
 
 		err = pg.CheckerQ().UpdateVotingInfo(votingInfo)
@@ -131,13 +134,13 @@ func processLog(vLog types.Log, pg data.CheckerDB, logger *logan.Entry, defaultG
 	}
 }
 
-func checkVoteAndGetBalance(pg data.CheckerDB, address string, logger *logan.Entry, defaultGasL *uint64) (data.VotingInfo, error) {
+func checkVoteAndGetBalance(pg data.CheckerDB, address string, logger *logan.Entry, defaultGasL uint64) (data.VotingInfo, error) {
 	votingInfo, err := pg.CheckerQ().GetVotingInfo(address)
 	if err == sql.ErrNoRows {
 		newVote := &data.VotingInfo{
 			Address:  address,
 			Balance:  0,
-			GasLimit: *defaultGasL,
+			GasLimit: defaultGasL,
 		}
 
 		err := pg.CheckerQ().InsertVotingInfo(*newVote)
@@ -151,33 +154,18 @@ func checkVoteAndGetBalance(pg data.CheckerDB, address string, logger *logan.Ent
 }
 
 func IsEnough(cfg config.Config, addr string) (bool, error) {
-	logger := cfg.Log()
-	pg := pg.NewMaterDB(cfg.DB())
-
-	txFee, err := getTxFee(cfg)
-	if err != nil {
-		logger.Errorf("Failed get fee: %v", err)
-		return false, err
-	}
-
-	votingInfo, err := pg.CheckerQ().GetVotingInfo(addr)
+	countTx, err := GetCountTx(cfg, addr)
 	if err != nil {
 		return false, err
 	}
 
-	voteBalance := votingInfo.Balance
-	if txFee <= voteBalance {
-		return true, nil
-	}
-	return false, nil
+	return countTx != 0, nil
 }
 
 func GetCountTx(cfg config.Config, addr string) (uint64, error) {
 	logger := cfg.Log()
 	pg := pg.NewMaterDB(cfg.DB())
-
 	txFee, err := getTxFee(cfg)
-	logger.Warnf("txFee: %d", txFee)
 	if err != nil {
 		logger.Errorf("Failed get fee: %v", err)
 		return 0, err
@@ -193,9 +181,20 @@ func GetCountTx(cfg config.Config, addr string) (uint64, error) {
 	return countTx, nil
 }
 
+func GetPredictCount(cfg config.Config, addr string, amount uint64) (uint64, error) {
+	logger := cfg.Log()
+
+	txFee, err := getTxFee(cfg)
+	if err != nil {
+		logger.Errorf("Failed get fee: %v", err)
+		return 0, err
+	}
+	return amount / txFee, nil
+}
+
 func getTxFee(cfg config.Config) (uint64, error) {
 	logger := cfg.Log()
-	networkParam := cfg.RelayerConfig()
+	networkParam := cfg.VotingV2Config()
 	client := networkParam.RPC
 
 	feeCap, err := client.SuggestGasPrice(context.Background())
@@ -238,4 +237,52 @@ func getStartBlockNumber(pgDB data.CheckerDB, logger *logan.Entry, defaultSBlock
 	default:
 	}
 	return block, nil
+}
+
+func readEvents(ctx context.Context, block uint64, cfg config.Config, pg data.CheckerDB, defaultGasLimit uint64) error {
+	logger := cfg.Log()
+	client := cfg.VotingV2Config().RPC
+	pinger := cfg.Pinger()
+	contractAddress := cfg.VotingV2Config().Address
+	logger.WithField("from", block).Info("start reading events")
+	header, err := client.HeaderByNumber(ctx, nil)
+	if err != nil {
+		logger.WithField("Error", err).Info("failed to get latest block header")
+		return errors.Wrap(err, "failed to get latest block header")
+	}
+	transferEventSignature := []byte("Transfer(address,address,uint256)")
+	transferEventID := crypto.Keccak256Hash(transferEventSignature)
+
+	for ; block < header.Number.Uint64(); block = min(header.Number.Uint64(), block+pinger.BlocksDistance) {
+		select {
+		case <-ctx.Done():
+			logger.Info("unsubscribe from events")
+			return nil
+		default:
+		}
+		toBlock := min(header.Number.Uint64(), block+pinger.BlocksDistance)
+		logs, err := client.FilterLogs(ctx, ethereum.FilterQuery{
+			Topics:    [][]common.Hash{{transferEventID}},
+			Addresses: []common.Address{contractAddress},
+			FromBlock: new(big.Int).SetUint64(block),
+			ToBlock:   new(big.Int).SetUint64(toBlock),
+		})
+		if err != nil {
+			logger.WithField("Error", err).Info("failed to filter logs")
+			return errors.Wrap(err, "failed to filter logs", logan.F{"address": contractAddress, "start_block": block})
+		}
+
+		for _, event := range logs {
+			processLog(event, pg, logger, defaultGasLimit)
+		}
+
+		logger.WithFields(logan.F{
+			"from":   block,
+			"to":     toBlock,
+			"events": len(logs),
+		}).Debug("found events")
+	}
+
+	logger.WithField("to", block).Info("finish reading events")
+	return nil
 }

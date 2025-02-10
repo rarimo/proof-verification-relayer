@@ -8,24 +8,24 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-type ProposalConfig struct {
+type ProposalConfigMock struct {
 	VotingWhitelist []common.Address
 }
 
-type ProposalsStateCaller struct {
+type ProposalsStateCallerMock struct {
 	Address common.Address
 	RPC     *ethclient.Client
 }
 
-func NewProposalsStateCaller(address common.Address, rpc *ethclient.Client) (*ProposalsStateCaller, error) {
-	return &ProposalsStateCaller{Address: address, RPC: rpc}, nil
+func NewProposalsStateCallerMock(address common.Address, rpc *ethclient.Client) (*ProposalsStateCallerMock, error) {
+	return &ProposalsStateCallerMock{Address: address, RPC: rpc}, nil
 }
 
-func (p *ProposalsStateCaller) GetProposalConfig(opts interface{}, proposalID *big.Int) (*ProposalConfig, error) {
+func (p *ProposalsStateCallerMock) GetProposalConfig(opts interface{}, proposalID *big.Int) (*ProposalConfigMock, error) {
 	if proposalID == nil {
 		return nil, errors.New("invalid proposal ID")
 	}
-	return &ProposalConfig{
+	return &ProposalConfigMock{
 		VotingWhitelist: []common.Address{
 			common.HexToAddress("0x0000000000000000000000000000000000000001"),
 		},

@@ -1,8 +1,8 @@
 post:
   tags:
-    - Voting
-  summary: Voting
-  operationId: vote
+    - Voting Info
+  summary: Voting Info
+  operationId: votingPredict
   requestBody:
     content:
       application/vnd.api+json:
@@ -12,30 +12,20 @@ post:
             - data
           properties:
             data:
-              $ref: '#/components/schemas/SendTx'
+              $ref: '#/components/schemas/VotingPredict'
   responses:
     200:
       description: Success
       content:
         application/json:
           schema:
-            type: object
-            properties:
-              data:
-                type: object
-                $ref: '#/components/schemas/TxKey'
+            $ref: '#/components/schemas/VotingPredictResponse'
     400:
       description: Bad Request Error
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/BadRequestError'
-    405:
-      description: Not Allowed Error
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/NotAllowedError'
     500:
       description: Internal Error
       content:

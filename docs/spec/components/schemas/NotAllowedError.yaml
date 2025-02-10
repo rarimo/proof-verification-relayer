@@ -1,0 +1,12 @@
+type: object
+required:
+  - title
+  - status
+properties:
+  title:
+    type: string
+    example: "Not Allowed"
+  status:
+    type: string
+    enum:
+      - "405"
