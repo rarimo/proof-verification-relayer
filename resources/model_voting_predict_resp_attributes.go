@@ -4,6 +4,6 @@
 
 package resources
 
-type VotePredictionAttributes struct {
-	VoteCount *uint64 `json:"vote_count,omitempty"`
+type VotingPredictRespAttributes struct {
+	CountTxPredict string `json:"count_tx_predict"`
 }

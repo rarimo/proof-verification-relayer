@@ -19,7 +19,7 @@ post:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/VotingPredictResponse'
+            $ref: '#/components/schemas/VotingPredictResponse/VotingPredictResp'
     400:
       description: Bad Request Error
       content:

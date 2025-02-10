@@ -2,7 +2,6 @@ type: object
 required:
   - id
   - type
-  - attributes
 properties:
   id:
     type: string
@@ -11,6 +10,4 @@ properties:
   type:
     type: string
     enum: 
-      - "count_tx_predict" 
-  attributes:
-    $ref: '#/components/schemas/VotingPredictResponseAttributes'
+      - "count_tx_predict"

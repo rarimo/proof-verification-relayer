@@ -41,12 +41,17 @@ func PredictHandlers(w http.ResponseWriter, r *http.Request) {
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
-
-	var resp resources.VotingPredictResponse
 	timestamp := time.Now().UTC().Format(time.RFC3339)
-	resp.Id = votingAddress + ":" + fmt.Sprintf("%d", amount) + ":" + timestamp
-	resp.Type = "vote_predict"
-	resp.Attributes.CountTxPredict = fmt.Sprintf("%d", countTx)
 
-	ape.Render(w, resp)
+	ape.Render(w, resources.VotingPredictRespResponse{
+		Data: resources.VotingPredictResp{
+			Key: resources.Key{
+				ID:   votingAddress + ":" + fmt.Sprintf("%d", amount) + ":" + timestamp,
+				Type: resources.COUNT_TX_PREDICT,
+			},
+			Attributes: resources.VotingPredictRespAttributes{
+				CountTxPredict: fmt.Sprintf("%d", countTx),
+			},
+		},
+	})
 }

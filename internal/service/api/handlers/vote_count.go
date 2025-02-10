@@ -27,8 +27,14 @@ func VoteCountHandlers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ape.Render(w, &resources.VotePrediction{
-		Id:         address,
-		Type:       "vote_count",
-		Attributes: resources.VotePredictionAttributes{VoteCount: &countTx}})
+	ape.Render(w, resources.VoteCountResponse{
+		Data: resources.VoteCount{
+			Key: resources.Key{
+				ID:   address,
+				Type: resources.VOTE_COUNT,
+			},
+			Attributes: resources.VoteCountAttributes{
+				VoteCount: &countTx,
+			},
+		}})
 }

@@ -15,11 +15,7 @@ var (
 	amountRegexp = regexp.MustCompile("[0-9]{1,}")
 )
 
-type VotingPredictRequest struct {
-	Data resources.VotingPredict `json:"data"`
-}
-
-func NewVotingPredictRequest(r *http.Request) (req VotingPredictRequest, err error) {
+func NewVotingPredictRequest(r *http.Request) (req resources.VotingPredictRequest, err error) {
 	// log.Fatalf("Request")
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {

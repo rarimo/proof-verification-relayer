@@ -37,7 +37,6 @@ func CheckEvents(ctx context.Context, cfg config.Config) {
 
 	logger.Info("Start Checker...")
 	client := networkParam.RPC
-
 	startBlock, err := getStartBlockNumber(pgDB, logger, networkParam.Block)
 	if err != nil {
 		logger.Errorf("Failed get start block: %v", err)
@@ -115,14 +114,12 @@ func processLog(vLog types.Log, pg data.CheckerDB, logger *logan.Entry, defaultG
 			return
 		}
 
-		ToAddress := to.Hex()
+		ToAddress := strings.ToLower(to.Hex())
 		value := transferEvent.Value
-
 		votingInfo, err := checkVoteAndGetBalance(pg, ToAddress, logger, defaultGasLimit)
 		if err != nil {
 			return
 		}
-		votingInfo.Address = strings.ToLower(ToAddress)
 
 		votingInfo.Balance = votingInfo.Balance + value.Uint64()
 
@@ -224,19 +221,23 @@ func CheckUpdateGasLimit(value uint64, cfg config.Config, receiver *common.Addre
 }
 
 func getStartBlockNumber(pgDB data.CheckerDB, logger *logan.Entry, defaultSBlock uint64) (uint64, error) {
+	if defaultSBlock == 0 {
+		block, err := pgDB.CheckerQ().GetLastBlock()
+		if err == sql.ErrNoRows {
+			block = 0
+		} else if err != nil {
+			logger.Errorf("Failed get block: %v", err)
+			return 0, err
+		}
 
-	block, err := pgDB.CheckerQ().GetLastBlock()
-	if err != nil {
-		logger.Errorf("Failed get block: %v", err)
-		return 0, err
+		switch block {
+		case 0:
+			block = defaultSBlock
+		default:
+		}
+		return block, nil
 	}
-
-	switch block {
-	case 0:
-		block = defaultSBlock
-	default:
-	}
-	return block, nil
+	return defaultSBlock, nil
 }
 
 func readEvents(ctx context.Context, block uint64, cfg config.Config, pg data.CheckerDB, defaultGasLimit uint64) error {

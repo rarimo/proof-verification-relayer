@@ -1,12 +1,9 @@
-x-go-is-request: true
-type: object
-required:
-  - type
-  - attributes
-properties:
-  type:
-    type: string
-    enum: 
-      - "vote_predict" 
-  attributes:
-    $ref: '#/components/schemas/VotingPredictAttributes'
+allOf:
+  - $ref: '#/components/schemas/VotingPredictKey'
+  - type: object
+    x-go-is-request: true
+    required:
+      - attributes
+    properties:
+      attributes:
+        $ref: '#/components/schemas/VotingPredictAttributes'

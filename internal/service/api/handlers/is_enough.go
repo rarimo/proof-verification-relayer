@@ -26,11 +26,15 @@ func IsEnoughHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ape.Render(w, &resources.VotingAvailability{
-		Id:   address,
-		Type: "is_enough",
-		Attributes: resources.VotingAvailabilityAttributes{
-			IsEnough: &isEnough,
+	ape.Render(w, resources.VotingAvailabilityResponse{
+		Data: resources.VotingAvailability{
+			Key: resources.Key{
+				ID:   address,
+				Type: resources.IS_ENOUGH,
+			},
+			Attributes: resources.VotingAvailabilityAttributes{
+				IsEnough: &isEnough,
+			},
 		},
 	})
 
