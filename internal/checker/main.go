@@ -34,6 +34,8 @@ func CheckEvents(ctx context.Context, cfg config.Config) {
 	networkParam := cfg.VotingV2Config()
 	gasLimit := networkParam.GasLimit
 	contractAddress := networkParam.Address
+	transferEventSignature := []byte("Transfer(address,address,uint256)")
+	transferEventID := crypto.Keccak256Hash(transferEventSignature)
 
 	logger.Info("Start Checker...")
 	client := networkParam.RPC
@@ -42,17 +44,11 @@ func CheckEvents(ctx context.Context, cfg config.Config) {
 		logger.Errorf("Failed get start block: %v", err)
 		return
 	}
-	if startBlock == 0 {
-		startBlock, err = client.BlockNumber(context.Background())
-		if err != nil {
-			logger.Errorf("Failed get start block: %v", err)
-			return
-		}
-	}
 
-	go readEvents(ctx, startBlock, cfg, pgDB, gasLimit)
+	go readOldEvents(ctx, startBlock, cfg, pgDB, gasLimit, transferEventID)
 
 	query := ethereum.FilterQuery{
+		Topics:    [][]common.Hash{{transferEventID}},
 		Addresses: []common.Address{contractAddress},
 	}
 	logs := make(chan types.Log)
@@ -80,54 +76,46 @@ func CheckEvents(ctx context.Context, cfg config.Config) {
 // Instead of "abiusdc", use the ABI package
 // that will be generated for the required contract.
 func processLog(vLog types.Log, pg data.CheckerDB, logger *logan.Entry, defaultGasLimit uint64) {
-	if len(vLog.Topics) < 3 {
+	var processedEvent data.ProcessedEvent
+	to := common.HexToAddress(vLog.Topics[2].Hex())
+
+	parsedABI, err := abi.JSON(strings.NewReader(usdcabi.UsdcAbiABI))
+	if err != nil {
+		logger.Errorf("Failed to parse contract ABI: %v", err)
 		return
 	}
-	transferEventSignature := []byte("Transfer(address,address,uint256)")
-	transferEventID := crypto.Keccak256Hash(transferEventSignature)
 
-	if vLog.Topics[0] == transferEventID {
-		var processedEvent data.ProcessedEvent
-		to := common.HexToAddress(vLog.Topics[2].Hex())
+	var transferEvent struct {
+		Value *big.Int
+	}
+	err = parsedABI.UnpackIntoInterface(&transferEvent, "Transfer", vLog.Data)
+	if err != nil {
+		logger.Errorf("Failed to unpack log data: %v", err)
+		return
+	}
+	block := int64(vLog.BlockNumber)
+	processedEvent.BlockNumber = block
+	processedEvent.LogIndex = int64(vLog.Index)
+	processedEvent.TransactionHash = vLog.TxHash[:]
 
-		parsedABI, err := abi.JSON(strings.NewReader(usdcabi.UsdcAbiABI))
-		if err != nil {
-			logger.Errorf("Failed to parse contract ABI: %v", err)
-			return
-		}
+	err = pg.CheckerQ().InsertProcessedEvent(processedEvent)
+	if err != nil {
+		return
+	}
 
-		var transferEvent struct {
-			Value *big.Int
-		}
-		err = parsedABI.UnpackIntoInterface(&transferEvent, "Transfer", vLog.Data)
-		if err != nil {
-			logger.Errorf("Failed to unpack log data: %v", err)
-			return
-		}
-		block := int64(vLog.BlockNumber)
-		processedEvent.BlockNumber = block
-		processedEvent.LogIndex = int64(vLog.Index)
-		processedEvent.TransactionHash = vLog.TxHash[:]
+	ToAddress := strings.ToLower(to.Hex())
+	value := transferEvent.Value
+	votingInfo, err := checkVoteAndGetBalance(pg, ToAddress, logger, defaultGasLimit)
+	if err != nil {
+		return
+	}
 
-		err = pg.CheckerQ().InsertProcessedEvent(processedEvent)
-		if err != nil {
-			return
-		}
+	votingInfo.Balance = votingInfo.Balance + value.Uint64()
 
-		ToAddress := strings.ToLower(to.Hex())
-		value := transferEvent.Value
-		votingInfo, err := checkVoteAndGetBalance(pg, ToAddress, logger, defaultGasLimit)
-		if err != nil {
-			return
-		}
-
-		votingInfo.Balance = votingInfo.Balance + value.Uint64()
-
-		err = pg.CheckerQ().UpdateVotingInfo(votingInfo)
-		if err != nil {
-			logger.Errorf("Failed Update voting balance: %v", err)
-			return
-		}
+	err = pg.CheckerQ().UpdateVotingInfo(votingInfo)
+	if err != nil {
+		logger.Errorf("Failed Update voting balance: %v", err)
+		return
 	}
 }
 
@@ -221,38 +209,28 @@ func CheckUpdateGasLimit(value uint64, cfg config.Config, receiver *common.Addre
 }
 
 func getStartBlockNumber(pgDB data.CheckerDB, logger *logan.Entry, defaultSBlock uint64) (uint64, error) {
-	if defaultSBlock == 0 {
-		block, err := pgDB.CheckerQ().GetLastBlock()
-		if err == sql.ErrNoRows {
-			block = 0
-		} else if err != nil {
-			logger.Errorf("Failed get block: %v", err)
-			return 0, err
-		}
-
-		switch block {
-		case 0:
-			block = defaultSBlock
-		default:
-		}
-		return block, nil
+	block, err := pgDB.CheckerQ().GetLastBlock()
+	if err == sql.ErrNoRows {
+		block = defaultSBlock
+	} else if err != nil {
+		logger.Errorf("Failed get block from db: %v", err)
+		return defaultSBlock, err
 	}
-	return defaultSBlock, nil
+
+	return block, nil
 }
 
-func readEvents(ctx context.Context, block uint64, cfg config.Config, pg data.CheckerDB, defaultGasLimit uint64) error {
+func readOldEvents(ctx context.Context, block uint64, cfg config.Config, pg data.CheckerDB, defaultGasLimit uint64, transferEventID common.Hash) error {
 	logger := cfg.Log()
 	client := cfg.VotingV2Config().RPC
 	pinger := cfg.Pinger()
 	contractAddress := cfg.VotingV2Config().Address
-	logger.WithField("from", block).Info("start reading events")
+	logger.WithField("from", block).Info("start reading old events")
 	header, err := client.HeaderByNumber(ctx, nil)
 	if err != nil {
 		logger.WithField("Error", err).Info("failed to get latest block header")
 		return errors.Wrap(err, "failed to get latest block header")
 	}
-	transferEventSignature := []byte("Transfer(address,address,uint256)")
-	transferEventID := crypto.Keccak256Hash(transferEventSignature)
 
 	for ; block < header.Number.Uint64(); block = min(header.Number.Uint64(), block+pinger.BlocksDistance) {
 		select {
@@ -284,6 +262,6 @@ func readEvents(ctx context.Context, block uint64, cfg config.Config, pg data.Ch
 		}).Debug("found events")
 	}
 
-	logger.WithField("to", block).Info("finish reading events")
+	logger.WithField("to", block).Info("finish reading old events")
 	return nil
 }
