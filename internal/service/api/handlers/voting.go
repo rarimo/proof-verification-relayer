@@ -78,13 +78,17 @@ func Voting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err != nil {
-		Log(r).Warnf("Failed check is predict Tx count: %v", err)
+		Log(r).WithFields(logan.F{
+			"destination": req.Data.Attributes.Destination,
+			"error":       err,
+		}).Warn("Insufficient balance check failed")
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
 	if !checkIsEnough {
-
+		Log(r).Infof("Insufficient funds in the voting account: %v", destination)
 		ape.RenderErr(w, problems.Forbidden())
+		return
 	}
 
 	// destination is valid hex address because of request validation
