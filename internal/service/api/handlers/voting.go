@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/google/jsonapi"
 	"github.com/rarimo/proof-verification-relayer/internal/checker"
 	"github.com/rarimo/proof-verification-relayer/internal/checker/proposalsstate"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
@@ -85,11 +84,593 @@ func Voting(w http.ResponseWriter, r *http.Request) {
 	}
 	if !checkIsEnough {
 
-		ape.RenderErr(w, &jsonapi.ErrorObject{
-			Title:  "Not Allowed",
-			Status: "405",
-		})
+		ape.RenderErr(w, problems.Forbidden())
 	}
+
+	// 	// destination is valid hex address because of request validation
+	// 	votingAddress := common.HexToAddress(destination)
+
+	// 	var txd txData
+	// 	txd.dataBytes, err = hexutil.Decode(calldata)
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to decode data")
+	// 		ape.RenderErr(w, problems.BadRequest(err)...)
+	// 		return
+	// 	}
+
+	// 	proposalBigID := big.NewInt(proposalID)
+
+	// 	// Instead of "proposalsstate", use the package
+	// 	// that will be generated for the required contract.
+	// 	session, err := proposalsstate.NewProposalsStateCallerMock(VotingV2Config(r).Address, VotingV2Config(r).RPC)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to get proposal state caller")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	proposalConfig, err := session.GetProposalConfig(nil, proposalBigID)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to get proposal config")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	if !isAddressInWhitelist(votingAddress, proposalConfig.VotingWhitelist) {
+	// 		log.Error("Address not in voting whitelist")
+	// 		ape.RenderErr(w, problems.Forbidden())
+	// 		return
+	// 	}
+
+	// 	defer VotingV2Config(r).UnlockNonce()
+	// 	VotingV2Config(r).LockNonce()
+
+	// 	err = confGas(r, &txd, &votingAddress)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to configure gas and gasPrice")
+	// 		// `errors.Is` is not working for rpc errors, they passed as a string without additional wrapping
+	// 		// because of this we operate with raw strings
+	// 		if strings.Contains(err.Error(), vm.ErrExecutionReverted.Error()) {
+	// 			errParts := strings.Split(err.Error(), ":")
+	// 			contractName := strings.TrimSpace(errParts[len(errParts)-2])
+	// 			errMsg := errors.New(strings.TrimSpace(errParts[len(errParts)-1]))
+	// 			ape.RenderErr(w, problems.BadRequest(validation.Errors{contractName: errMsg}.Filter())...)
+	// 			return
+	// 		}
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	tx, err := sendTx(r, &txd, &votingAddress)
+	// 	if err != nil {
+	// 		log.WithError(err).Error("failed to send tx")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	VotingV2Config(r).IncrementNonce()
+
+	// 	ape.Render(w, resources.Relation{
+	// 		Data: &resources.Key{
+	// 			ID:   tx.Hash().String(),
+	// 			Type: TRANSACTION,
+	// 		},
+	// 	})
+
+	// 	// destination is valid hex address because of request validation
+	// 	votingAddress := common.HexToAddress(destination)
+
+	// 	var txd txData
+	// 	txd.dataBytes, err = hexutil.Decode(calldata)
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to decode data")
+	// 		ape.RenderErr(w, problems.BadRequest(err)...)
+	// 		return
+	// 	}
+
+	// 	proposalBigID := big.NewInt(proposalID)
+
+	// 	// Instead of "proposalsstate", use the package
+	// 	// that will be generated for the required contract.
+	// 	session, err := proposalsstate.NewProposalsStateCallerMock(VotingV2Config(r).Address, VotingV2Config(r).RPC)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to get proposal state caller")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	proposalConfig, err := session.GetProposalConfig(nil, proposalBigID)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to get proposal config")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	if !isAddressInWhitelist(votingAddress, proposalConfig.VotingWhitelist) {
+	// 		log.Error("Address not in voting whitelist")
+	// 		ape.RenderErr(w, problems.Forbidden())
+	// 		return
+	// 	}
+
+	// 	defer VotingV2Config(r).UnlockNonce()
+	// 	VotingV2Config(r).LockNonce()
+
+	// 	err = confGas(r, &txd, &votingAddress)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to configure gas and gasPrice")
+	// 		// `errors.Is` is not working for rpc errors, they passed as a string without additional wrapping
+	// 		// because of this we operate with raw strings
+	// 		if strings.Contains(err.Error(), vm.ErrExecutionReverted.Error()) {
+	// 			errParts := strings.Split(err.Error(), ":")
+	// 			contractName := strings.TrimSpace(errParts[len(errParts)-2])
+	// 			errMsg := errors.New(strings.TrimSpace(errParts[len(errParts)-1]))
+	// 			ape.RenderErr(w, problems.BadRequest(validation.Errors{contractName: errMsg}.Filter())...)
+	// 			return
+	// 		}
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	tx, err := sendTx(r, &txd, &votingAddress)
+	// 	if err != nil {
+	// 		log.WithError(err).Error("failed to send tx")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	VotingV2Config(r).IncrementNonce()
+
+	// 	ape.Render(w, resources.Relation{
+	// 		Data: &resources.Key{
+	// 			ID:   tx.Hash().String(),
+	// 			Type: TRANSACTION,
+	// 		},
+	// 	})
+
+	// 	// destination is valid hex address because of request validation
+	// 	votingAddress := common.HexToAddress(destination)
+
+	// 	var txd txData
+	// 	txd.dataBytes, err = hexutil.Decode(calldata)
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to decode data")
+	// 		ape.RenderErr(w, problems.BadRequest(err)...)
+	// 		return
+	// 	}
+
+	// 	proposalBigID := big.NewInt(proposalID)
+
+	// 	// Instead of "proposalsstate", use the package
+	// 	// that will be generated for the required contract.
+	// 	session, err := proposalsstate.NewProposalsStateCallerMock(VotingV2Config(r).Address, VotingV2Config(r).RPC)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to get proposal state caller")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	proposalConfig, err := session.GetProposalConfig(nil, proposalBigID)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to get proposal config")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	if !isAddressInWhitelist(votingAddress, proposalConfig.VotingWhitelist) {
+	// 		log.Error("Address not in voting whitelist")
+	// 		ape.RenderErr(w, problems.Forbidden())
+	// 		return
+	// 	}
+
+	// 	defer VotingV2Config(r).UnlockNonce()
+	// 	VotingV2Config(r).LockNonce()
+
+	// 	err = confGas(r, &txd, &votingAddress)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to configure gas and gasPrice")
+	// 		// `errors.Is` is not working for rpc errors, they passed as a string without additional wrapping
+	// 		// because of this we operate with raw strings
+	// 		if strings.Contains(err.Error(), vm.ErrExecutionReverted.Error()) {
+	// 			errParts := strings.Split(err.Error(), ":")
+	// 			contractName := strings.TrimSpace(errParts[len(errParts)-2])
+	// 			errMsg := errors.New(strings.TrimSpace(errParts[len(errParts)-1]))
+	// 			ape.RenderErr(w, problems.BadRequest(validation.Errors{contractName: errMsg}.Filter())...)
+	// 			return
+	// 		}
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	tx, err := sendTx(r, &txd, &votingAddress)
+	// 	if err != nil {
+	// 		log.WithError(err).Error("failed to send tx")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	VotingV2Config(r).IncrementNonce()
+
+	// 	ape.Render(w, resources.Relation{
+	// 		Data: &resources.Key{
+	// 			ID:   tx.Hash().String(),
+	// 			Type: TRANSACTION,
+	// 		},
+	// 	})
+
+	// 	// destination is valid hex address because of request validation
+	// 	votingAddress := common.HexToAddress(destination)
+
+	// 	var txd txData
+	// 	txd.dataBytes, err = hexutil.Decode(calldata)
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to decode data")
+	// 		ape.RenderErr(w, problems.BadRequest(err)...)
+	// 		return
+	// 	}
+
+	// 	proposalBigID := big.NewInt(proposalID)
+
+	// 	// Instead of "proposalsstate", use the package
+	// 	// that will be generated for the required contract.
+	// 	session, err := proposalsstate.NewProposalsStateCallerMock(VotingV2Config(r).Address, VotingV2Config(r).RPC)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to get proposal state caller")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	proposalConfig, err := session.GetProposalConfig(nil, proposalBigID)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to get proposal config")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	if !isAddressInWhitelist(votingAddress, proposalConfig.VotingWhitelist) {
+	// 		log.Error("Address not in voting whitelist")
+	// 		ape.RenderErr(w, problems.Forbidden())
+	// 		return
+	// 	}
+
+	// 	defer VotingV2Config(r).UnlockNonce()
+	// 	VotingV2Config(r).LockNonce()
+
+	// 	err = confGas(r, &txd, &votingAddress)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to configure gas and gasPrice")
+	// 		// `errors.Is` is not working for rpc errors, they passed as a string without additional wrapping
+	// 		// because of this we operate with raw strings
+	// 		if strings.Contains(err.Error(), vm.ErrExecutionReverted.Error()) {
+	// 			errParts := strings.Split(err.Error(), ":")
+	// 			contractName := strings.TrimSpace(errParts[len(errParts)-2])
+	// 			errMsg := errors.New(strings.TrimSpace(errParts[len(errParts)-1]))
+	// 			ape.RenderErr(w, problems.BadRequest(validation.Errors{contractName: errMsg}.Filter())...)
+	// 			return
+	// 		}
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	tx, err := sendTx(r, &txd, &votingAddress)
+	// 	if err != nil {
+	// 		log.WithError(err).Error("failed to send tx")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	VotingV2Config(r).IncrementNonce()
+
+	// 	ape.Render(w, resources.Relation{
+	// 		Data: &resources.Key{
+	// 			ID:   tx.Hash().String(),
+	// 			Type: TRANSACTION,
+	// 		},
+	// 	})
+
+	// 	// destination is valid hex address because of request validation
+	// 	votingAddress := common.HexToAddress(destination)
+
+	// 	var txd txData
+	// 	txd.dataBytes, err = hexutil.Decode(calldata)
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to decode data")
+	// 		ape.RenderErr(w, problems.BadRequest(err)...)
+	// 		return
+	// 	}
+
+	// 	proposalBigID := big.NewInt(proposalID)
+
+	// 	// Instead of "proposalsstate", use the package
+	// 	// that will be generated for the required contract.
+	// 	session, err := proposalsstate.NewProposalsStateCallerMock(VotingV2Config(r).Address, VotingV2Config(r).RPC)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to get proposal state caller")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	proposalConfig, err := session.GetProposalConfig(nil, proposalBigID)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to get proposal config")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	if !isAddressInWhitelist(votingAddress, proposalConfig.VotingWhitelist) {
+	// 		log.Error("Address not in voting whitelist")
+	// 		ape.RenderErr(w, problems.Forbidden())
+	// 		return
+	// 	}
+
+	// 	defer VotingV2Config(r).UnlockNonce()
+	// 	VotingV2Config(r).LockNonce()
+
+	// 	err = confGas(r, &txd, &votingAddress)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to configure gas and gasPrice")
+	// 		// `errors.Is` is not working for rpc errors, they passed as a string without additional wrapping
+	// 		// because of this we operate with raw strings
+	// 		if strings.Contains(err.Error(), vm.ErrExecutionReverted.Error()) {
+	// 			errParts := strings.Split(err.Error(), ":")
+	// 			contractName := strings.TrimSpace(errParts[len(errParts)-2])
+	// 			errMsg := errors.New(strings.TrimSpace(errParts[len(errParts)-1]))
+	// 			ape.RenderErr(w, problems.BadRequest(validation.Errors{contractName: errMsg}.Filter())...)
+	// 			return
+	// 		}
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	tx, err := sendTx(r, &txd, &votingAddress)
+	// 	if err != nil {
+	// 		log.WithError(err).Error("failed to send tx")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	VotingV2Config(r).IncrementNonce()
+
+	// 	ape.Render(w, resources.Relation{
+	// 		Data: &resources.Key{
+	// 			ID:   tx.Hash().String(),
+	// 			Type: TRANSACTION,
+	// 		},
+	// 	})
+
+	// 	// destination is valid hex address because of request validation
+	// 	votingAddress := common.HexToAddress(destination)
+
+	// 	var txd txData
+	// 	txd.dataBytes, err = hexutil.Decode(calldata)
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to decode data")
+	// 		ape.RenderErr(w, problems.BadRequest(err)...)
+	// 		return
+	// 	}
+
+	// 	proposalBigID := big.NewInt(proposalID)
+
+	// 	// Instead of "proposalsstate", use the package
+	// 	// that will be generated for the required contract.
+	// 	session, err := proposalsstate.NewProposalsStateCallerMock(VotingV2Config(r).Address, VotingV2Config(r).RPC)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to get proposal state caller")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	proposalConfig, err := session.GetProposalConfig(nil, proposalBigID)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to get proposal config")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	if !isAddressInWhitelist(votingAddress, proposalConfig.VotingWhitelist) {
+	// 		log.Error("Address not in voting whitelist")
+	// 		ape.RenderErr(w, problems.Forbidden())
+	// 		return
+	// 	}
+
+	// 	defer VotingV2Config(r).UnlockNonce()
+	// 	VotingV2Config(r).LockNonce()
+
+	// 	err = confGas(r, &txd, &votingAddress)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to configure gas and gasPrice")
+	// 		// `errors.Is` is not working for rpc errors, they passed as a string without additional wrapping
+	// 		// because of this we operate with raw strings
+	// 		if strings.Contains(err.Error(), vm.ErrExecutionReverted.Error()) {
+	// 			errParts := strings.Split(err.Error(), ":")
+	// 			contractName := strings.TrimSpace(errParts[len(errParts)-2])
+	// 			errMsg := errors.New(strings.TrimSpace(errParts[len(errParts)-1]))
+	// 			ape.RenderErr(w, problems.BadRequest(validation.Errors{contractName: errMsg}.Filter())...)
+	// 			return
+	// 		}
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	tx, err := sendTx(r, &txd, &votingAddress)
+	// 	if err != nil {
+	// 		log.WithError(err).Error("failed to send tx")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	VotingV2Config(r).IncrementNonce()
+
+	// 	ape.Render(w, resources.Relation{
+	// 		Data: &resources.Key{
+	// 			ID:   tx.Hash().String(),
+	// 			Type: TRANSACTION,
+	// 		},
+	// 	})
+
+	// 	// destination is valid hex address because of request validation
+	// 	votingAddress := common.HexToAddress(destination)
+
+	// 	var txd txData
+	// 	txd.dataBytes, err = hexutil.Decode(calldata)
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to decode data")
+	// 		ape.RenderErr(w, problems.BadRequest(err)...)
+	// 		return
+	// 	}
+
+	// 	proposalBigID := big.NewInt(proposalID)
+
+	// 	// Instead of "proposalsstate", use the package
+	// 	// that will be generated for the required contract.
+	// 	session, err := proposalsstate.NewProposalsStateCallerMock(VotingV2Config(r).Address, VotingV2Config(r).RPC)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to get proposal state caller")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	proposalConfig, err := session.GetProposalConfig(nil, proposalBigID)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to get proposal config")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	if !isAddressInWhitelist(votingAddress, proposalConfig.VotingWhitelist) {
+	// 		log.Error("Address not in voting whitelist")
+	// 		ape.RenderErr(w, problems.Forbidden())
+	// 		return
+	// 	}
+
+	// 	defer VotingV2Config(r).UnlockNonce()
+	// 	VotingV2Config(r).LockNonce()
+
+	// 	err = confGas(r, &txd, &votingAddress)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to configure gas and gasPrice")
+	// 		// `errors.Is` is not working for rpc errors, they passed as a string without additional wrapping
+	// 		// because of this we operate with raw strings
+	// 		if strings.Contains(err.Error(), vm.ErrExecutionReverted.Error()) {
+	// 			errParts := strings.Split(err.Error(), ":")
+	// 			contractName := strings.TrimSpace(errParts[len(errParts)-2])
+	// 			errMsg := errors.New(strings.TrimSpace(errParts[len(errParts)-1]))
+	// 			ape.RenderErr(w, problems.BadRequest(validation.Errors{contractName: errMsg}.Filter())...)
+	// 			return
+	// 		}
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	tx, err := sendTx(r, &txd, &votingAddress)
+	// 	if err != nil {
+	// 		log.WithError(err).Error("failed to send tx")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	VotingV2Config(r).IncrementNonce()
+
+	// 	ape.Render(w, resources.Relation{
+	// 		Data: &resources.Key{
+	// 			ID:   tx.Hash().String(),
+	// 			Type: TRANSACTION,
+	// 		},
+	// 	})
+
+	// 	// destination is valid hex address because of request validation
+	// 	votingAddress := common.HexToAddress(destination)
+
+	// 	var txd txData
+	// 	txd.dataBytes, err = hexutil.Decode(calldata)
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to decode data")
+	// 		ape.RenderErr(w, problems.BadRequest(err)...)
+	// 		return
+	// 	}
+
+	// 	proposalBigID := big.NewInt(proposalID)
+
+	// 	// Instead of "proposalsstate", use the package
+	// 	// that will be generated for the required contract.
+	// 	session, err := proposalsstate.NewProposalsStateCallerMock(VotingV2Config(r).Address, VotingV2Config(r).RPC)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to get proposal state caller")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	proposalConfig, err := session.GetProposalConfig(nil, proposalBigID)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to get proposal config")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	if !isAddressInWhitelist(votingAddress, proposalConfig.VotingWhitelist) {
+	// 		log.Error("Address not in voting whitelist")
+	// 		ape.RenderErr(w, problems.Forbidden())
+	// 		return
+	// 	}
+
+	// 	defer VotingV2Config(r).UnlockNonce()
+	// 	VotingV2Config(r).LockNonce()
+
+	// 	err = confGas(r, &txd, &votingAddress)
+
+	// 	if err != nil {
+	// 		log.WithError(err).Error("Failed to configure gas and gasPrice")
+	// 		// `errors.Is` is not working for rpc errors, they passed as a string without additional wrapping
+	// 		// because of this we operate with raw strings
+	// 		if strings.Contains(err.Error(), vm.ErrExecutionReverted.Error()) {
+	// 			errParts := strings.Split(err.Error(), ":")
+	// 			contractName := strings.TrimSpace(errParts[len(errParts)-2])
+	// 			errMsg := errors.New(strings.TrimSpace(errParts[len(errParts)-1]))
+	// 			ape.RenderErr(w, problems.BadRequest(validation.Errors{contractName: errMsg}.Filter())...)
+	// 			return
+	// 		}
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	tx, err := sendTx(r, &txd, &votingAddress)
+	// 	if err != nil {
+	// 		log.WithError(err).Error("failed to send tx")
+	// 		ape.RenderErr(w, problems.InternalError())
+	// 		return
+	// 	}
+
+	// 	VotingV2Config(r).IncrementNonce()
+
+	// 	ape.Render(w, resources.Relation{
+	// 		Data: &resources.Key{
+	// 			ID:   tx.Hash().String(),
+	// 			Type: TRANSACTION,
+	// 		},
+	// 	})
+
 	// destination is valid hex address because of request validation
 	votingAddress := common.HexToAddress(destination)
 

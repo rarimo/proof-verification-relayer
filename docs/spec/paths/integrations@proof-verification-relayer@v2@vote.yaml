@@ -30,12 +30,12 @@ post:
         application/json:
           schema:
             $ref: '#/components/schemas/BadRequestError'
-    405:
-      description: Not Allowed Error
+    403:
+      description: Forbidden Error
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/NotAllowedError'
+            $ref: '#/components/schemas/ForbiddenError'
     500:
       description: Internal Error
       content:

@@ -1,8 +1,8 @@
 allOf:
-  - $ref: '#/components/schemas/VotingPredictResponse/VotingPredictRespKey'
+  - $ref: '#/components/schemas/VotingPredictRespKey'
   - type: object
     required:
       - attributes
     properties:
       attributes:
-        $ref: '#/components/schemas/VotingPredictResponse/VotingPredictRespAttributes'
+        $ref: '#/components/schemas/VotingPredictRespAttributes'
