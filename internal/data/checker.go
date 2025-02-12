@@ -27,4 +27,5 @@ type CheckerQ interface {
 
 	InsertProcessedEvent(value ProcessedEvent) error
 	GetLastBlock() (uint64, error)
+	CheckProcessedEventExist(value ProcessedEvent) (bool, error)
 }

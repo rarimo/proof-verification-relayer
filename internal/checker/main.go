@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"log"
-	"math/big"
 	"strings"
 	"time"
 
@@ -59,8 +58,17 @@ func processEvent(event *contracts.ProposalsStateProposalCreated, pg data.Checke
 	processedEvent.LogIndex = int64(event.Raw.Index)
 	processedEvent.TransactionHash = event.Raw.TxHash[:]
 
-	err := pg.CheckerQ().InsertProcessedEvent(processedEvent)
+	isExist, err := pg.CheckerQ().CheckProcessedEventExist(processedEvent)
+	if isExist {
+		return
+	}
+	if err != nil && err != sql.ErrNoRows {
+		logger.Infof("failed check event: %v", err)
+		return
+	}
+	err = pg.CheckerQ().InsertProcessedEvent(processedEvent)
 	if err != nil {
+		logger.Infof("failed insert event in db: %v", err)
 		return
 	}
 
@@ -242,6 +250,7 @@ func readNewEvents(ctx context.Context, cfg config.Config) error {
 
 	}
 }
+
 func readOldEvents(ctx context.Context, block uint64, cfg config.Config) error {
 	logger := cfg.Log()
 	client := cfg.VotingV2Config().RPC
@@ -307,6 +316,7 @@ func readNewEventsSub(ctx context.Context, cfg config.Config) error {
 			return nil
 		case err := <-sub.Err():
 			logger.Infof("Failed subscribe event: %v", err)
+			time.Sleep(cfg.Pinger().NormalPeriod)
 		case vLog := <-logs:
 			logger.Warnf("log from block: %v", vLog.BlockNumber)
 			processLog(vLog, pgDB, logger, cfg.VotingV2Config().GasLimit)
@@ -324,9 +334,8 @@ func processLog(vLog types.Log, pg data.CheckerDB, logger *logan.Entry, defaultG
 		return
 	}
 
-	var transferEvent struct {
-		Value *big.Int
-	}
+	var transferEvent contracts.ProposalsStateProposalCreated
+
 	err = parsedABI.UnpackIntoInterface(&transferEvent, "ProposalCreated", vLog.Data)
 	if err != nil {
 		logger.Errorf("Failed to unpack log data: %v", err)
@@ -337,14 +346,23 @@ func processLog(vLog types.Log, pg data.CheckerDB, logger *logan.Entry, defaultG
 	processedEvent.LogIndex = int64(vLog.Index)
 	processedEvent.TransactionHash = vLog.TxHash[:]
 
-	err = pg.CheckerQ().InsertProcessedEvent(processedEvent)
-	if err != nil {
+	isExist, err := pg.CheckerQ().CheckProcessedEventExist(processedEvent)
+	if isExist {
 		return
 	}
-	to := common.HexToAddress(vLog.Topics[2].Hex())
+	if err != nil && err != sql.ErrNoRows {
+		logger.Infof("failed check event: %v", err)
+		return
+	}
+	err = pg.CheckerQ().InsertProcessedEvent(processedEvent)
+	if err != nil {
+		logger.Infof("failed insert event in db: %v", err)
+		return
+	}
 
-	ToAddress := strings.ToLower(to.Hex())
-	value := transferEvent.Value
+	ToAddress := strings.ToLower(transferEvent.ProposalSMT.Hex())
+	value := transferEvent.FundAmount
+
 	votingInfo, err := checkVoteAndGetBalance(pg, ToAddress, logger, defaultGasLimit)
 	if err != nil {
 		return

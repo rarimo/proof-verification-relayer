@@ -110,6 +110,21 @@ func (cq *checkerQ) GetLastBlock() (uint64, error) {
 	return block, nil
 }
 
+func (q *checkerQ) CheckProcessedEventExist(value data.ProcessedEvent) (bool, error) {
+	var isExist int
+	query := sq.Select("1").From("processed_events").
+		Where(sq.Eq{"transaction_hash": value.TransactionHash, "log_index": value.LogIndex}).Limit(1)
+
+	err := q.db.Get(&isExist, query)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, errors.Wrap(err, "failed to check exist event in db")
+	}
+	return true, nil
+}
+
 func (q *checkerQ) InsertProcessedEvent(value data.ProcessedEvent) error {
 	query := sq.Insert("processed_events").
 		Columns("transaction_hash", "log_index", "block_number").
