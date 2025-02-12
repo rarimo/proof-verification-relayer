@@ -6,14 +6,15 @@ import (
 	"log"
 	"math/big"
 	"strings"
+	"time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/crypto"
-	usdcabi "github.com/rarimo/proof-verification-relayer/internal/checker/usdc_abi"
 	"github.com/rarimo/proof-verification-relayer/internal/config"
+	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/data"
 	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
 	"gitlab.com/distributed_lab/logan/v3"
@@ -32,79 +33,39 @@ func CheckEvents(ctx context.Context, cfg config.Config) {
 	pgDB := pg.NewMaterDB(cfg.DB())
 	logger := cfg.Log()
 	networkParam := cfg.VotingV2Config()
-	gasLimit := networkParam.GasLimit
-	contractAddress := networkParam.Address
-	transferEventSignature := []byte("Transfer(address,address,uint256)")
-	transferEventID := crypto.Keccak256Hash(transferEventSignature)
 
 	logger.Info("Start Checker...")
-	client := networkParam.RPC
 	startBlock, err := getStartBlockNumber(pgDB, logger, networkParam.Block)
 	if err != nil {
 		logger.Errorf("Failed get start block: %v", err)
 		return
 	}
 
-	go readOldEvents(ctx, startBlock, cfg, pgDB, gasLimit, transferEventID)
-
-	query := ethereum.FilterQuery{
-		Topics:    [][]common.Hash{{transferEventID}},
-		Addresses: []common.Address{contractAddress},
-	}
-	logs := make(chan types.Log)
-	sub, err := client.SubscribeFilterLogs(context.Background(), query, logs)
-	if err != nil {
-		log.Fatalf("Failed sub: %v", err)
-	}
-
-	for {
-		select {
-		case <-ctx.Done():
-			logger.Info("unsubscribe from events")
-			return
-		case err := <-sub.Err():
-			logger.Infof("Failed subscribe event: %v", err)
-		case vLog := <-logs:
-			processLog(vLog, pgDB, logger, gasLimit)
-			startBlock = startBlock + 1
-
-		}
+	go readOldEvents(ctx, startBlock, cfg)
+	if cfg.VotingV2Config().WithSub {
+		readNewEventsSub(ctx, cfg)
+	} else {
+		readNewEvents(ctx, cfg)
 	}
 
 }
 
 // Instead of "abiusdc", use the ABI package
 // that will be generated for the required contract.
-func processLog(vLog types.Log, pg data.CheckerDB, logger *logan.Entry, defaultGasLimit uint64) {
+func processEvent(event *contracts.ProposalsStateProposalCreated, pg data.CheckerDB, logger *logan.Entry, defaultGasLimit uint64) {
 	var processedEvent data.ProcessedEvent
-	to := common.HexToAddress(vLog.Topics[2].Hex())
-
-	parsedABI, err := abi.JSON(strings.NewReader(usdcabi.UsdcAbiABI))
-	if err != nil {
-		logger.Errorf("Failed to parse contract ABI: %v", err)
-		return
-	}
-
-	var transferEvent struct {
-		Value *big.Int
-	}
-	err = parsedABI.UnpackIntoInterface(&transferEvent, "Transfer", vLog.Data)
-	if err != nil {
-		logger.Errorf("Failed to unpack log data: %v", err)
-		return
-	}
-	block := int64(vLog.BlockNumber)
+	block := int64(event.Raw.BlockNumber)
 	processedEvent.BlockNumber = block
-	processedEvent.LogIndex = int64(vLog.Index)
-	processedEvent.TransactionHash = vLog.TxHash[:]
+	processedEvent.LogIndex = int64(event.Raw.Index)
+	processedEvent.TransactionHash = event.Raw.TxHash[:]
 
-	err = pg.CheckerQ().InsertProcessedEvent(processedEvent)
+	err := pg.CheckerQ().InsertProcessedEvent(processedEvent)
 	if err != nil {
 		return
 	}
 
-	ToAddress := strings.ToLower(to.Hex())
-	value := transferEvent.Value
+	ToAddress := strings.ToLower(event.ProposalSMT.Hex())
+	value := event.FundAmount
 	votingInfo, err := checkVoteAndGetBalance(pg, ToAddress, logger, defaultGasLimit)
 	if err != nil {
 		return
@@ -220,12 +181,78 @@ func getStartBlockNumber(pgDB data.CheckerDB, logger *logan.Entry, defaultSBlock
 	return block, nil
 }
 
-func readOldEvents(ctx context.Context, block uint64, cfg config.Config, pg data.CheckerDB, defaultGasLimit uint64, transferEventID common.Hash) error {
+func checkFilter(block, toBlock uint64, contract *contracts.ProposalsStateFilterer, cfg config.Config) error {
+	logger := cfg.Log()
+	pgDB := pg.NewMaterDB(cfg.DB())
+
+	contractAddress := cfg.VotingV2Config().Address
+	query := bind.FilterOpts{
+		Start:   block,
+		End:     &toBlock,
+		Context: context.Background(),
+	}
+	filterLogs, err := contract.FilterProposalCreated(&query, nil)
+	if err != nil {
+		logger.WithField("Error", err).Info("failed to filter logs")
+		return errors.Wrap(err, "failed to filter logs", logan.F{"address": contractAddress, "start_block": block})
+	}
+	events := 0
+	for filterLogs.Next() {
+		processEvent(filterLogs.Event, pgDB, logger, cfg.VotingV2Config().GasLimit)
+		events += 1
+	}
+
+	logger.WithFields(logan.F{
+		"from":   block,
+		"to":     toBlock,
+		"events": events,
+	}).Debug("found events")
+	return nil
+}
+
+func readNewEvents(ctx context.Context, cfg config.Config) error {
+	client := cfg.VotingV2Config().RPC
+	logger := cfg.Log()
+	pinger := cfg.Pinger()
+	header, err := client.HeaderByNumber(ctx, nil)
+	if err != nil {
+		logger.WithField("Error", err).Info("failed to get latest block header")
+		return errors.Wrap(err, "failed to get latest block header")
+	}
+
+	contract, err := contracts.NewProposalsStateFilterer(cfg.VotingV2Config().Address, client)
+	if err != nil {
+		return err
+	}
+	toBlock := header.Number.Uint64()
+	logger.WithField("from", toBlock).Info("start reading events")
+
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("unsubscribe from events")
+			return nil
+		default:
+			time.Sleep(pinger.NormalPeriod)
+		}
+		block := toBlock
+		toBlock = block + 1
+
+		checkFilter(block, toBlock, contract, cfg)
+
+	}
+}
+func readOldEvents(ctx context.Context, block uint64, cfg config.Config) error {
 	logger := cfg.Log()
 	client := cfg.VotingV2Config().RPC
 	pinger := cfg.Pinger()
 	contractAddress := cfg.VotingV2Config().Address
 	logger.WithField("from", block).Info("start reading old events")
+	contract, err := contracts.NewProposalsStateFilterer(contractAddress, client)
+
+	if err != nil {
+		return err
+	}
 	header, err := client.HeaderByNumber(ctx, nil)
 	if err != nil {
 		logger.WithField("Error", err).Info("failed to get latest block header")
@@ -240,28 +267,94 @@ func readOldEvents(ctx context.Context, block uint64, cfg config.Config, pg data
 		default:
 		}
 		toBlock := min(header.Number.Uint64(), block+pinger.BlocksDistance)
-		logs, err := client.FilterLogs(ctx, ethereum.FilterQuery{
-			Topics:    [][]common.Hash{{transferEventID}},
-			Addresses: []common.Address{contractAddress},
-			FromBlock: new(big.Int).SetUint64(block),
-			ToBlock:   new(big.Int).SetUint64(toBlock),
-		})
+
+		err := checkFilter(block, toBlock, contract, cfg)
 		if err != nil {
-			logger.WithField("Error", err).Info("failed to filter logs")
-			return errors.Wrap(err, "failed to filter logs", logan.F{"address": contractAddress, "start_block": block})
+			return err
 		}
 
-		for _, event := range logs {
-			processLog(event, pg, logger, defaultGasLimit)
-		}
-
-		logger.WithFields(logan.F{
-			"from":   block,
-			"to":     toBlock,
-			"events": len(logs),
-		}).Debug("found events")
 	}
 
 	logger.WithField("to", block).Info("finish reading old events")
 	return nil
+}
+
+func readNewEventsSub(ctx context.Context, cfg config.Config) error {
+	logger := cfg.Log()
+	client := cfg.VotingV2Config().RPC
+	contractAddress := cfg.VotingV2Config().Address
+	pgDB := pg.NewMaterDB(cfg.DB())
+	parsedABI, err := abi.JSON(strings.NewReader(contracts.ProposalsStateABI))
+	if err != nil {
+		logger.Errorf("Failed to parse contract ABI: %v", err)
+		return err
+	}
+
+	query := ethereum.FilterQuery{
+		Topics:    [][]common.Hash{{parsedABI.Events["ProposalCreated"].ID}},
+		Addresses: []common.Address{contractAddress},
+	}
+	logs := make(chan types.Log)
+	sub, err := client.SubscribeFilterLogs(context.Background(), query, logs)
+	if err != nil {
+		log.Fatalf("Failed sub: %v", err)
+	}
+
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info("unsubscribe from events")
+			return nil
+		case err := <-sub.Err():
+			logger.Infof("Failed subscribe event: %v", err)
+		case vLog := <-logs:
+			logger.Warnf("log from block: %v", vLog.BlockNumber)
+			processLog(vLog, pgDB, logger, cfg.VotingV2Config().GasLimit)
+
+		}
+	}
+
+}
+
+func processLog(vLog types.Log, pg data.CheckerDB, logger *logan.Entry, defaultGasLimit uint64) {
+	var processedEvent data.ProcessedEvent
+	parsedABI, err := abi.JSON(strings.NewReader(contracts.ProposalsStateABI))
+	if err != nil {
+		logger.Errorf("Failed to parse contract ABI: %v", err)
+		return
+	}
+
+	var transferEvent struct {
+		Value *big.Int
+	}
+	err = parsedABI.UnpackIntoInterface(&transferEvent, "ProposalCreated", vLog.Data)
+	if err != nil {
+		logger.Errorf("Failed to unpack log data: %v", err)
+		return
+	}
+	block := int64(vLog.BlockNumber)
+	processedEvent.BlockNumber = block
+	processedEvent.LogIndex = int64(vLog.Index)
+	processedEvent.TransactionHash = vLog.TxHash[:]
+
+	err = pg.CheckerQ().InsertProcessedEvent(processedEvent)
+	if err != nil {
+		return
+	}
+	to := common.HexToAddress(vLog.Topics[2].Hex())
+
+	ToAddress := strings.ToLower(to.Hex())
+	value := transferEvent.Value
+	votingInfo, err := checkVoteAndGetBalance(pg, ToAddress, logger, defaultGasLimit)
+	if err != nil {
+		return
+	}
+
+	votingInfo.Balance = votingInfo.Balance + value.Uint64()
+
+	err = pg.CheckerQ().UpdateVotingInfo(votingInfo)
+	if err != nil {
+		logger.Errorf("Failed Update voting balance: %v", err)
+		return
+	}
 }

@@ -43,6 +43,7 @@ type VotingV2Config struct {
 	GasLimit   uint64
 	Block      uint64
 	Enable     bool
+	WithSub    bool
 }
 
 func (e *ethereumVoting) VotingV2Config() *VotingV2Config {
@@ -71,10 +72,11 @@ func (e *ethereumVoting) VotingV2Config() *VotingV2Config {
 			PrivateKey     *ecdsa.PrivateKey `fig:"private_key"`
 			VaultAddress   string            `fig:"vault_address"`
 			VaultMountPath string            `fig:"vault_mount_path"`
-			Address        common.Address    `fig:"address,required"`
+			Address        common.Address    `fig:"proposal_state_address,required"`
 			Block          uint64            `fig:"block"`
 			GasLimit       uint64            `fig:"gas_limit"`
 			Enable         bool              `fig:"enable"`
+			WithSub        bool              `fig:"check_with_subscribe"`
 		}{}
 		err := figure.
 			Out(&networkConfig).
@@ -88,6 +90,7 @@ func (e *ethereumVoting) VotingV2Config() *VotingV2Config {
 		result.RPC = networkConfig.RPC
 		result.Enable = networkConfig.Enable
 		result.ChainID, err = result.RPC.ChainID(context.Background())
+		result.WithSub = networkConfig.WithSub
 		if err != nil {
 			panic(errors.Wrap(err, "failed to get chain ID"))
 		}

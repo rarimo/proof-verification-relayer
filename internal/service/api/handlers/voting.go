@@ -10,7 +10,7 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/rarimo/proof-verification-relayer/internal/checker"
-	"github.com/rarimo/proof-verification-relayer/internal/checker/proposalsstate"
+	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 
 	// Instead of "proposalsstate", use the package
@@ -106,7 +106,7 @@ func Voting(w http.ResponseWriter, r *http.Request) {
 
 	// Instead of "proposalsstate", use the package
 	// that will be generated for the required contract.
-	session, err := proposalsstate.NewProposalsStateCallerMock(VotingV2Config(r).Address, VotingV2Config(r).RPC)
+	session, err := contracts.NewProposalsStateCaller(VotingV2Config(r).Address, VotingV2Config(r).RPC)
 
 	if err != nil {
 		log.WithError(err).Error("Failed to get proposal state caller")
