@@ -20,7 +20,7 @@ func IsEnough(cfg config.Config, addr string) (bool, error) {
 func GetCountTx(cfg config.Config, addr string) (uint64, error) {
 	logger := cfg.Log()
 	pg := pg.NewMaterDB(cfg.DB())
-	txFee, err := getTxFee(cfg)
+	txFee, err := getTxFee(cfg, addr)
 	if err != nil {
 		logger.Errorf("Failed get fee: %v", err)
 		return 0, err
@@ -39,7 +39,7 @@ func GetCountTx(cfg config.Config, addr string) (uint64, error) {
 func GetPredictCount(cfg config.Config, addr string, amount uint64) (uint64, error) {
 	logger := cfg.Log()
 
-	txFee, err := getTxFee(cfg)
+	txFee, err := getTxFee(cfg, addr)
 	if err != nil {
 		logger.Errorf("Failed get fee: %v", err)
 		return 0, err
@@ -47,7 +47,7 @@ func GetPredictCount(cfg config.Config, addr string, amount uint64) (uint64, err
 	return amount / txFee, nil
 }
 
-func getTxFee(cfg config.Config) (uint64, error) {
+func getTxFee(cfg config.Config, addr string) (uint64, error) {
 	logger := cfg.Log()
 	networkParam := cfg.VotingV2Config()
 	client := networkParam.RPC
@@ -58,7 +58,12 @@ func getTxFee(cfg config.Config) (uint64, error) {
 		return 0, err
 	}
 
-	totalFee := networkParam.GasLimit * feeCap.Uint64()
+	votingInfo, err := pg.NewCheckerQ(cfg.DB()).GetVotingInfo(addr)
+	if err != nil {
+		return 0, err
+	}
+
+	totalFee := votingInfo.GasLimit * feeCap.Uint64()
 	return totalFee, nil
 }
 
@@ -81,7 +86,7 @@ func CheckUpdateGasLimit(value uint64, cfg config.Config, receiver *common.Addre
 func AmountForCountTx(cfg config.Config, addr string, countTx uint64) (uint64, error) {
 	logger := cfg.Log()
 
-	txFee, err := getTxFee(cfg)
+	txFee, err := getTxFee(cfg, addr)
 	if err != nil {
 		logger.Errorf("Failed get fee: %v", err)
 		return 0, err
