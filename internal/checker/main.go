@@ -20,8 +20,6 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
-// Instead of "abiusdc", use the ABI package
-// that will be generated for the required contract.
 func CheckEvents(ctx context.Context, cfg config.Config) {
 	if !cfg.VotingV2Config().Enable {
 		cfg.Log().WithField("Enable checker", cfg.VotingV2Config().Enable).Info("stop reading events")
@@ -40,17 +38,16 @@ func CheckEvents(ctx context.Context, cfg config.Config) {
 		return
 	}
 
-	go readOldEvents(ctx, startBlock, cfg)
-	if cfg.VotingV2Config().WithSub {
-		readNewEventsSub(ctx, cfg)
-	} else {
-		readNewEvents(ctx, cfg)
+	switch cfg.VotingV2Config().WithSub {
+	case true:
+		go readNewEventsSub(ctx, cfg)
+	default:
+		go readNewEvents(ctx, cfg)
 	}
 
+	go readOldEvents(ctx, startBlock, cfg)
 }
 
-// Instead of "abiusdc", use the ABI package
-// that will be generated for the required contract.
 func processEvent(event *contracts.ProposalsStateProposalCreated, pg data.CheckerDB, logger *logan.Entry, defaultGasLimit uint64) {
 	var processedEvent data.ProcessedEvent
 	block := int64(event.Raw.BlockNumber)
@@ -375,4 +372,15 @@ func processLog(vLog types.Log, pg data.CheckerDB, logger *logan.Entry, defaultG
 		logger.Errorf("Failed Update voting balance: %v", err)
 		return
 	}
+}
+
+func AmountForCountTx(cfg config.Config, addr string, countTx uint64) (uint64, error) {
+	logger := cfg.Log()
+
+	txFee, err := getTxFee(cfg)
+	if err != nil {
+		logger.Errorf("Failed get fee: %v", err)
+		return 0, err
+	}
+	return countTx * txFee, nil
 }

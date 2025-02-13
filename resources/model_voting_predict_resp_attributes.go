@@ -5,5 +5,6 @@
 package resources
 
 type VotingPredictRespAttributes struct {
-	CountTxPredict string `json:"count_tx_predict"`
+	AmountPredict  *string `json:"amount_predict,omitempty"`
+	CountTxPredict *string `json:"count_tx_predict,omitempty"`
 }

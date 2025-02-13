@@ -3,7 +3,7 @@ package data
 import "time"
 
 type VotingInfo struct {
-	Address  string `db:"voting_address"`
+	Address  string `db:"voting_id"`
 	Balance  uint64 `db:"residual_balance"`
 	GasLimit uint64 `db:"gas_limit"`
 }

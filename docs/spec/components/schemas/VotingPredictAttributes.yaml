@@ -1,10 +1,13 @@
 type: object
 x-go-is-request: true
 required:
-  - amount
   - vote_address
 properties:
   amount:
+    type: string
+    pattern: "[0-9]{1,}"
+    example: "10000"
+  count_tx:
     type: string
     pattern: "[0-9]{1,}"
     example: "10000"
