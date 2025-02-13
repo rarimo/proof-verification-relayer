@@ -42,7 +42,7 @@ type checkerQ struct {
 
 func (cq *checkerQ) GetVotingInfo(address string) (data.VotingInfo, error) {
 	var votingInfo data.VotingInfo
-	query := sq.Select("*").From("voting_contract_accounts").Where(sq.Eq{"voting_address": address})
+	query := sq.Select("*").From("voting_contract_accounts").Where(sq.Eq{"voting_id": address})
 
 	err := cq.db.Get(&votingInfo, query)
 	if err == sql.ErrNoRows {
@@ -56,7 +56,7 @@ func (cq *checkerQ) GetVotingInfo(address string) (data.VotingInfo, error) {
 
 func (cq *checkerQ) GetBalance(address string) (uint64, error) {
 	var balance uint64
-	query := sq.Select("residual_balance").From("voting_contract_accounts").Where(sq.Eq{"voting_address": address})
+	query := sq.Select("residual_balance").From("voting_contract_accounts").Where(sq.Eq{"voting_id": address})
 
 	err := cq.db.Get(&balance, query)
 	if err == sql.ErrNoRows {
@@ -70,7 +70,7 @@ func (cq *checkerQ) GetBalance(address string) (uint64, error) {
 
 func (q *checkerQ) InsertVotingInfo(value data.VotingInfo) error {
 	query := sq.Insert("voting_contract_accounts").
-		Columns("voting_address", "residual_balance", "gas_limit").
+		Columns("voting_id", "residual_balance", "gas_limit").
 		Values(value.Address, value.Balance, value.GasLimit)
 
 	err := q.db.Exec(query)
@@ -84,7 +84,7 @@ func (q *checkerQ) UpdateVotingInfo(value data.VotingInfo) error {
 	query := sq.Update("voting_contract_accounts").
 		Set("residual_balance", value.Balance).
 		Set("gas_limit", value.GasLimit).
-		Where(sq.Eq{"voting_address": value.Address})
+		Where(sq.Eq{"voting_id": value.Address})
 
 	err := q.db.Exec(query)
 	if err != nil && err != sql.ErrNoRows {
@@ -110,10 +110,25 @@ func (cq *checkerQ) GetLastBlock() (uint64, error) {
 	return block, nil
 }
 
+func (q *checkerQ) CheckProcessedEventExist(value data.ProcessedEvent) (bool, error) {
+	var isExist int
+	query := sq.Select("1").From("processed_events").
+		Where(sq.Eq{"transaction_hash": value.TransactionHash, "log_index": value.LogIndex}).Limit(1)
+
+	err := q.db.Get(&isExist, query)
+	if err == sql.ErrNoRows {
+		return false, nil
+	}
+	if err != nil {
+		return false, errors.Wrap(err, "failed to check exist event in db")
+	}
+	return true, nil
+}
+
 func (q *checkerQ) InsertProcessedEvent(value data.ProcessedEvent) error {
 	query := sq.Insert("processed_events").
-		Columns("transaction_hash", "log_index", "emitted_at", "block_number").
-		Values(value.TransactionHash, value.LogIndex, value.EmittedAt, value.BlockNumber)
+		Columns("transaction_hash", "log_index", "block_number").
+		Values(value.TransactionHash, value.LogIndex, value.BlockNumber)
 
 	err := q.db.Exec(query)
 	if err != nil {

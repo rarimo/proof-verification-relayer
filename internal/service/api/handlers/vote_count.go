@@ -12,30 +12,29 @@ import (
 	"gitlab.com/distributed_lab/ape/problems"
 )
 
-func IsEnoughHandler(w http.ResponseWriter, r *http.Request) {
+func VoteCountHandlers(w http.ResponseWriter, r *http.Request) {
 	address := chi.URLParam(r, "address")
 	address = strings.ToLower(address)
-	isEnough, err := checker.IsEnough(Config(r), address)
+
+	countTx, err := checker.GetCountTx(Config(r), address)
 	if err == sql.ErrNoRows {
 		ape.RenderErr(w, problems.NotFound())
 		return
 	}
 	if err != nil {
-		Log(r).Warnf("Failed check is enough balance: %v", err)
+		Log(r).Errorf("Failed get count tx for wallet: %v", err)
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
 
-	ape.Render(w, resources.VotingAvailabilityResponse{
-		Data: resources.VotingAvailability{
+	ape.Render(w, resources.VoteCountResponse{
+		Data: resources.VoteCount{
 			Key: resources.Key{
 				ID:   address,
-				Type: resources.IS_ENOUGH,
+				Type: resources.VOTE_COUNT,
 			},
-			Attributes: resources.VotingAvailabilityAttributes{
-				IsEnough: &isEnough,
+			Attributes: resources.VoteCountAttributes{
+				VoteCount: &countTx,
 			},
-		},
-	})
-
+		}})
 }
