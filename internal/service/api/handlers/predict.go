@@ -33,7 +33,7 @@ func PredictHandlers(w http.ResponseWriter, r *http.Request) {
 		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
 	}
-	Log(r).Infof("New predict request for address: %v", req.Data.Attributes.VoteAddress)
+	Log(r).Infof("New predict request for address: %v", req.Data.Attributes.VotingId)
 
 	reqArgument, err := strconv.ParseUint(*value, 10, 64)
 	if err != nil {
@@ -41,7 +41,7 @@ func PredictHandlers(w http.ResponseWriter, r *http.Request) {
 		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
 	}
-	votingAddress := req.Data.Attributes.VoteAddress
+	votingAddress := req.Data.Attributes.VotingId
 	resultAns, err := сheckByType[string(req.Data.Type)](Config(r), votingAddress, reqArgument)
 	if err == sql.ErrNoRows {
 		ape.RenderErr(w, problems.NotFound())

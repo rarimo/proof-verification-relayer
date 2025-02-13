@@ -21,17 +21,17 @@ func NewVotingPredictRequest(r *http.Request) (req resources.VotingPredictReques
 		return req, nil, errors.Wrap(err, "failed to unmarshal")
 	}
 
-	req.Data.Attributes.VoteAddress = strings.ToLower(req.Data.Attributes.VoteAddress)
+	req.Data.Attributes.VotingId = strings.ToLower(req.Data.Attributes.VotingId)
 
 	switch req.Data.Type {
 	case resources.VOTE_PREDICT_AMOUNT:
 		return req, req.Data.Attributes.CountTx, validation.Errors{
-			"data/address":  validation.Validate(req.Data.Attributes.VoteAddress, validation.Required, validation.Match(AddressRegexp)),
+			"data/address":  validation.Validate(req.Data.Attributes.VotingId, validation.Required, validation.Match(AddressRegexp)),
 			"data/count_tx": validation.Validate(req.Data.Attributes.CountTx, validation.Required, validation.Match(amountRegexp)),
 		}.Filter()
 	case resources.VOTE_PREDICT_COUNT_TX:
 		return req, req.Data.Attributes.Amount, validation.Errors{
-			"data/address": validation.Validate(req.Data.Attributes.VoteAddress, validation.Required, validation.Match(AddressRegexp)),
+			"data/address": validation.Validate(req.Data.Attributes.VotingId, validation.Required, validation.Match(AddressRegexp)),
 			"data/amount":  validation.Validate(req.Data.Attributes.Amount, validation.Required, validation.Match(amountRegexp)),
 		}.Filter()
 	default:
