@@ -68,10 +68,12 @@ func (ch *checker) check(ctx context.Context) error {
 		ch.log.Errorf("Failed get start block: %v", err)
 		return err
 	}
-	go ch.readOldEvents(ctx, startBlock)
-	time.Sleep(ch.pinger.Timeout)
 
-	ch.readNewEvents(ctx, ch.VotingV2Config.WithSub)
+	go ch.readNewEvents(ctx, ch.VotingV2Config.WithSub)
+
+	time.Sleep(ch.pinger.NormalPeriod)
+
+	ch.readOldEvents(ctx, startBlock)
 
 	for range ctx.Done() {
 		ch.log.Info("unsubscribe from events")
@@ -97,8 +99,8 @@ func (ch *checker) readNewEventsWithoutSub(ctx context.Context) {
 	}
 
 	contract, err := contracts.NewProposalsStateFilterer(ch.VotingV2Config.Address, client)
-
 	if err != nil {
+		ch.log.Errorf("failed cretate proposal state filter: %v", err)
 		return
 	}
 	toBlock := header.Number.Uint64()
@@ -112,7 +114,7 @@ func (ch *checker) readNewEventsWithoutSub(ctx context.Context) {
 			ch.log.Info("unsubscribe from events")
 			return
 		default:
-			time.Sleep(10 * time.Second)
+			time.Sleep(ch.pinger.Timeout)
 		}
 
 		err := ch.checkFilter(block, toBlock, contract)
@@ -205,6 +207,7 @@ func (ch *checker) readOldEvents(ctx context.Context, block uint64) error {
 
 	contract, err := contracts.NewProposalsStateFilterer(contractAddress, client)
 	if err != nil {
+		ch.log.Errorf("failed cretate proposal state filter: %v", err)
 		return err
 	}
 	header, err := client.HeaderByNumber(ctx, nil)
@@ -212,29 +215,34 @@ func (ch *checker) readOldEvents(ctx context.Context, block uint64) error {
 		ch.log.WithField("Error", err).Info("failed to get latest block header")
 		return errors.Wrap(err, "failed to get latest block header")
 	}
+	ch.readFromToBlock(ctx, block, header.Number.Uint64(), contract)
 
-	for ; block < header.Number.Uint64(); block = min(header.Number.Uint64(), block+ch.pinger.BlocksDistance) {
+	return nil
+}
+
+func (ch *checker) readFromToBlock(ctx context.Context, fromBlock uint64, toBlock uint64, contract *contracts.ProposalsStateFilterer) {
+
+	for ; fromBlock < toBlock; fromBlock = min(toBlock, fromBlock+ch.pinger.BlocksDistance) {
 		select {
 		case <-ctx.Done():
 			ch.log.Info("unsubscribe from events")
-			return nil
+			return
 		default:
 		}
-		toBlock := min(header.Number.Uint64(), block+ch.pinger.BlocksDistance)
+		toBlock := min(toBlock, fromBlock+ch.pinger.BlocksDistance)
 
-		err := ch.checkFilter(block, toBlock, contract)
+		err := ch.checkFilter(fromBlock, toBlock, contract)
 		if err != nil {
 			ch.log.WithFields(logan.F{
-				"from":  block,
+				"from":  fromBlock,
 				"to":    toBlock,
 				"Error": err,
 			}).Info("failed check blocks")
-			block = max(0, block-ch.pinger.BlocksDistance)
+			fromBlock = max(0, fromBlock-ch.pinger.BlocksDistance)
 		}
 	}
 
-	ch.log.WithField("to", block).Info("finish reading old events")
-	return nil
+	ch.log.WithField("to", toBlock).Info("finish reading old events")
 }
 
 func Run(ctx context.Context, cfg config.Config) {
