@@ -27,6 +27,5 @@ func NewVotingRequest(r *http.Request) (req resources.SendTxRequest, err error) 
 	return req, validation.Errors{
 		"data/tx_data":     validation.Validate(req.Data.Attributes.TxData, validation.Required, validation.Match(calldataRegexp)),
 		"data/destination": validation.Validate(req.Data.Attributes.Destination, validation.Required, validation.Match(addressRegexp)),
-		"data/proposal_id": validation.Validate(req.Data.Attributes.ProposalId, validation.Required),
 	}.Filter()
 }

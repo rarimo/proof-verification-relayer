@@ -4,6 +4,7 @@
 
 package resources
 
-type VotePredictionAttributes struct {
-	VoteCount *uint64 `json:"vote_count,omitempty"`
+type NotAllowedError struct {
+	Status string `json:"status"`
+	Title  string `json:"title"`
 }

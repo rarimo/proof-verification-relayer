@@ -1,0 +1,14 @@
+type: object
+required:
+  - id
+  - type
+properties:
+  id:
+    type: string
+    pattern: "^[0-9]+$"
+    example: "222"
+    description: ID of the voting to which the vote
+  type:
+    type: string
+    enum: 
+      - "is_enough" 

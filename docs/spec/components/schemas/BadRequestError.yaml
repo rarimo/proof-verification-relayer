@@ -1,0 +1,12 @@
+type: object
+required:
+  - title
+  - status
+properties:
+  title:
+    type: string
+    example: "Bad Request"
+  status:
+    type: string
+    enum:
+      - "400"

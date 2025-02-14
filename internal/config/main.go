@@ -15,7 +15,7 @@ type Config interface {
 	comfig.Listenerer
 	NetworkConfiger
 	ContractsConfiger
-	RelayerConfiger
+	VotingV2Configer
 	Pinger() Pinger
 	Replicator() Replicator
 }
@@ -28,7 +28,7 @@ type config struct {
 	getter kv.Getter
 	NetworkConfiger
 	ContractsConfiger
-	RelayerConfiger
+	VotingV2Configer
 
 	pinger     comfig.Once
 	replicator comfig.Once
@@ -43,6 +43,6 @@ func New(getter kv.Getter) Config {
 		Logger:            comfig.NewLogger(getter, comfig.LoggerOpts{}),
 		NetworkConfiger:   NewNetworkConfiger(getter),
 		ContractsConfiger: NewContractsConfiger(getter),
-		RelayerConfiger:   NewRelayerConfiger(getter),
+		VotingV2Configer:  NewVotingV2Configer(getter),
 	}
 }
