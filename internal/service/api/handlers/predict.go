@@ -16,7 +16,7 @@ import (
 )
 
 func PredictHandlers(w http.ResponseWriter, r *http.Request) {
-	сheckByType := map[string]func(cfg config.Config, addr string, countTx uint64) (uint64, error){
+	сheckByType := map[string]func(cfg config.Config, votingId int64, countTx uint64) (uint64, error){
 		string(resources.VOTE_PREDICT_AMOUNT):   checker.AmountForCountTx,
 		string(resources.VOTE_PREDICT_COUNT_TX): checker.GetPredictCount,
 	}
@@ -41,8 +41,15 @@ func PredictHandlers(w http.ResponseWriter, r *http.Request) {
 		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
 	}
-	votingAddress := req.Data.Attributes.VotingId
-	resultAns, err := сheckByType[string(req.Data.Type)](Config(r), votingAddress, reqArgument)
+
+	votingIdStr := req.Data.Attributes.VotingId
+	votingId, err := strconv.ParseInt(votingIdStr, 10, 64)
+	if err != nil {
+		ape.RenderErr(w, problems.BadRequest(err)...)
+		return
+	}
+
+	resultAns, err := сheckByType[string(req.Data.Type)](Config(r), votingId, reqArgument)
 	if err == sql.ErrNoRows {
 		ape.RenderErr(w, problems.NotFound())
 		return
@@ -65,7 +72,7 @@ func PredictHandlers(w http.ResponseWriter, r *http.Request) {
 	ape.Render(w, resources.VotingPredictRespResponse{
 		Data: resources.VotingPredictResp{
 			Key: resources.Key{
-				ID:   votingAddress + ":" + *value + ":" + timestamp,
+				ID:   votingIdStr + ":" + *value + ":" + timestamp,
 				Type: req.Data.Type,
 			},
 			Attributes: attribut,

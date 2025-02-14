@@ -66,9 +66,9 @@ func (s *service) router() chi.Router {
 		})
 		if s.cfg.VotingV2Config().Enable {
 			r.Route("/v2", func(r chi.Router) {
-				r.Get("/count-remaining-votes/{address}", handlers.VoteCountHandlers)
-				r.Get("/is-enough/{address}", handlers.IsEnoughHandler)
-				r.Post("/vote", handlers.Voting)
+				r.Get("/count-remaining-votes/{voting_id}", handlers.VoteCountHandlers)
+				r.Get("/is-enough/{voting_id}", handlers.IsEnoughHandler)
+				r.Post("/vote", handlers.VoteV2)
 				r.Post("/predict/", handlers.PredictHandlers)
 
 			})

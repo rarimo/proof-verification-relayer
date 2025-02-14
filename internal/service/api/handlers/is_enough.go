@@ -3,7 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"net/http"
-	"strings"
+	"strconv"
 
 	"github.com/go-chi/chi"
 	"github.com/rarimo/proof-verification-relayer/internal/checker"
@@ -13,9 +13,14 @@ import (
 )
 
 func IsEnoughHandler(w http.ResponseWriter, r *http.Request) {
-	address := chi.URLParam(r, "address")
-	address = strings.ToLower(address)
-	isEnough, err := checker.IsEnough(Config(r), address)
+	votingIdStr := chi.URLParam(r, "voting_id")
+
+	votingId, err := strconv.ParseInt(votingIdStr, 10, 64)
+	if err != nil {
+		ape.RenderErr(w, problems.BadRequest(err)...)
+		return
+	}
+	isEnough, err := checker.IsEnough(Config(r), votingId)
 	if err == sql.ErrNoRows {
 		ape.RenderErr(w, problems.NotFound())
 		return
@@ -29,7 +34,7 @@ func IsEnoughHandler(w http.ResponseWriter, r *http.Request) {
 	ape.Render(w, resources.VotingAvailabilityResponse{
 		Data: resources.VotingAvailability{
 			Key: resources.Key{
-				ID:   address,
+				ID:   votingIdStr,
 				Type: resources.IS_ENOUGH,
 			},
 			Attributes: resources.VotingAvailabilityAttributes{

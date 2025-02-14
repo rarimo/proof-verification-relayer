@@ -40,9 +40,9 @@ type checkerQ struct {
 	sql sq.StatementBuilderType
 }
 
-func (cq *checkerQ) GetVotingInfo(address string) (data.VotingInfo, error) {
+func (cq *checkerQ) GetVotingInfo(votingId int64) (data.VotingInfo, error) {
 	var votingInfo data.VotingInfo
-	query := sq.Select("*").From("voting_contract_accounts").Where(sq.Eq{"voting_id": address})
+	query := sq.Select("*").From("voting_contract_accounts").Where(sq.Eq{"voting_id": votingId})
 
 	err := cq.db.Get(&votingInfo, query)
 	if err == sql.ErrNoRows {
@@ -54,9 +54,9 @@ func (cq *checkerQ) GetVotingInfo(address string) (data.VotingInfo, error) {
 	return votingInfo, nil
 }
 
-func (cq *checkerQ) GetBalance(address string) (uint64, error) {
+func (cq *checkerQ) GetBalance(votingId int64) (uint64, error) {
 	var balance uint64
-	query := sq.Select("residual_balance").From("voting_contract_accounts").Where(sq.Eq{"voting_id": address})
+	query := sq.Select("residual_balance").From("voting_contract_accounts").Where(sq.Eq{"voting_id": votingId})
 
 	err := cq.db.Get(&balance, query)
 	if err == sql.ErrNoRows {
@@ -71,7 +71,7 @@ func (cq *checkerQ) GetBalance(address string) (uint64, error) {
 func (q *checkerQ) InsertVotingInfo(value data.VotingInfo) error {
 	query := sq.Insert("voting_contract_accounts").
 		Columns("voting_id", "residual_balance", "gas_limit").
-		Values(value.Address, value.Balance, value.GasLimit)
+		Values(value.VotingId, value.Balance, value.GasLimit)
 
 	err := q.db.Exec(query)
 	if err != nil {
@@ -84,7 +84,7 @@ func (q *checkerQ) UpdateVotingInfo(value data.VotingInfo) error {
 	query := sq.Update("voting_contract_accounts").
 		Set("residual_balance", value.Balance).
 		Set("gas_limit", value.GasLimit).
-		Where(sq.Eq{"voting_id": value.Address})
+		Where(sq.Eq{"voting_id": value.VotingId})
 
 	err := q.db.Exec(query)
 	if err != nil && err != sql.ErrNoRows {

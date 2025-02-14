@@ -1,10 +1,10 @@
 get:
   tags:
     - Voting Info
-  summary: Retrieve the predicted voting availability for a given address
-  operationId: checkVotingAvailability
+  summary: Get predicted number of votes for an ID
+  operationId: getVotePrediction
   parameters:
-    - $ref: '#/components/parameters/addressParam'
+    - $ref: '#/components/parameters/votingIdParam'
   responses:
     200:
       description: Success
@@ -14,7 +14,7 @@ get:
             type: object
             properties:
               data:
-                $ref: '#/components/schemas/VotingAvailability'
+                $ref: '#/components/schemas/VoteCount'
     404:
       description: Not Found Error
       content:

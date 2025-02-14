@@ -3,7 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"net/http"
-	"strings"
+	"strconv"
 
 	"github.com/go-chi/chi"
 	"github.com/rarimo/proof-verification-relayer/internal/checker"
@@ -13,10 +13,14 @@ import (
 )
 
 func VoteCountHandlers(w http.ResponseWriter, r *http.Request) {
-	address := chi.URLParam(r, "address")
-	address = strings.ToLower(address)
+	votingIdStr := chi.URLParam(r, "voting_id")
 
-	countTx, err := checker.GetCountTx(Config(r), address)
+	votingId, err := strconv.ParseInt(votingIdStr, 10, 64)
+	if err != nil {
+		ape.RenderErr(w, problems.BadRequest(err)...)
+		return
+	}
+	countTx, err := checker.GetCountTx(Config(r), votingId)
 	if err == sql.ErrNoRows {
 		ape.RenderErr(w, problems.NotFound())
 		return
@@ -30,7 +34,7 @@ func VoteCountHandlers(w http.ResponseWriter, r *http.Request) {
 	ape.Render(w, resources.VoteCountResponse{
 		Data: resources.VoteCount{
 			Key: resources.Key{
-				ID:   address,
+				ID:   votingIdStr,
 				Type: resources.VOTE_COUNT,
 			},
 			Attributes: resources.VoteCountAttributes{

@@ -3,7 +3,7 @@ package data
 import "time"
 
 type VotingInfo struct {
-	Address  string `db:"voting_id"`
+	VotingId int64  `db:"voting_id"`
 	Balance  uint64 `db:"residual_balance"`
 	GasLimit uint64 `db:"gas_limit"`
 }
@@ -22,8 +22,9 @@ type CheckerDB interface {
 
 type CheckerQ interface {
 	InsertVotingInfo(value VotingInfo) error
-	GetVotingInfo(address string) (VotingInfo, error)
+	GetVotingInfo(votingId int64) (VotingInfo, error)
 	UpdateVotingInfo(value VotingInfo) error
+	GetBalance(votingId int64) (uint64, error)
 
 	InsertProcessedEvent(value ProcessedEvent) error
 	GetLastBlock() (uint64, error)

@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS voting_contract_accounts
 (
-    voting_id VARCHAR(42) NOT NULL PRIMARY KEY,
+    voting_id BIGINT NOT NULL PRIMARY KEY,
     residual_balance NUMERIC(78,0) NOT NULL,
     gas_limit NUMERIC(78,0) NOT NULL
 );

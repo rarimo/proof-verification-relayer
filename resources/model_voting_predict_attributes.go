@@ -9,6 +9,6 @@ type VotingPredictAttributes struct {
 	Amount *string `json:"amount,omitempty"`
 	// The number of transactions that need to be covered
 	CountTx *string `json:"count_tx,omitempty"`
-	// Address of the contract to which the vote
+	// ID of the voting to which the vote
 	VotingId string `json:"voting_id"`
 }

@@ -8,20 +8,18 @@ import (
 	"net/http"
 	"strings"
 
-	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/rarimo/proof-verification-relayer/internal/checker"
-	"github.com/rarimo/proof-verification-relayer/internal/contracts"
-	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
-
-	// Instead of "proposalsstate", use the package
-	// that will be generated for the required contract.
-
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/rarimo/proof-verification-relayer/internal/checker"
+	"github.com/rarimo/proof-verification-relayer/internal/contracts"
+	biopassportvoting "github.com/rarimo/proof-verification-relayer/internal/contracts/bio_passport_voting"
+	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/ape"
 	"gitlab.com/distributed_lab/ape/problems"
@@ -33,6 +31,15 @@ const (
 	OPERATION   resources.ResourceType = "operation"
 	TRANSACTION resources.ResourceType = "transaction"
 )
+
+type votingInfo struct {
+	registrationRoot_ [32]byte
+	currentDate_      *big.Int
+	proposalId_       *big.Int
+	vote_             []*big.Int
+	userData_         biopassportvoting.BaseVotingUserData
+	zkPoints_         biopassportvoting.VerifierHelperProofPoints
+}
 
 type txData struct {
 	dataBytes []byte
@@ -50,7 +57,7 @@ func isAddressInWhitelist(votingAddress common.Address, whitelist []common.Addre
 	return false
 }
 
-func Voting(w http.ResponseWriter, r *http.Request) {
+func VoteV2(w http.ResponseWriter, r *http.Request) {
 	req, err := requests.NewVotingRequest(r)
 	if err != nil {
 		Log(r).WithError(err).Error("failed to get request")
@@ -61,8 +68,21 @@ func Voting(w http.ResponseWriter, r *http.Request) {
 	var (
 		destination = req.Data.Attributes.Destination
 		calldata    = req.Data.Attributes.TxData
-		proposalID  = req.Data.Attributes.ProposalId
 	)
+	var txd txData
+	txd.dataBytes, err = hexutil.Decode(calldata)
+	if err != nil {
+		Log(r).WithError(err).Error("Failed to decode data")
+		ape.RenderErr(w, problems.BadRequest(err)...)
+		return
+	}
+	voteInfo, err := parseCallData(r, txd.dataBytes)
+	if err != nil {
+		Log(r).WithError(err).Error("Failed get voteInfo")
+		ape.RenderErr(w, problems.BadRequest(err)...)
+		return
+	}
+	proposalID := voteInfo.proposalId_.Int64()
 
 	log := Log(r).WithFields(logan.F{
 		"user-agent":  r.Header.Get("User-Agent"),
@@ -72,7 +92,7 @@ func Voting(w http.ResponseWriter, r *http.Request) {
 	})
 	log.Debug("voting request")
 
-	checkIsEnough, err := checker.IsEnough(Config(r), destination)
+	checkIsEnough, err := checker.IsEnough(Config(r), proposalID)
 	if err == sql.ErrNoRows {
 		ape.RenderErr(w, problems.NotFound())
 		return
@@ -94,18 +114,8 @@ func Voting(w http.ResponseWriter, r *http.Request) {
 	// destination is valid hex address because of request validation
 	votingAddress := common.HexToAddress(destination)
 
-	var txd txData
-	txd.dataBytes, err = hexutil.Decode(calldata)
-	if err != nil {
-		log.WithError(err).Error("Failed to decode data")
-		ape.RenderErr(w, problems.BadRequest(err)...)
-		return
-	}
-
 	proposalBigID := big.NewInt(proposalID)
 
-	// Instead of "proposalsstate", use the package
-	// that will be generated for the required contract.
 	session, err := contracts.NewProposalsStateCaller(VotingV2Config(r).Address, VotingV2Config(r).RPC)
 
 	if err != nil {
@@ -148,6 +158,12 @@ func Voting(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = checker.CheckUpdateGasLimit(txd.gas, Config(r), proposalBigID.Int64())
+	if err != nil {
+		log.WithError(err).Error("failed to check and update gas price")
+		return
+	}
+
 	tx, err := sendTx(r, &txd, &votingAddress)
 	if err != nil {
 		log.WithError(err).Error("failed to send tx")
@@ -181,10 +197,6 @@ func confGas(r *http.Request, txd *txData, receiver *common.Address) (err error)
 		return fmt.Errorf("failed to estimate gas: %w", err)
 	}
 
-	err = checker.CheckUpdateGasLimit(txd.gas, Config(r), receiver)
-	if err != nil {
-		return fmt.Errorf("failed to check and update gas price: %w", err)
-	}
 	return nil
 }
 
@@ -229,4 +241,21 @@ func signTx(r *http.Request, txd *txData, receiver *common.Address) (tx *types.T
 		},
 	)
 	return tx, err
+}
+
+func parseCallData(r *http.Request, calldata []byte) (*votingInfo, error) {
+	var params votingInfo
+	parsedABI, err := abi.JSON(strings.NewReader(biopassportvoting.BioPassportVotingABI))
+	if err != nil {
+		Log(r).Errorf("Failed to parse contract ABI: %v", err)
+		return nil, err
+	}
+
+	err = parsedABI.UnpackIntoInterface(&params, "vote", calldata)
+	if err != nil {
+		Log(r).Errorf("Failed to parse calldata: %v", err)
+		return nil, err
+	}
+
+	return &params, nil
 }

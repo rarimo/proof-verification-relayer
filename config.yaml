@@ -30,7 +30,7 @@ pinger:
   min_abnormal_period: 10s
   max_abnormal_period: 10s
 
-network_voting: # Used to execute the POST /v2/vote route, borrowed from https://github.com/rarimo/voting-relayer and used for the checker service
+voting_v2:
   rpc: ""
   private_key: ""
   vault_address: "https://127.0.0.1:8200"
@@ -38,7 +38,7 @@ network_voting: # Used to execute the POST /v2/vote route, borrowed from https:/
   proposal_state_address: ""
   block: 0
   gas_limit: 800000
-  enable: false
+  enable: true
   check_with_subscribe: false
 
 replicator:

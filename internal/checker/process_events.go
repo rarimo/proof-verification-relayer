@@ -19,10 +19,10 @@ func (ch *checker) processEvent(event *contracts.ProposalsStateProposalCreated) 
 
 	ch.insertProcessedEventLog(processedEvent)
 
-	ToAddress := strings.ToLower(event.ProposalSMT.Hex())
+	votingId := event.ProposalId.Int64()
 
 	value := event.FundAmount
-	votingInfo, err := ch.checkVoteAndGetBalance(ToAddress)
+	votingInfo, err := ch.checkVoteAndGetBalance(votingId)
 	if err != nil {
 		return err
 	}
@@ -59,10 +59,10 @@ func (ch *checker) processLog(vLog types.Log) error {
 	processedEvent.TransactionHash = vLog.TxHash[:]
 
 	ch.insertProcessedEventLog(processedEvent)
-	ToAddress := strings.ToLower(transferEvent.ProposalSMT.Hex())
+	votingId := transferEvent.ProposalId.Int64()
 	value := transferEvent.FundAmount
 
-	votingInfo, err := ch.checkVoteAndGetBalance(ToAddress)
+	votingInfo, err := ch.checkVoteAndGetBalance(votingId)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func (ch *checker) processLog(vLog types.Log) error {
 func (ch *checker) insertProcessedEventLog(processedEvent data.ProcessedEvent) error {
 	isExist, err := ch.checkerQ.CheckProcessedEventExist(processedEvent)
 	if isExist {
-		ch.log.WithField("event_index_log", processedEvent.LogIndex).Debug("Dublicate event in db")
+		ch.log.WithField("event_index_log", processedEvent.LogIndex).Debug("Duplicate event in db")
 		return nil
 	}
 	if err != nil && err != sql.ErrNoRows {
@@ -93,11 +93,11 @@ func (ch *checker) insertProcessedEventLog(processedEvent data.ProcessedEvent) e
 	return nil
 }
 
-func (ch *checker) checkVoteAndGetBalance(address string) (data.VotingInfo, error) {
-	votingInfo, err := ch.checkerQ.GetVotingInfo(address)
+func (ch *checker) checkVoteAndGetBalance(votingId int64) (data.VotingInfo, error) {
+	votingInfo, err := ch.checkerQ.GetVotingInfo(votingId)
 	if err == sql.ErrNoRows {
 		newVote := &data.VotingInfo{
-			Address:  address,
+			VotingId: votingId,
 			Balance:  0,
 			GasLimit: ch.VotingV2Config.GasLimit,
 		}

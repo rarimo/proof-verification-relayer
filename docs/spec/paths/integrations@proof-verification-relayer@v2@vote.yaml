@@ -1,8 +1,8 @@
 post:
   tags:
-    - Voting
-  summary: Voting
-  operationId: vote
+    - Votes V2
+  summary: Voting V2
+  operationId: vote_v2
   requestBody:
     content:
       application/vnd.api+json:

@@ -68,11 +68,11 @@ func (ch *checker) check(ctx context.Context) error {
 		ch.log.Errorf("Failed get start block: %v", err)
 		return err
 	}
-
-	go ch.readNewEvents(ctx, ch.VotingV2Config.WithSub)
+	go ch.readOldEvents(ctx, startBlock)
 	time.Sleep(ch.pinger.Timeout)
 
-	go ch.readOldEvents(ctx, startBlock)
+	ch.readNewEvents(ctx, ch.VotingV2Config.WithSub)
+
 	for range ctx.Done() {
 		ch.log.Info("unsubscribe from events")
 		return nil
@@ -183,7 +183,6 @@ func (ch *checker) checkFilter(block, toBlock uint64, contract *contracts.Propos
 	events := 0
 	for filterLogs.Next() {
 		err := ch.processEvent(filterLogs.Event)
-		// err := ch.processEvent(filterLogs.Event)
 		if err != nil {
 			ch.log.WithFields(logan.F{"Error": err, "log_index": filterLogs.Event.Raw.Index, "hash_tx": filterLogs.Event.Raw.TxHash.Hex()}).Info("failed process log")
 			continue
