@@ -17,8 +17,10 @@ func (ch *checker) processEvent(event *contracts.ProposalsStateProposalCreated) 
 	processedEvent.LogIndex = int64(event.Raw.Index)
 	processedEvent.TransactionHash = event.Raw.TxHash[:]
 
-	ch.insertProcessedEventLog(processedEvent)
-
+	err := ch.insertProcessedEventLog(processedEvent)
+	if err != nil {
+		return err
+	}
 	votingId := event.ProposalId.Int64()
 
 	value := event.FundAmount
@@ -58,7 +60,10 @@ func (ch *checker) processLog(vLog types.Log) error {
 	processedEvent.LogIndex = int64(vLog.Index)
 	processedEvent.TransactionHash = vLog.TxHash[:]
 
-	ch.insertProcessedEventLog(processedEvent)
+	err = ch.insertProcessedEventLog(processedEvent)
+	if err != nil {
+		return err
+	}
 	votingId := transferEvent.ProposalId.Int64()
 	value := transferEvent.FundAmount
 

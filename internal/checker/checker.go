@@ -69,6 +69,12 @@ func (ch *checker) check(ctx context.Context) error {
 		return err
 	}
 
+	ch.readOldEvents(ctx, startBlock)
+	startBlock, err = ch.getStartBlockNumber()
+	if err != nil {
+		ch.log.Errorf("Failed get start block: %v", err)
+		return err
+	}
 	go ch.readNewEvents(ctx, ch.VotingV2Config.WithSub)
 
 	time.Sleep(ch.pinger.NormalPeriod)
@@ -134,7 +140,6 @@ func (ch *checker) readNewEventsWithoutSub(ctx context.Context) {
 
 func (ch *checker) readNewEventsSub(ctx context.Context) error {
 	parsedABI, err := abi.JSON(strings.NewReader(contracts.ProposalsStateABI))
-
 	if err != nil {
 		ch.log.Errorf("Failed to parse contract ABI: %v", err)
 		return err
@@ -166,7 +171,6 @@ func (ch *checker) readNewEventsSub(ctx context.Context) error {
 			}
 		}
 	}
-
 }
 
 func (ch *checker) checkFilter(block, toBlock uint64, contract *contracts.ProposalsStateFilterer) error {

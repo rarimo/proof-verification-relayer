@@ -102,7 +102,7 @@ func (cq *checkerQ) GetLastBlock() (uint64, error) {
 
 	err := cq.db.Get(&block, query)
 	if err == sql.ErrNoRows {
-		return 0, nil
+		return 0, err
 	}
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to get block from db")
