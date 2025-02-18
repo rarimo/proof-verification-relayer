@@ -2,7 +2,7 @@ package checker
 
 import (
 	"context"
-	"errors"
+	"math/big"
 
 	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
@@ -31,8 +31,7 @@ func GetCountTx(cfg config.Config, votingId int64) (uint64, error) {
 		return 0, err
 	}
 	if txFee == 0 {
-		cfg.Log().Warnf("txFee: %d", txFee)
-		return 0, errors.New("tx Fee is equal to zero")
+		txFee = cfg.VotingV2Config().GasLimit
 	}
 	voteBalance := votingInfo.Balance
 	countTx := voteBalance / txFee
@@ -48,8 +47,7 @@ func GetPredictCount(cfg config.Config, votingId int64, amount uint64) (uint64, 
 		return 0, err
 	}
 	if txFee == 0 {
-		cfg.Log().Warnf("txFee: %d", txFee)
-		return 0, errors.New("tx Fee is equal to zero")
+		txFee = cfg.VotingV2Config().GasLimit
 	}
 
 	return amount / txFee, nil
@@ -70,7 +68,9 @@ func getTxFee(cfg config.Config, votingId int64) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-
+	if feeCap.Uint64() == 0 {
+		feeCap = big.NewInt(1)
+	}
 	totalFee := votingInfo.GasLimit * feeCap.Uint64()
 	return totalFee, nil
 }
@@ -100,8 +100,7 @@ func AmountForCountTx(cfg config.Config, votingId int64, countTx uint64) (uint64
 		return 0, err
 	}
 	if txFee == 0 {
-		cfg.Log().Warnf("txFee: %d", txFee)
-		return 0, errors.New("tx Fee is equal to zero")
+		txFee = cfg.VotingV2Config().GasLimit
 	}
 	return countTx * txFee, nil
 }

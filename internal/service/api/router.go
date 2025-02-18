@@ -69,7 +69,7 @@ func (s *service) router() chi.Router {
 				r.Get("/count-remaining-votes/{voting_id}", handlers.VoteCountHandlers)
 				r.Get("/is-enough/{voting_id}", handlers.IsEnoughHandler)
 				r.Post("/vote", handlers.VoteV2)
-				r.Post("/predict/", handlers.PredictHandlers)
+				r.Post("/predict", handlers.PredictHandlers)
 
 			})
 		}
