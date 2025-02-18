@@ -50,7 +50,7 @@ type ProposalsStateProposalInfo struct {
 
 // ProposalsStateMetaData contains all meta data concerning the ProposalsState contract.
 var ProposalsStateMetaData = &bind.MetaData{
-	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"previousAdmin\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newAdmin\",\"type\":\"address\"}],\"name\":\"AdminChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"beacon\",\"type\":\"address\"}],\"name\":\"BeaconUpgraded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"version\",\"type\":\"uint8\"}],\"name\":\"Initialized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"proposalId\",\"type\":\"uint256\"}],\"name\":\"ProposalConfigChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"proposalId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"proposalSMT\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"fundAmount\",\"type\":\"uint256\"}],\"name\":\"ProposalCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"proposalId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"hide\",\"type\":\"bool\"}],\"name\":\"ProposalHidden\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"Upgraded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"proposalId\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"userNullifier\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"vote\",\"type\":\"uint256[]\"}],\"name\":\"VoteCast\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"MAGIC_ID\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"MAXIMUM_CHOICES_PER_OPTION\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"MAXIMUM_OPTIONS\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"P\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"signer_\",\"type\":\"address\"},{\"internalType\":\"string\",\"name\":\"chainName_\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"proposalSMTImpl_\",\"type\":\"address\"}],\"name\":\"__ProposalsState_init\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"votingName_\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"votingAddress_\",\"type\":\"address\"}],\"name\":\"addVoting\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"chainName\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"proposalId_\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"uint64\",\"name\":\"startTimestamp\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"duration\",\"type\":\"uint64\"},{\"internalType\":\"uint256\",\"name\":\"multichoice\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"acceptedOptions\",\"type\":\"uint256[]\"},{\"internalType\":\"string\",\"name\":\"description\",\"type\":\"string\"},{\"internalType\":\"address[]\",\"name\":\"votingWhitelist\",\"type\":\"address[]\"},{\"internalType\":\"bytes[]\",\"name\":\"votingWhitelistData\",\"type\":\"bytes[]\"}],\"internalType\":\"structProposalsState.ProposalConfig\",\"name\":\"newProposalConfig_\",\"type\":\"tuple\"}],\"name\":\"changeProposalConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"newSignerPubKey_\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"signature_\",\"type\":\"bytes\"}],\"name\":\"changeSigner\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"uint64\",\"name\":\"startTimestamp\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"duration\",\"type\":\"uint64\"},{\"internalType\":\"uint256\",\"name\":\"multichoice\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"acceptedOptions\",\"type\":\"uint256[]\"},{\"internalType\":\"string\",\"name\":\"description\",\"type\":\"string\"},{\"internalType\":\"address[]\",\"name\":\"votingWhitelist\",\"type\":\"address[]\"},{\"internalType\":\"bytes[]\",\"name\":\"votingWhitelistData\",\"type\":\"bytes[]\"}],\"internalType\":\"structProposalsState.ProposalConfig\",\"name\":\"proposalConfig_\",\"type\":\"tuple\"}],\"name\":\"createProposal\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint8\",\"name\":\"methodId_\",\"type\":\"uint8\"}],\"name\":\"getNonce\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"proposalId_\",\"type\":\"uint256\"}],\"name\":\"getProposalConfig\",\"outputs\":[{\"components\":[{\"internalType\":\"uint64\",\"name\":\"startTimestamp\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"duration\",\"type\":\"uint64\"},{\"internalType\":\"uint256\",\"name\":\"multichoice\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"acceptedOptions\",\"type\":\"uint256[]\"},{\"internalType\":\"string\",\"name\":\"description\",\"type\":\"string\"},{\"internalType\":\"address[]\",\"name\":\"votingWhitelist\",\"type\":\"address[]\"},{\"internalType\":\"bytes[]\",\"name\":\"votingWhitelistData\",\"type\":\"bytes[]\"}],\"internalType\":\"structProposalsState.ProposalConfig\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"proposalId_\",\"type\":\"uint256\"}],\"name\":\"getProposalEventId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"proposalId_\",\"type\":\"uint256\"}],\"name\":\"getProposalInfo\",\"outputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"proposalSMT\",\"type\":\"address\"},{\"internalType\":\"enumProposalsState.ProposalStatus\",\"name\":\"status\",\"type\":\"uint8\"},{\"components\":[{\"internalType\":\"uint64\",\"name\":\"startTimestamp\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"duration\",\"type\":\"uint64\"},{\"internalType\":\"uint256\",\"name\":\"multichoice\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"acceptedOptions\",\"type\":\"uint256[]\"},{\"internalType\":\"string\",\"name\":\"description\",\"type\":\"string\"},{\"internalType\":\"address[]\",\"name\":\"votingWhitelist\",\"type\":\"address[]\"},{\"internalType\":\"bytes[]\",\"name\":\"votingWhitelistData\",\"type\":\"bytes[]\"}],\"internalType\":\"structProposalsState.ProposalConfig\",\"name\":\"config\",\"type\":\"tuple\"},{\"internalType\":\"uint256[8][]\",\"name\":\"votingResults\",\"type\":\"uint256[8][]\"}],\"internalType\":\"structProposalsState.ProposalInfo\",\"name\":\"info_\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"proposalId_\",\"type\":\"uint256\"}],\"name\":\"getProposalStatus\",\"outputs\":[{\"internalType\":\"enumProposalsState.ProposalStatus\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"key_\",\"type\":\"string\"}],\"name\":\"getVotingByKey\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getVotings\",\"outputs\":[{\"internalType\":\"string[]\",\"name\":\"keys_\",\"type\":\"string[]\"},{\"internalType\":\"address[]\",\"name\":\"values_\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"proposalId_\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"hide_\",\"type\":\"bool\"}],\"name\":\"hideProposal\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"implementation\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"voting_\",\"type\":\"address\"}],\"name\":\"isVoting\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lastProposalId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"proposalSMTImpl\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"proxiableUUID\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"votingName_\",\"type\":\"string\"}],\"name\":\"removeVoting\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"signer\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"}],\"name\":\"upgradeTo\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"upgradeToAndCall\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation_\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"proof_\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"data_\",\"type\":\"bytes\"}],\"name\":\"upgradeToAndCallWithProof\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation_\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"proof_\",\"type\":\"bytes\"}],\"name\":\"upgradeToWithProof\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"proposalId_\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"userNullifier_\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"vote_\",\"type\":\"uint256[]\"}],\"name\":\"vote\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"addresspayable\",\"name\":\"recipient_\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount_\",\"type\":\"uint256\"}],\"name\":\"withdrawFunds\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
+	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"previousAdmin\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newAdmin\",\"type\":\"address\"}],\"name\":\"AdminChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"beacon\",\"type\":\"address\"}],\"name\":\"BeaconUpgraded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"version\",\"type\":\"uint8\"}],\"name\":\"Initialized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"MinFundingAmountSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"proposalId\",\"type\":\"uint256\"}],\"name\":\"ProposalConfigChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"proposalId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"proposalSMT\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"fundAmount\",\"type\":\"uint256\"}],\"name\":\"ProposalCreated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"proposalId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"fundAmount\",\"type\":\"uint256\"}],\"name\":\"ProposalFunded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"proposalId\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"hide\",\"type\":\"bool\"}],\"name\":\"ProposalHidden\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"previousAdminRole\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"newAdminRole\",\"type\":\"bytes32\"}],\"name\":\"RoleAdminChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"name\":\"RoleGranted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"name\":\"RoleRevoked\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"Upgraded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"proposalId\",\"type\":\"uint256\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"userNullifier\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256[]\",\"name\":\"vote\",\"type\":\"uint256[]\"}],\"name\":\"VoteCast\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"CONTRACT_MANAGER_ROLE\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"DEFAULT_ADMIN_ROLE\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"FUNDS_MANAGER_ROLE\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"MAXIMUM_CHOICES_PER_OPTION\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"MAXIMUM_OPTIONS\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"PROPOSAL_MANAGER_ROLE\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"proposalSMTImpl_\",\"type\":\"address\"}],\"name\":\"__ProposalsState_init\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"proposalId_\",\"type\":\"uint256\"}],\"name\":\"addFundsToProposal\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"votingName_\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"votingAddress_\",\"type\":\"address\"}],\"name\":\"addVoting\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"proposalId_\",\"type\":\"uint256\"},{\"components\":[{\"internalType\":\"uint64\",\"name\":\"startTimestamp\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"duration\",\"type\":\"uint64\"},{\"internalType\":\"uint256\",\"name\":\"multichoice\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"acceptedOptions\",\"type\":\"uint256[]\"},{\"internalType\":\"string\",\"name\":\"description\",\"type\":\"string\"},{\"internalType\":\"address[]\",\"name\":\"votingWhitelist\",\"type\":\"address[]\"},{\"internalType\":\"bytes[]\",\"name\":\"votingWhitelistData\",\"type\":\"bytes[]\"}],\"internalType\":\"structProposalsState.ProposalConfig\",\"name\":\"newProposalConfig_\",\"type\":\"tuple\"}],\"name\":\"changeProposalConfig\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"proposalId_\",\"type\":\"uint256\"},{\"internalType\":\"uint64\",\"name\":\"newDuration_\",\"type\":\"uint64\"}],\"name\":\"changeProposalDuration\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"components\":[{\"internalType\":\"uint64\",\"name\":\"startTimestamp\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"duration\",\"type\":\"uint64\"},{\"internalType\":\"uint256\",\"name\":\"multichoice\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"acceptedOptions\",\"type\":\"uint256[]\"},{\"internalType\":\"string\",\"name\":\"description\",\"type\":\"string\"},{\"internalType\":\"address[]\",\"name\":\"votingWhitelist\",\"type\":\"address[]\"},{\"internalType\":\"bytes[]\",\"name\":\"votingWhitelistData\",\"type\":\"bytes[]\"}],\"internalType\":\"structProposalsState.ProposalConfig\",\"name\":\"proposalConfig_\",\"type\":\"tuple\"}],\"name\":\"createProposal\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"proposalId_\",\"type\":\"uint256\"}],\"name\":\"getProposalConfig\",\"outputs\":[{\"components\":[{\"internalType\":\"uint64\",\"name\":\"startTimestamp\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"duration\",\"type\":\"uint64\"},{\"internalType\":\"uint256\",\"name\":\"multichoice\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"acceptedOptions\",\"type\":\"uint256[]\"},{\"internalType\":\"string\",\"name\":\"description\",\"type\":\"string\"},{\"internalType\":\"address[]\",\"name\":\"votingWhitelist\",\"type\":\"address[]\"},{\"internalType\":\"bytes[]\",\"name\":\"votingWhitelistData\",\"type\":\"bytes[]\"}],\"internalType\":\"structProposalsState.ProposalConfig\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"proposalId_\",\"type\":\"uint256\"}],\"name\":\"getProposalEventId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"proposalId_\",\"type\":\"uint256\"}],\"name\":\"getProposalInfo\",\"outputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"proposalSMT\",\"type\":\"address\"},{\"internalType\":\"enumProposalsState.ProposalStatus\",\"name\":\"status\",\"type\":\"uint8\"},{\"components\":[{\"internalType\":\"uint64\",\"name\":\"startTimestamp\",\"type\":\"uint64\"},{\"internalType\":\"uint64\",\"name\":\"duration\",\"type\":\"uint64\"},{\"internalType\":\"uint256\",\"name\":\"multichoice\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"acceptedOptions\",\"type\":\"uint256[]\"},{\"internalType\":\"string\",\"name\":\"description\",\"type\":\"string\"},{\"internalType\":\"address[]\",\"name\":\"votingWhitelist\",\"type\":\"address[]\"},{\"internalType\":\"bytes[]\",\"name\":\"votingWhitelistData\",\"type\":\"bytes[]\"}],\"internalType\":\"structProposalsState.ProposalConfig\",\"name\":\"config\",\"type\":\"tuple\"},{\"internalType\":\"uint256[8][]\",\"name\":\"votingResults\",\"type\":\"uint256[8][]\"}],\"internalType\":\"structProposalsState.ProposalInfo\",\"name\":\"info_\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"proposalId_\",\"type\":\"uint256\"}],\"name\":\"getProposalStatus\",\"outputs\":[{\"internalType\":\"enumProposalsState.ProposalStatus\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"}],\"name\":\"getRoleAdmin\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"key_\",\"type\":\"string\"}],\"name\":\"getVotingByKey\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getVotings\",\"outputs\":[{\"internalType\":\"string[]\",\"name\":\"keys_\",\"type\":\"string[]\"},{\"internalType\":\"address[]\",\"name\":\"values_\",\"type\":\"address[]\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"grantRole\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"hasRole\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"proposalId_\",\"type\":\"uint256\"},{\"internalType\":\"bool\",\"name\":\"hide_\",\"type\":\"bool\"}],\"name\":\"hideProposal\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"proposalId_\",\"type\":\"uint256\"}],\"name\":\"hideProposal\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"implementation\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"voting_\",\"type\":\"address\"}],\"name\":\"isVoting\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lastProposalId\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"minFundingAmount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"proposalSMTImpl\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"proxiableUUID\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"votingName_\",\"type\":\"string\"}],\"name\":\"removeVoting\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"renounceRole\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"revokeRole\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"amount_\",\"type\":\"uint256\"}],\"name\":\"setMinFundingAmount\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes4\",\"name\":\"interfaceId\",\"type\":\"bytes4\"}],\"name\":\"supportsInterface\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"}],\"name\":\"upgradeTo\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"upgradeToAndCall\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"proposalId_\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"userNullifier_\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"vote_\",\"type\":\"uint256[]\"}],\"name\":\"vote\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"addresspayable\",\"name\":\"recipient_\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"amount_\",\"type\":\"uint256\"}],\"name\":\"withdrawFunds\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]",
 }
 
 // ProposalsStateABI is the input ABI used to generate the binding from.
@@ -199,35 +199,97 @@ func (_ProposalsState *ProposalsStateTransactorRaw) Transact(opts *bind.Transact
 	return _ProposalsState.Contract.contract.Transact(opts, method, params...)
 }
 
-// MAGICID is a free data retrieval call binding the contract method 0xdf95574a.
+// CONTRACTMANAGERROLE is a free data retrieval call binding the contract method 0x9d28b506.
 //
-// Solidity: function MAGIC_ID() view returns(uint8)
-func (_ProposalsState *ProposalsStateCaller) MAGICID(opts *bind.CallOpts) (uint8, error) {
+// Solidity: function CONTRACT_MANAGER_ROLE() view returns(bytes32)
+func (_ProposalsState *ProposalsStateCaller) CONTRACTMANAGERROLE(opts *bind.CallOpts) ([32]byte, error) {
 	var out []interface{}
-	err := _ProposalsState.contract.Call(opts, &out, "MAGIC_ID")
+	err := _ProposalsState.contract.Call(opts, &out, "CONTRACT_MANAGER_ROLE")
 
 	if err != nil {
-		return *new(uint8), err
+		return *new([32]byte), err
 	}
 
-	out0 := *abi.ConvertType(out[0], new(uint8)).(*uint8)
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
 
 	return out0, err
 
 }
 
-// MAGICID is a free data retrieval call binding the contract method 0xdf95574a.
+// CONTRACTMANAGERROLE is a free data retrieval call binding the contract method 0x9d28b506.
 //
-// Solidity: function MAGIC_ID() view returns(uint8)
-func (_ProposalsState *ProposalsStateSession) MAGICID() (uint8, error) {
-	return _ProposalsState.Contract.MAGICID(&_ProposalsState.CallOpts)
+// Solidity: function CONTRACT_MANAGER_ROLE() view returns(bytes32)
+func (_ProposalsState *ProposalsStateSession) CONTRACTMANAGERROLE() ([32]byte, error) {
+	return _ProposalsState.Contract.CONTRACTMANAGERROLE(&_ProposalsState.CallOpts)
 }
 
-// MAGICID is a free data retrieval call binding the contract method 0xdf95574a.
+// CONTRACTMANAGERROLE is a free data retrieval call binding the contract method 0x9d28b506.
 //
-// Solidity: function MAGIC_ID() view returns(uint8)
-func (_ProposalsState *ProposalsStateCallerSession) MAGICID() (uint8, error) {
-	return _ProposalsState.Contract.MAGICID(&_ProposalsState.CallOpts)
+// Solidity: function CONTRACT_MANAGER_ROLE() view returns(bytes32)
+func (_ProposalsState *ProposalsStateCallerSession) CONTRACTMANAGERROLE() ([32]byte, error) {
+	return _ProposalsState.Contract.CONTRACTMANAGERROLE(&_ProposalsState.CallOpts)
+}
+
+// DEFAULTADMINROLE is a free data retrieval call binding the contract method 0xa217fddf.
+//
+// Solidity: function DEFAULT_ADMIN_ROLE() view returns(bytes32)
+func (_ProposalsState *ProposalsStateCaller) DEFAULTADMINROLE(opts *bind.CallOpts) ([32]byte, error) {
+	var out []interface{}
+	err := _ProposalsState.contract.Call(opts, &out, "DEFAULT_ADMIN_ROLE")
+
+	if err != nil {
+		return *new([32]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
+
+	return out0, err
+
+}
+
+// DEFAULTADMINROLE is a free data retrieval call binding the contract method 0xa217fddf.
+//
+// Solidity: function DEFAULT_ADMIN_ROLE() view returns(bytes32)
+func (_ProposalsState *ProposalsStateSession) DEFAULTADMINROLE() ([32]byte, error) {
+	return _ProposalsState.Contract.DEFAULTADMINROLE(&_ProposalsState.CallOpts)
+}
+
+// DEFAULTADMINROLE is a free data retrieval call binding the contract method 0xa217fddf.
+//
+// Solidity: function DEFAULT_ADMIN_ROLE() view returns(bytes32)
+func (_ProposalsState *ProposalsStateCallerSession) DEFAULTADMINROLE() ([32]byte, error) {
+	return _ProposalsState.Contract.DEFAULTADMINROLE(&_ProposalsState.CallOpts)
+}
+
+// FUNDSMANAGERROLE is a free data retrieval call binding the contract method 0xc4707a83.
+//
+// Solidity: function FUNDS_MANAGER_ROLE() view returns(bytes32)
+func (_ProposalsState *ProposalsStateCaller) FUNDSMANAGERROLE(opts *bind.CallOpts) ([32]byte, error) {
+	var out []interface{}
+	err := _ProposalsState.contract.Call(opts, &out, "FUNDS_MANAGER_ROLE")
+
+	if err != nil {
+		return *new([32]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
+
+	return out0, err
+
+}
+
+// FUNDSMANAGERROLE is a free data retrieval call binding the contract method 0xc4707a83.
+//
+// Solidity: function FUNDS_MANAGER_ROLE() view returns(bytes32)
+func (_ProposalsState *ProposalsStateSession) FUNDSMANAGERROLE() ([32]byte, error) {
+	return _ProposalsState.Contract.FUNDSMANAGERROLE(&_ProposalsState.CallOpts)
+}
+
+// FUNDSMANAGERROLE is a free data retrieval call binding the contract method 0xc4707a83.
+//
+// Solidity: function FUNDS_MANAGER_ROLE() view returns(bytes32)
+func (_ProposalsState *ProposalsStateCallerSession) FUNDSMANAGERROLE() ([32]byte, error) {
+	return _ProposalsState.Contract.FUNDSMANAGERROLE(&_ProposalsState.CallOpts)
 }
 
 // MAXIMUMCHOICESPEROPTION is a free data retrieval call binding the contract method 0x299a9b54.
@@ -292,97 +354,35 @@ func (_ProposalsState *ProposalsStateCallerSession) MAXIMUMOPTIONS() (*big.Int, 
 	return _ProposalsState.Contract.MAXIMUMOPTIONS(&_ProposalsState.CallOpts)
 }
 
-// P is a free data retrieval call binding the contract method 0x8b8fbd92.
+// PROPOSALMANAGERROLE is a free data retrieval call binding the contract method 0x4de29d48.
 //
-// Solidity: function P() view returns(uint256)
-func (_ProposalsState *ProposalsStateCaller) P(opts *bind.CallOpts) (*big.Int, error) {
+// Solidity: function PROPOSAL_MANAGER_ROLE() view returns(bytes32)
+func (_ProposalsState *ProposalsStateCaller) PROPOSALMANAGERROLE(opts *bind.CallOpts) ([32]byte, error) {
 	var out []interface{}
-	err := _ProposalsState.contract.Call(opts, &out, "P")
+	err := _ProposalsState.contract.Call(opts, &out, "PROPOSAL_MANAGER_ROLE")
 
 	if err != nil {
-		return *new(*big.Int), err
+		return *new([32]byte), err
 	}
 
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
 
 	return out0, err
 
 }
 
-// P is a free data retrieval call binding the contract method 0x8b8fbd92.
+// PROPOSALMANAGERROLE is a free data retrieval call binding the contract method 0x4de29d48.
 //
-// Solidity: function P() view returns(uint256)
-func (_ProposalsState *ProposalsStateSession) P() (*big.Int, error) {
-	return _ProposalsState.Contract.P(&_ProposalsState.CallOpts)
+// Solidity: function PROPOSAL_MANAGER_ROLE() view returns(bytes32)
+func (_ProposalsState *ProposalsStateSession) PROPOSALMANAGERROLE() ([32]byte, error) {
+	return _ProposalsState.Contract.PROPOSALMANAGERROLE(&_ProposalsState.CallOpts)
 }
 
-// P is a free data retrieval call binding the contract method 0x8b8fbd92.
+// PROPOSALMANAGERROLE is a free data retrieval call binding the contract method 0x4de29d48.
 //
-// Solidity: function P() view returns(uint256)
-func (_ProposalsState *ProposalsStateCallerSession) P() (*big.Int, error) {
-	return _ProposalsState.Contract.P(&_ProposalsState.CallOpts)
-}
-
-// ChainName is a free data retrieval call binding the contract method 0x1c93b03a.
-//
-// Solidity: function chainName() view returns(string)
-func (_ProposalsState *ProposalsStateCaller) ChainName(opts *bind.CallOpts) (string, error) {
-	var out []interface{}
-	err := _ProposalsState.contract.Call(opts, &out, "chainName")
-
-	if err != nil {
-		return *new(string), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(string)).(*string)
-
-	return out0, err
-
-}
-
-// ChainName is a free data retrieval call binding the contract method 0x1c93b03a.
-//
-// Solidity: function chainName() view returns(string)
-func (_ProposalsState *ProposalsStateSession) ChainName() (string, error) {
-	return _ProposalsState.Contract.ChainName(&_ProposalsState.CallOpts)
-}
-
-// ChainName is a free data retrieval call binding the contract method 0x1c93b03a.
-//
-// Solidity: function chainName() view returns(string)
-func (_ProposalsState *ProposalsStateCallerSession) ChainName() (string, error) {
-	return _ProposalsState.Contract.ChainName(&_ProposalsState.CallOpts)
-}
-
-// GetNonce is a free data retrieval call binding the contract method 0xf4fc6341.
-//
-// Solidity: function getNonce(uint8 methodId_) view returns(uint256)
-func (_ProposalsState *ProposalsStateCaller) GetNonce(opts *bind.CallOpts, methodId_ uint8) (*big.Int, error) {
-	var out []interface{}
-	err := _ProposalsState.contract.Call(opts, &out, "getNonce", methodId_)
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// GetNonce is a free data retrieval call binding the contract method 0xf4fc6341.
-//
-// Solidity: function getNonce(uint8 methodId_) view returns(uint256)
-func (_ProposalsState *ProposalsStateSession) GetNonce(methodId_ uint8) (*big.Int, error) {
-	return _ProposalsState.Contract.GetNonce(&_ProposalsState.CallOpts, methodId_)
-}
-
-// GetNonce is a free data retrieval call binding the contract method 0xf4fc6341.
-//
-// Solidity: function getNonce(uint8 methodId_) view returns(uint256)
-func (_ProposalsState *ProposalsStateCallerSession) GetNonce(methodId_ uint8) (*big.Int, error) {
-	return _ProposalsState.Contract.GetNonce(&_ProposalsState.CallOpts, methodId_)
+// Solidity: function PROPOSAL_MANAGER_ROLE() view returns(bytes32)
+func (_ProposalsState *ProposalsStateCallerSession) PROPOSALMANAGERROLE() ([32]byte, error) {
+	return _ProposalsState.Contract.PROPOSALMANAGERROLE(&_ProposalsState.CallOpts)
 }
 
 // GetProposalConfig is a free data retrieval call binding the contract method 0x7d5d687f.
@@ -509,6 +509,37 @@ func (_ProposalsState *ProposalsStateCallerSession) GetProposalStatus(proposalId
 	return _ProposalsState.Contract.GetProposalStatus(&_ProposalsState.CallOpts, proposalId_)
 }
 
+// GetRoleAdmin is a free data retrieval call binding the contract method 0x248a9ca3.
+//
+// Solidity: function getRoleAdmin(bytes32 role) view returns(bytes32)
+func (_ProposalsState *ProposalsStateCaller) GetRoleAdmin(opts *bind.CallOpts, role [32]byte) ([32]byte, error) {
+	var out []interface{}
+	err := _ProposalsState.contract.Call(opts, &out, "getRoleAdmin", role)
+
+	if err != nil {
+		return *new([32]byte), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new([32]byte)).(*[32]byte)
+
+	return out0, err
+
+}
+
+// GetRoleAdmin is a free data retrieval call binding the contract method 0x248a9ca3.
+//
+// Solidity: function getRoleAdmin(bytes32 role) view returns(bytes32)
+func (_ProposalsState *ProposalsStateSession) GetRoleAdmin(role [32]byte) ([32]byte, error) {
+	return _ProposalsState.Contract.GetRoleAdmin(&_ProposalsState.CallOpts, role)
+}
+
+// GetRoleAdmin is a free data retrieval call binding the contract method 0x248a9ca3.
+//
+// Solidity: function getRoleAdmin(bytes32 role) view returns(bytes32)
+func (_ProposalsState *ProposalsStateCallerSession) GetRoleAdmin(role [32]byte) ([32]byte, error) {
+	return _ProposalsState.Contract.GetRoleAdmin(&_ProposalsState.CallOpts, role)
+}
+
 // GetVotingByKey is a free data retrieval call binding the contract method 0xd8720106.
 //
 // Solidity: function getVotingByKey(string key_) view returns(address)
@@ -583,6 +614,37 @@ func (_ProposalsState *ProposalsStateCallerSession) GetVotings() (struct {
 	Values []common.Address
 }, error) {
 	return _ProposalsState.Contract.GetVotings(&_ProposalsState.CallOpts)
+}
+
+// HasRole is a free data retrieval call binding the contract method 0x91d14854.
+//
+// Solidity: function hasRole(bytes32 role, address account) view returns(bool)
+func (_ProposalsState *ProposalsStateCaller) HasRole(opts *bind.CallOpts, role [32]byte, account common.Address) (bool, error) {
+	var out []interface{}
+	err := _ProposalsState.contract.Call(opts, &out, "hasRole", role, account)
+
+	if err != nil {
+		return *new(bool), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
+
+	return out0, err
+
+}
+
+// HasRole is a free data retrieval call binding the contract method 0x91d14854.
+//
+// Solidity: function hasRole(bytes32 role, address account) view returns(bool)
+func (_ProposalsState *ProposalsStateSession) HasRole(role [32]byte, account common.Address) (bool, error) {
+	return _ProposalsState.Contract.HasRole(&_ProposalsState.CallOpts, role, account)
+}
+
+// HasRole is a free data retrieval call binding the contract method 0x91d14854.
+//
+// Solidity: function hasRole(bytes32 role, address account) view returns(bool)
+func (_ProposalsState *ProposalsStateCallerSession) HasRole(role [32]byte, account common.Address) (bool, error) {
+	return _ProposalsState.Contract.HasRole(&_ProposalsState.CallOpts, role, account)
 }
 
 // Implementation is a free data retrieval call binding the contract method 0x5c60da1b.
@@ -678,6 +740,37 @@ func (_ProposalsState *ProposalsStateCallerSession) LastProposalId() (*big.Int, 
 	return _ProposalsState.Contract.LastProposalId(&_ProposalsState.CallOpts)
 }
 
+// MinFundingAmount is a free data retrieval call binding the contract method 0xc791316e.
+//
+// Solidity: function minFundingAmount() view returns(uint256)
+func (_ProposalsState *ProposalsStateCaller) MinFundingAmount(opts *bind.CallOpts) (*big.Int, error) {
+	var out []interface{}
+	err := _ProposalsState.contract.Call(opts, &out, "minFundingAmount")
+
+	if err != nil {
+		return *new(*big.Int), err
+	}
+
+	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
+
+	return out0, err
+
+}
+
+// MinFundingAmount is a free data retrieval call binding the contract method 0xc791316e.
+//
+// Solidity: function minFundingAmount() view returns(uint256)
+func (_ProposalsState *ProposalsStateSession) MinFundingAmount() (*big.Int, error) {
+	return _ProposalsState.Contract.MinFundingAmount(&_ProposalsState.CallOpts)
+}
+
+// MinFundingAmount is a free data retrieval call binding the contract method 0xc791316e.
+//
+// Solidity: function minFundingAmount() view returns(uint256)
+func (_ProposalsState *ProposalsStateCallerSession) MinFundingAmount() (*big.Int, error) {
+	return _ProposalsState.Contract.MinFundingAmount(&_ProposalsState.CallOpts)
+}
+
 // Owner is a free data retrieval call binding the contract method 0x8da5cb5b.
 //
 // Solidity: function owner() view returns(address)
@@ -771,56 +864,77 @@ func (_ProposalsState *ProposalsStateCallerSession) ProxiableUUID() ([32]byte, e
 	return _ProposalsState.Contract.ProxiableUUID(&_ProposalsState.CallOpts)
 }
 
-// Signer is a free data retrieval call binding the contract method 0x238ac933.
+// SupportsInterface is a free data retrieval call binding the contract method 0x01ffc9a7.
 //
-// Solidity: function signer() view returns(address)
-func (_ProposalsState *ProposalsStateCaller) Signer(opts *bind.CallOpts) (common.Address, error) {
+// Solidity: function supportsInterface(bytes4 interfaceId) view returns(bool)
+func (_ProposalsState *ProposalsStateCaller) SupportsInterface(opts *bind.CallOpts, interfaceId [4]byte) (bool, error) {
 	var out []interface{}
-	err := _ProposalsState.contract.Call(opts, &out, "signer")
+	err := _ProposalsState.contract.Call(opts, &out, "supportsInterface", interfaceId)
 
 	if err != nil {
-		return *new(common.Address), err
+		return *new(bool), err
 	}
 
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
+	out0 := *abi.ConvertType(out[0], new(bool)).(*bool)
 
 	return out0, err
 
 }
 
-// Signer is a free data retrieval call binding the contract method 0x238ac933.
+// SupportsInterface is a free data retrieval call binding the contract method 0x01ffc9a7.
 //
-// Solidity: function signer() view returns(address)
-func (_ProposalsState *ProposalsStateSession) Signer() (common.Address, error) {
-	return _ProposalsState.Contract.Signer(&_ProposalsState.CallOpts)
+// Solidity: function supportsInterface(bytes4 interfaceId) view returns(bool)
+func (_ProposalsState *ProposalsStateSession) SupportsInterface(interfaceId [4]byte) (bool, error) {
+	return _ProposalsState.Contract.SupportsInterface(&_ProposalsState.CallOpts, interfaceId)
 }
 
-// Signer is a free data retrieval call binding the contract method 0x238ac933.
+// SupportsInterface is a free data retrieval call binding the contract method 0x01ffc9a7.
 //
-// Solidity: function signer() view returns(address)
-func (_ProposalsState *ProposalsStateCallerSession) Signer() (common.Address, error) {
-	return _ProposalsState.Contract.Signer(&_ProposalsState.CallOpts)
+// Solidity: function supportsInterface(bytes4 interfaceId) view returns(bool)
+func (_ProposalsState *ProposalsStateCallerSession) SupportsInterface(interfaceId [4]byte) (bool, error) {
+	return _ProposalsState.Contract.SupportsInterface(&_ProposalsState.CallOpts, interfaceId)
 }
 
-// ProposalsStateInit is a paid mutator transaction binding the contract method 0xb5697e6a.
+// ProposalsStateInit is a paid mutator transaction binding the contract method 0x7dd42027.
 //
-// Solidity: function __ProposalsState_init(address signer_, string chainName_, address proposalSMTImpl_) returns()
-func (_ProposalsState *ProposalsStateTransactor) ProposalsStateInit(opts *bind.TransactOpts, signer_ common.Address, chainName_ string, proposalSMTImpl_ common.Address) (*types.Transaction, error) {
-	return _ProposalsState.contract.Transact(opts, "__ProposalsState_init", signer_, chainName_, proposalSMTImpl_)
+// Solidity: function __ProposalsState_init(address proposalSMTImpl_) returns()
+func (_ProposalsState *ProposalsStateTransactor) ProposalsStateInit(opts *bind.TransactOpts, proposalSMTImpl_ common.Address) (*types.Transaction, error) {
+	return _ProposalsState.contract.Transact(opts, "__ProposalsState_init", proposalSMTImpl_)
 }
 
-// ProposalsStateInit is a paid mutator transaction binding the contract method 0xb5697e6a.
+// ProposalsStateInit is a paid mutator transaction binding the contract method 0x7dd42027.
 //
-// Solidity: function __ProposalsState_init(address signer_, string chainName_, address proposalSMTImpl_) returns()
-func (_ProposalsState *ProposalsStateSession) ProposalsStateInit(signer_ common.Address, chainName_ string, proposalSMTImpl_ common.Address) (*types.Transaction, error) {
-	return _ProposalsState.Contract.ProposalsStateInit(&_ProposalsState.TransactOpts, signer_, chainName_, proposalSMTImpl_)
+// Solidity: function __ProposalsState_init(address proposalSMTImpl_) returns()
+func (_ProposalsState *ProposalsStateSession) ProposalsStateInit(proposalSMTImpl_ common.Address) (*types.Transaction, error) {
+	return _ProposalsState.Contract.ProposalsStateInit(&_ProposalsState.TransactOpts, proposalSMTImpl_)
 }
 
-// ProposalsStateInit is a paid mutator transaction binding the contract method 0xb5697e6a.
+// ProposalsStateInit is a paid mutator transaction binding the contract method 0x7dd42027.
 //
-// Solidity: function __ProposalsState_init(address signer_, string chainName_, address proposalSMTImpl_) returns()
-func (_ProposalsState *ProposalsStateTransactorSession) ProposalsStateInit(signer_ common.Address, chainName_ string, proposalSMTImpl_ common.Address) (*types.Transaction, error) {
-	return _ProposalsState.Contract.ProposalsStateInit(&_ProposalsState.TransactOpts, signer_, chainName_, proposalSMTImpl_)
+// Solidity: function __ProposalsState_init(address proposalSMTImpl_) returns()
+func (_ProposalsState *ProposalsStateTransactorSession) ProposalsStateInit(proposalSMTImpl_ common.Address) (*types.Transaction, error) {
+	return _ProposalsState.Contract.ProposalsStateInit(&_ProposalsState.TransactOpts, proposalSMTImpl_)
+}
+
+// AddFundsToProposal is a paid mutator transaction binding the contract method 0x70f7e37a.
+//
+// Solidity: function addFundsToProposal(uint256 proposalId_) payable returns()
+func (_ProposalsState *ProposalsStateTransactor) AddFundsToProposal(opts *bind.TransactOpts, proposalId_ *big.Int) (*types.Transaction, error) {
+	return _ProposalsState.contract.Transact(opts, "addFundsToProposal", proposalId_)
+}
+
+// AddFundsToProposal is a paid mutator transaction binding the contract method 0x70f7e37a.
+//
+// Solidity: function addFundsToProposal(uint256 proposalId_) payable returns()
+func (_ProposalsState *ProposalsStateSession) AddFundsToProposal(proposalId_ *big.Int) (*types.Transaction, error) {
+	return _ProposalsState.Contract.AddFundsToProposal(&_ProposalsState.TransactOpts, proposalId_)
+}
+
+// AddFundsToProposal is a paid mutator transaction binding the contract method 0x70f7e37a.
+//
+// Solidity: function addFundsToProposal(uint256 proposalId_) payable returns()
+func (_ProposalsState *ProposalsStateTransactorSession) AddFundsToProposal(proposalId_ *big.Int) (*types.Transaction, error) {
+	return _ProposalsState.Contract.AddFundsToProposal(&_ProposalsState.TransactOpts, proposalId_)
 }
 
 // AddVoting is a paid mutator transaction binding the contract method 0xde947541.
@@ -865,25 +979,25 @@ func (_ProposalsState *ProposalsStateTransactorSession) ChangeProposalConfig(pro
 	return _ProposalsState.Contract.ChangeProposalConfig(&_ProposalsState.TransactOpts, proposalId_, newProposalConfig_)
 }
 
-// ChangeSigner is a paid mutator transaction binding the contract method 0x497f6959.
+// ChangeProposalDuration is a paid mutator transaction binding the contract method 0x0f68915a.
 //
-// Solidity: function changeSigner(bytes newSignerPubKey_, bytes signature_) returns()
-func (_ProposalsState *ProposalsStateTransactor) ChangeSigner(opts *bind.TransactOpts, newSignerPubKey_ []byte, signature_ []byte) (*types.Transaction, error) {
-	return _ProposalsState.contract.Transact(opts, "changeSigner", newSignerPubKey_, signature_)
+// Solidity: function changeProposalDuration(uint256 proposalId_, uint64 newDuration_) returns()
+func (_ProposalsState *ProposalsStateTransactor) ChangeProposalDuration(opts *bind.TransactOpts, proposalId_ *big.Int, newDuration_ uint64) (*types.Transaction, error) {
+	return _ProposalsState.contract.Transact(opts, "changeProposalDuration", proposalId_, newDuration_)
 }
 
-// ChangeSigner is a paid mutator transaction binding the contract method 0x497f6959.
+// ChangeProposalDuration is a paid mutator transaction binding the contract method 0x0f68915a.
 //
-// Solidity: function changeSigner(bytes newSignerPubKey_, bytes signature_) returns()
-func (_ProposalsState *ProposalsStateSession) ChangeSigner(newSignerPubKey_ []byte, signature_ []byte) (*types.Transaction, error) {
-	return _ProposalsState.Contract.ChangeSigner(&_ProposalsState.TransactOpts, newSignerPubKey_, signature_)
+// Solidity: function changeProposalDuration(uint256 proposalId_, uint64 newDuration_) returns()
+func (_ProposalsState *ProposalsStateSession) ChangeProposalDuration(proposalId_ *big.Int, newDuration_ uint64) (*types.Transaction, error) {
+	return _ProposalsState.Contract.ChangeProposalDuration(&_ProposalsState.TransactOpts, proposalId_, newDuration_)
 }
 
-// ChangeSigner is a paid mutator transaction binding the contract method 0x497f6959.
+// ChangeProposalDuration is a paid mutator transaction binding the contract method 0x0f68915a.
 //
-// Solidity: function changeSigner(bytes newSignerPubKey_, bytes signature_) returns()
-func (_ProposalsState *ProposalsStateTransactorSession) ChangeSigner(newSignerPubKey_ []byte, signature_ []byte) (*types.Transaction, error) {
-	return _ProposalsState.Contract.ChangeSigner(&_ProposalsState.TransactOpts, newSignerPubKey_, signature_)
+// Solidity: function changeProposalDuration(uint256 proposalId_, uint64 newDuration_) returns()
+func (_ProposalsState *ProposalsStateTransactorSession) ChangeProposalDuration(proposalId_ *big.Int, newDuration_ uint64) (*types.Transaction, error) {
+	return _ProposalsState.Contract.ChangeProposalDuration(&_ProposalsState.TransactOpts, proposalId_, newDuration_)
 }
 
 // CreateProposal is a paid mutator transaction binding the contract method 0x9151b81f.
@@ -907,6 +1021,27 @@ func (_ProposalsState *ProposalsStateTransactorSession) CreateProposal(proposalC
 	return _ProposalsState.Contract.CreateProposal(&_ProposalsState.TransactOpts, proposalConfig_)
 }
 
+// GrantRole is a paid mutator transaction binding the contract method 0x2f2ff15d.
+//
+// Solidity: function grantRole(bytes32 role, address account) returns()
+func (_ProposalsState *ProposalsStateTransactor) GrantRole(opts *bind.TransactOpts, role [32]byte, account common.Address) (*types.Transaction, error) {
+	return _ProposalsState.contract.Transact(opts, "grantRole", role, account)
+}
+
+// GrantRole is a paid mutator transaction binding the contract method 0x2f2ff15d.
+//
+// Solidity: function grantRole(bytes32 role, address account) returns()
+func (_ProposalsState *ProposalsStateSession) GrantRole(role [32]byte, account common.Address) (*types.Transaction, error) {
+	return _ProposalsState.Contract.GrantRole(&_ProposalsState.TransactOpts, role, account)
+}
+
+// GrantRole is a paid mutator transaction binding the contract method 0x2f2ff15d.
+//
+// Solidity: function grantRole(bytes32 role, address account) returns()
+func (_ProposalsState *ProposalsStateTransactorSession) GrantRole(role [32]byte, account common.Address) (*types.Transaction, error) {
+	return _ProposalsState.Contract.GrantRole(&_ProposalsState.TransactOpts, role, account)
+}
+
 // HideProposal is a paid mutator transaction binding the contract method 0x50df86a3.
 //
 // Solidity: function hideProposal(uint256 proposalId_, bool hide_) returns()
@@ -926,6 +1061,27 @@ func (_ProposalsState *ProposalsStateSession) HideProposal(proposalId_ *big.Int,
 // Solidity: function hideProposal(uint256 proposalId_, bool hide_) returns()
 func (_ProposalsState *ProposalsStateTransactorSession) HideProposal(proposalId_ *big.Int, hide_ bool) (*types.Transaction, error) {
 	return _ProposalsState.Contract.HideProposal(&_ProposalsState.TransactOpts, proposalId_, hide_)
+}
+
+// HideProposal0 is a paid mutator transaction binding the contract method 0xb635af95.
+//
+// Solidity: function hideProposal(uint256 proposalId_) returns()
+func (_ProposalsState *ProposalsStateTransactor) HideProposal0(opts *bind.TransactOpts, proposalId_ *big.Int) (*types.Transaction, error) {
+	return _ProposalsState.contract.Transact(opts, "hideProposal0", proposalId_)
+}
+
+// HideProposal0 is a paid mutator transaction binding the contract method 0xb635af95.
+//
+// Solidity: function hideProposal(uint256 proposalId_) returns()
+func (_ProposalsState *ProposalsStateSession) HideProposal0(proposalId_ *big.Int) (*types.Transaction, error) {
+	return _ProposalsState.Contract.HideProposal0(&_ProposalsState.TransactOpts, proposalId_)
+}
+
+// HideProposal0 is a paid mutator transaction binding the contract method 0xb635af95.
+//
+// Solidity: function hideProposal(uint256 proposalId_) returns()
+func (_ProposalsState *ProposalsStateTransactorSession) HideProposal0(proposalId_ *big.Int) (*types.Transaction, error) {
+	return _ProposalsState.Contract.HideProposal0(&_ProposalsState.TransactOpts, proposalId_)
 }
 
 // RemoveVoting is a paid mutator transaction binding the contract method 0x4fcfccd7.
@@ -968,6 +1124,69 @@ func (_ProposalsState *ProposalsStateSession) RenounceOwnership() (*types.Transa
 // Solidity: function renounceOwnership() returns()
 func (_ProposalsState *ProposalsStateTransactorSession) RenounceOwnership() (*types.Transaction, error) {
 	return _ProposalsState.Contract.RenounceOwnership(&_ProposalsState.TransactOpts)
+}
+
+// RenounceRole is a paid mutator transaction binding the contract method 0x36568abe.
+//
+// Solidity: function renounceRole(bytes32 role, address account) returns()
+func (_ProposalsState *ProposalsStateTransactor) RenounceRole(opts *bind.TransactOpts, role [32]byte, account common.Address) (*types.Transaction, error) {
+	return _ProposalsState.contract.Transact(opts, "renounceRole", role, account)
+}
+
+// RenounceRole is a paid mutator transaction binding the contract method 0x36568abe.
+//
+// Solidity: function renounceRole(bytes32 role, address account) returns()
+func (_ProposalsState *ProposalsStateSession) RenounceRole(role [32]byte, account common.Address) (*types.Transaction, error) {
+	return _ProposalsState.Contract.RenounceRole(&_ProposalsState.TransactOpts, role, account)
+}
+
+// RenounceRole is a paid mutator transaction binding the contract method 0x36568abe.
+//
+// Solidity: function renounceRole(bytes32 role, address account) returns()
+func (_ProposalsState *ProposalsStateTransactorSession) RenounceRole(role [32]byte, account common.Address) (*types.Transaction, error) {
+	return _ProposalsState.Contract.RenounceRole(&_ProposalsState.TransactOpts, role, account)
+}
+
+// RevokeRole is a paid mutator transaction binding the contract method 0xd547741f.
+//
+// Solidity: function revokeRole(bytes32 role, address account) returns()
+func (_ProposalsState *ProposalsStateTransactor) RevokeRole(opts *bind.TransactOpts, role [32]byte, account common.Address) (*types.Transaction, error) {
+	return _ProposalsState.contract.Transact(opts, "revokeRole", role, account)
+}
+
+// RevokeRole is a paid mutator transaction binding the contract method 0xd547741f.
+//
+// Solidity: function revokeRole(bytes32 role, address account) returns()
+func (_ProposalsState *ProposalsStateSession) RevokeRole(role [32]byte, account common.Address) (*types.Transaction, error) {
+	return _ProposalsState.Contract.RevokeRole(&_ProposalsState.TransactOpts, role, account)
+}
+
+// RevokeRole is a paid mutator transaction binding the contract method 0xd547741f.
+//
+// Solidity: function revokeRole(bytes32 role, address account) returns()
+func (_ProposalsState *ProposalsStateTransactorSession) RevokeRole(role [32]byte, account common.Address) (*types.Transaction, error) {
+	return _ProposalsState.Contract.RevokeRole(&_ProposalsState.TransactOpts, role, account)
+}
+
+// SetMinFundingAmount is a paid mutator transaction binding the contract method 0xe5eece80.
+//
+// Solidity: function setMinFundingAmount(uint256 amount_) returns()
+func (_ProposalsState *ProposalsStateTransactor) SetMinFundingAmount(opts *bind.TransactOpts, amount_ *big.Int) (*types.Transaction, error) {
+	return _ProposalsState.contract.Transact(opts, "setMinFundingAmount", amount_)
+}
+
+// SetMinFundingAmount is a paid mutator transaction binding the contract method 0xe5eece80.
+//
+// Solidity: function setMinFundingAmount(uint256 amount_) returns()
+func (_ProposalsState *ProposalsStateSession) SetMinFundingAmount(amount_ *big.Int) (*types.Transaction, error) {
+	return _ProposalsState.Contract.SetMinFundingAmount(&_ProposalsState.TransactOpts, amount_)
+}
+
+// SetMinFundingAmount is a paid mutator transaction binding the contract method 0xe5eece80.
+//
+// Solidity: function setMinFundingAmount(uint256 amount_) returns()
+func (_ProposalsState *ProposalsStateTransactorSession) SetMinFundingAmount(amount_ *big.Int) (*types.Transaction, error) {
+	return _ProposalsState.Contract.SetMinFundingAmount(&_ProposalsState.TransactOpts, amount_)
 }
 
 // TransferOwnership is a paid mutator transaction binding the contract method 0xf2fde38b.
@@ -1031,48 +1250,6 @@ func (_ProposalsState *ProposalsStateSession) UpgradeToAndCall(newImplementation
 // Solidity: function upgradeToAndCall(address newImplementation, bytes data) payable returns()
 func (_ProposalsState *ProposalsStateTransactorSession) UpgradeToAndCall(newImplementation common.Address, data []byte) (*types.Transaction, error) {
 	return _ProposalsState.Contract.UpgradeToAndCall(&_ProposalsState.TransactOpts, newImplementation, data)
-}
-
-// UpgradeToAndCallWithProof is a paid mutator transaction binding the contract method 0xbf2c6db7.
-//
-// Solidity: function upgradeToAndCallWithProof(address newImplementation_, bytes proof_, bytes data_) returns()
-func (_ProposalsState *ProposalsStateTransactor) UpgradeToAndCallWithProof(opts *bind.TransactOpts, newImplementation_ common.Address, proof_ []byte, data_ []byte) (*types.Transaction, error) {
-	return _ProposalsState.contract.Transact(opts, "upgradeToAndCallWithProof", newImplementation_, proof_, data_)
-}
-
-// UpgradeToAndCallWithProof is a paid mutator transaction binding the contract method 0xbf2c6db7.
-//
-// Solidity: function upgradeToAndCallWithProof(address newImplementation_, bytes proof_, bytes data_) returns()
-func (_ProposalsState *ProposalsStateSession) UpgradeToAndCallWithProof(newImplementation_ common.Address, proof_ []byte, data_ []byte) (*types.Transaction, error) {
-	return _ProposalsState.Contract.UpgradeToAndCallWithProof(&_ProposalsState.TransactOpts, newImplementation_, proof_, data_)
-}
-
-// UpgradeToAndCallWithProof is a paid mutator transaction binding the contract method 0xbf2c6db7.
-//
-// Solidity: function upgradeToAndCallWithProof(address newImplementation_, bytes proof_, bytes data_) returns()
-func (_ProposalsState *ProposalsStateTransactorSession) UpgradeToAndCallWithProof(newImplementation_ common.Address, proof_ []byte, data_ []byte) (*types.Transaction, error) {
-	return _ProposalsState.Contract.UpgradeToAndCallWithProof(&_ProposalsState.TransactOpts, newImplementation_, proof_, data_)
-}
-
-// UpgradeToWithProof is a paid mutator transaction binding the contract method 0x628543ab.
-//
-// Solidity: function upgradeToWithProof(address newImplementation_, bytes proof_) returns()
-func (_ProposalsState *ProposalsStateTransactor) UpgradeToWithProof(opts *bind.TransactOpts, newImplementation_ common.Address, proof_ []byte) (*types.Transaction, error) {
-	return _ProposalsState.contract.Transact(opts, "upgradeToWithProof", newImplementation_, proof_)
-}
-
-// UpgradeToWithProof is a paid mutator transaction binding the contract method 0x628543ab.
-//
-// Solidity: function upgradeToWithProof(address newImplementation_, bytes proof_) returns()
-func (_ProposalsState *ProposalsStateSession) UpgradeToWithProof(newImplementation_ common.Address, proof_ []byte) (*types.Transaction, error) {
-	return _ProposalsState.Contract.UpgradeToWithProof(&_ProposalsState.TransactOpts, newImplementation_, proof_)
-}
-
-// UpgradeToWithProof is a paid mutator transaction binding the contract method 0x628543ab.
-//
-// Solidity: function upgradeToWithProof(address newImplementation_, bytes proof_) returns()
-func (_ProposalsState *ProposalsStateTransactorSession) UpgradeToWithProof(newImplementation_ common.Address, proof_ []byte) (*types.Transaction, error) {
-	return _ProposalsState.Contract.UpgradeToWithProof(&_ProposalsState.TransactOpts, newImplementation_, proof_)
 }
 
 // Vote is a paid mutator transaction binding the contract method 0xe1349bd7.
@@ -1530,6 +1707,140 @@ func (_ProposalsState *ProposalsStateFilterer) ParseInitialized(log types.Log) (
 	return event, nil
 }
 
+// ProposalsStateMinFundingAmountSetIterator is returned from FilterMinFundingAmountSet and is used to iterate over the raw logs and unpacked data for MinFundingAmountSet events raised by the ProposalsState contract.
+type ProposalsStateMinFundingAmountSetIterator struct {
+	Event *ProposalsStateMinFundingAmountSet // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *ProposalsStateMinFundingAmountSetIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(ProposalsStateMinFundingAmountSet)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(ProposalsStateMinFundingAmountSet)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *ProposalsStateMinFundingAmountSetIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *ProposalsStateMinFundingAmountSetIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// ProposalsStateMinFundingAmountSet represents a MinFundingAmountSet event raised by the ProposalsState contract.
+type ProposalsStateMinFundingAmountSet struct {
+	Amount *big.Int
+	Raw    types.Log // Blockchain specific contextual infos
+}
+
+// FilterMinFundingAmountSet is a free log retrieval operation binding the contract event 0x23fcdcee561820df2d41d947af486e62c6f5d9ce8542c30f8e849ab2d9ccedd3.
+//
+// Solidity: event MinFundingAmountSet(uint256 amount)
+func (_ProposalsState *ProposalsStateFilterer) FilterMinFundingAmountSet(opts *bind.FilterOpts) (*ProposalsStateMinFundingAmountSetIterator, error) {
+
+	logs, sub, err := _ProposalsState.contract.FilterLogs(opts, "MinFundingAmountSet")
+	if err != nil {
+		return nil, err
+	}
+	return &ProposalsStateMinFundingAmountSetIterator{contract: _ProposalsState.contract, event: "MinFundingAmountSet", logs: logs, sub: sub}, nil
+}
+
+// WatchMinFundingAmountSet is a free log subscription operation binding the contract event 0x23fcdcee561820df2d41d947af486e62c6f5d9ce8542c30f8e849ab2d9ccedd3.
+//
+// Solidity: event MinFundingAmountSet(uint256 amount)
+func (_ProposalsState *ProposalsStateFilterer) WatchMinFundingAmountSet(opts *bind.WatchOpts, sink chan<- *ProposalsStateMinFundingAmountSet) (event.Subscription, error) {
+
+	logs, sub, err := _ProposalsState.contract.WatchLogs(opts, "MinFundingAmountSet")
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(ProposalsStateMinFundingAmountSet)
+				if err := _ProposalsState.contract.UnpackLog(event, "MinFundingAmountSet", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseMinFundingAmountSet is a log parse operation binding the contract event 0x23fcdcee561820df2d41d947af486e62c6f5d9ce8542c30f8e849ab2d9ccedd3.
+//
+// Solidity: event MinFundingAmountSet(uint256 amount)
+func (_ProposalsState *ProposalsStateFilterer) ParseMinFundingAmountSet(log types.Log) (*ProposalsStateMinFundingAmountSet, error) {
+	event := new(ProposalsStateMinFundingAmountSet)
+	if err := _ProposalsState.contract.UnpackLog(event, "MinFundingAmountSet", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
 // ProposalsStateOwnershipTransferredIterator is returned from FilterOwnershipTransferred and is used to iterate over the raw logs and unpacked data for OwnershipTransferred events raised by the ProposalsState contract.
 type ProposalsStateOwnershipTransferredIterator struct {
 	Event *ProposalsStateOwnershipTransferred // Event containing the contract specifics and raw log
@@ -1973,6 +2284,151 @@ func (_ProposalsState *ProposalsStateFilterer) ParseProposalCreated(log types.Lo
 	return event, nil
 }
 
+// ProposalsStateProposalFundedIterator is returned from FilterProposalFunded and is used to iterate over the raw logs and unpacked data for ProposalFunded events raised by the ProposalsState contract.
+type ProposalsStateProposalFundedIterator struct {
+	Event *ProposalsStateProposalFunded // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *ProposalsStateProposalFundedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(ProposalsStateProposalFunded)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(ProposalsStateProposalFunded)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *ProposalsStateProposalFundedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *ProposalsStateProposalFundedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// ProposalsStateProposalFunded represents a ProposalFunded event raised by the ProposalsState contract.
+type ProposalsStateProposalFunded struct {
+	ProposalId *big.Int
+	FundAmount *big.Int
+	Raw        types.Log // Blockchain specific contextual infos
+}
+
+// FilterProposalFunded is a free log retrieval operation binding the contract event 0xe626ac29dddf069f3357c054c144b90e4e79f25ee6c1020f9142bae435477e6c.
+//
+// Solidity: event ProposalFunded(uint256 indexed proposalId, uint256 fundAmount)
+func (_ProposalsState *ProposalsStateFilterer) FilterProposalFunded(opts *bind.FilterOpts, proposalId []*big.Int) (*ProposalsStateProposalFundedIterator, error) {
+
+	var proposalIdRule []interface{}
+	for _, proposalIdItem := range proposalId {
+		proposalIdRule = append(proposalIdRule, proposalIdItem)
+	}
+
+	logs, sub, err := _ProposalsState.contract.FilterLogs(opts, "ProposalFunded", proposalIdRule)
+	if err != nil {
+		return nil, err
+	}
+	return &ProposalsStateProposalFundedIterator{contract: _ProposalsState.contract, event: "ProposalFunded", logs: logs, sub: sub}, nil
+}
+
+// WatchProposalFunded is a free log subscription operation binding the contract event 0xe626ac29dddf069f3357c054c144b90e4e79f25ee6c1020f9142bae435477e6c.
+//
+// Solidity: event ProposalFunded(uint256 indexed proposalId, uint256 fundAmount)
+func (_ProposalsState *ProposalsStateFilterer) WatchProposalFunded(opts *bind.WatchOpts, sink chan<- *ProposalsStateProposalFunded, proposalId []*big.Int) (event.Subscription, error) {
+
+	var proposalIdRule []interface{}
+	for _, proposalIdItem := range proposalId {
+		proposalIdRule = append(proposalIdRule, proposalIdItem)
+	}
+
+	logs, sub, err := _ProposalsState.contract.WatchLogs(opts, "ProposalFunded", proposalIdRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(ProposalsStateProposalFunded)
+				if err := _ProposalsState.contract.UnpackLog(event, "ProposalFunded", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseProposalFunded is a log parse operation binding the contract event 0xe626ac29dddf069f3357c054c144b90e4e79f25ee6c1020f9142bae435477e6c.
+//
+// Solidity: event ProposalFunded(uint256 indexed proposalId, uint256 fundAmount)
+func (_ProposalsState *ProposalsStateFilterer) ParseProposalFunded(log types.Log) (*ProposalsStateProposalFunded, error) {
+	event := new(ProposalsStateProposalFunded)
+	if err := _ProposalsState.contract.UnpackLog(event, "ProposalFunded", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
 // ProposalsStateProposalHiddenIterator is returned from FilterProposalHidden and is used to iterate over the raw logs and unpacked data for ProposalHidden events raised by the ProposalsState contract.
 type ProposalsStateProposalHiddenIterator struct {
 	Event *ProposalsStateProposalHidden // Event containing the contract specifics and raw log
@@ -2112,6 +2568,492 @@ func (_ProposalsState *ProposalsStateFilterer) WatchProposalHidden(opts *bind.Wa
 func (_ProposalsState *ProposalsStateFilterer) ParseProposalHidden(log types.Log) (*ProposalsStateProposalHidden, error) {
 	event := new(ProposalsStateProposalHidden)
 	if err := _ProposalsState.contract.UnpackLog(event, "ProposalHidden", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// ProposalsStateRoleAdminChangedIterator is returned from FilterRoleAdminChanged and is used to iterate over the raw logs and unpacked data for RoleAdminChanged events raised by the ProposalsState contract.
+type ProposalsStateRoleAdminChangedIterator struct {
+	Event *ProposalsStateRoleAdminChanged // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *ProposalsStateRoleAdminChangedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(ProposalsStateRoleAdminChanged)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(ProposalsStateRoleAdminChanged)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *ProposalsStateRoleAdminChangedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *ProposalsStateRoleAdminChangedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// ProposalsStateRoleAdminChanged represents a RoleAdminChanged event raised by the ProposalsState contract.
+type ProposalsStateRoleAdminChanged struct {
+	Role              [32]byte
+	PreviousAdminRole [32]byte
+	NewAdminRole      [32]byte
+	Raw               types.Log // Blockchain specific contextual infos
+}
+
+// FilterRoleAdminChanged is a free log retrieval operation binding the contract event 0xbd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff.
+//
+// Solidity: event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)
+func (_ProposalsState *ProposalsStateFilterer) FilterRoleAdminChanged(opts *bind.FilterOpts, role [][32]byte, previousAdminRole [][32]byte, newAdminRole [][32]byte) (*ProposalsStateRoleAdminChangedIterator, error) {
+
+	var roleRule []interface{}
+	for _, roleItem := range role {
+		roleRule = append(roleRule, roleItem)
+	}
+	var previousAdminRoleRule []interface{}
+	for _, previousAdminRoleItem := range previousAdminRole {
+		previousAdminRoleRule = append(previousAdminRoleRule, previousAdminRoleItem)
+	}
+	var newAdminRoleRule []interface{}
+	for _, newAdminRoleItem := range newAdminRole {
+		newAdminRoleRule = append(newAdminRoleRule, newAdminRoleItem)
+	}
+
+	logs, sub, err := _ProposalsState.contract.FilterLogs(opts, "RoleAdminChanged", roleRule, previousAdminRoleRule, newAdminRoleRule)
+	if err != nil {
+		return nil, err
+	}
+	return &ProposalsStateRoleAdminChangedIterator{contract: _ProposalsState.contract, event: "RoleAdminChanged", logs: logs, sub: sub}, nil
+}
+
+// WatchRoleAdminChanged is a free log subscription operation binding the contract event 0xbd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff.
+//
+// Solidity: event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)
+func (_ProposalsState *ProposalsStateFilterer) WatchRoleAdminChanged(opts *bind.WatchOpts, sink chan<- *ProposalsStateRoleAdminChanged, role [][32]byte, previousAdminRole [][32]byte, newAdminRole [][32]byte) (event.Subscription, error) {
+
+	var roleRule []interface{}
+	for _, roleItem := range role {
+		roleRule = append(roleRule, roleItem)
+	}
+	var previousAdminRoleRule []interface{}
+	for _, previousAdminRoleItem := range previousAdminRole {
+		previousAdminRoleRule = append(previousAdminRoleRule, previousAdminRoleItem)
+	}
+	var newAdminRoleRule []interface{}
+	for _, newAdminRoleItem := range newAdminRole {
+		newAdminRoleRule = append(newAdminRoleRule, newAdminRoleItem)
+	}
+
+	logs, sub, err := _ProposalsState.contract.WatchLogs(opts, "RoleAdminChanged", roleRule, previousAdminRoleRule, newAdminRoleRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(ProposalsStateRoleAdminChanged)
+				if err := _ProposalsState.contract.UnpackLog(event, "RoleAdminChanged", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseRoleAdminChanged is a log parse operation binding the contract event 0xbd79b86ffe0ab8e8776151514217cd7cacd52c909f66475c3af44e129f0b00ff.
+//
+// Solidity: event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole)
+func (_ProposalsState *ProposalsStateFilterer) ParseRoleAdminChanged(log types.Log) (*ProposalsStateRoleAdminChanged, error) {
+	event := new(ProposalsStateRoleAdminChanged)
+	if err := _ProposalsState.contract.UnpackLog(event, "RoleAdminChanged", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// ProposalsStateRoleGrantedIterator is returned from FilterRoleGranted and is used to iterate over the raw logs and unpacked data for RoleGranted events raised by the ProposalsState contract.
+type ProposalsStateRoleGrantedIterator struct {
+	Event *ProposalsStateRoleGranted // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *ProposalsStateRoleGrantedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(ProposalsStateRoleGranted)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(ProposalsStateRoleGranted)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *ProposalsStateRoleGrantedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *ProposalsStateRoleGrantedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// ProposalsStateRoleGranted represents a RoleGranted event raised by the ProposalsState contract.
+type ProposalsStateRoleGranted struct {
+	Role    [32]byte
+	Account common.Address
+	Sender  common.Address
+	Raw     types.Log // Blockchain specific contextual infos
+}
+
+// FilterRoleGranted is a free log retrieval operation binding the contract event 0x2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d.
+//
+// Solidity: event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)
+func (_ProposalsState *ProposalsStateFilterer) FilterRoleGranted(opts *bind.FilterOpts, role [][32]byte, account []common.Address, sender []common.Address) (*ProposalsStateRoleGrantedIterator, error) {
+
+	var roleRule []interface{}
+	for _, roleItem := range role {
+		roleRule = append(roleRule, roleItem)
+	}
+	var accountRule []interface{}
+	for _, accountItem := range account {
+		accountRule = append(accountRule, accountItem)
+	}
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+
+	logs, sub, err := _ProposalsState.contract.FilterLogs(opts, "RoleGranted", roleRule, accountRule, senderRule)
+	if err != nil {
+		return nil, err
+	}
+	return &ProposalsStateRoleGrantedIterator{contract: _ProposalsState.contract, event: "RoleGranted", logs: logs, sub: sub}, nil
+}
+
+// WatchRoleGranted is a free log subscription operation binding the contract event 0x2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d.
+//
+// Solidity: event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)
+func (_ProposalsState *ProposalsStateFilterer) WatchRoleGranted(opts *bind.WatchOpts, sink chan<- *ProposalsStateRoleGranted, role [][32]byte, account []common.Address, sender []common.Address) (event.Subscription, error) {
+
+	var roleRule []interface{}
+	for _, roleItem := range role {
+		roleRule = append(roleRule, roleItem)
+	}
+	var accountRule []interface{}
+	for _, accountItem := range account {
+		accountRule = append(accountRule, accountItem)
+	}
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+
+	logs, sub, err := _ProposalsState.contract.WatchLogs(opts, "RoleGranted", roleRule, accountRule, senderRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(ProposalsStateRoleGranted)
+				if err := _ProposalsState.contract.UnpackLog(event, "RoleGranted", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseRoleGranted is a log parse operation binding the contract event 0x2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d.
+//
+// Solidity: event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender)
+func (_ProposalsState *ProposalsStateFilterer) ParseRoleGranted(log types.Log) (*ProposalsStateRoleGranted, error) {
+	event := new(ProposalsStateRoleGranted)
+	if err := _ProposalsState.contract.UnpackLog(event, "RoleGranted", log); err != nil {
+		return nil, err
+	}
+	event.Raw = log
+	return event, nil
+}
+
+// ProposalsStateRoleRevokedIterator is returned from FilterRoleRevoked and is used to iterate over the raw logs and unpacked data for RoleRevoked events raised by the ProposalsState contract.
+type ProposalsStateRoleRevokedIterator struct {
+	Event *ProposalsStateRoleRevoked // Event containing the contract specifics and raw log
+
+	contract *bind.BoundContract // Generic contract to use for unpacking event data
+	event    string              // Event name to use for unpacking event data
+
+	logs chan types.Log        // Log channel receiving the found contract events
+	sub  ethereum.Subscription // Subscription for errors, completion and termination
+	done bool                  // Whether the subscription completed delivering logs
+	fail error                 // Occurred error to stop iteration
+}
+
+// Next advances the iterator to the subsequent event, returning whether there
+// are any more events found. In case of a retrieval or parsing error, false is
+// returned and Error() can be queried for the exact failure.
+func (it *ProposalsStateRoleRevokedIterator) Next() bool {
+	// If the iterator failed, stop iterating
+	if it.fail != nil {
+		return false
+	}
+	// If the iterator completed, deliver directly whatever's available
+	if it.done {
+		select {
+		case log := <-it.logs:
+			it.Event = new(ProposalsStateRoleRevoked)
+			if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+				it.fail = err
+				return false
+			}
+			it.Event.Raw = log
+			return true
+
+		default:
+			return false
+		}
+	}
+	// Iterator still in progress, wait for either a data or an error event
+	select {
+	case log := <-it.logs:
+		it.Event = new(ProposalsStateRoleRevoked)
+		if err := it.contract.UnpackLog(it.Event, it.event, log); err != nil {
+			it.fail = err
+			return false
+		}
+		it.Event.Raw = log
+		return true
+
+	case err := <-it.sub.Err():
+		it.done = true
+		it.fail = err
+		return it.Next()
+	}
+}
+
+// Error returns any retrieval or parsing error occurred during filtering.
+func (it *ProposalsStateRoleRevokedIterator) Error() error {
+	return it.fail
+}
+
+// Close terminates the iteration process, releasing any pending underlying
+// resources.
+func (it *ProposalsStateRoleRevokedIterator) Close() error {
+	it.sub.Unsubscribe()
+	return nil
+}
+
+// ProposalsStateRoleRevoked represents a RoleRevoked event raised by the ProposalsState contract.
+type ProposalsStateRoleRevoked struct {
+	Role    [32]byte
+	Account common.Address
+	Sender  common.Address
+	Raw     types.Log // Blockchain specific contextual infos
+}
+
+// FilterRoleRevoked is a free log retrieval operation binding the contract event 0xf6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b.
+//
+// Solidity: event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender)
+func (_ProposalsState *ProposalsStateFilterer) FilterRoleRevoked(opts *bind.FilterOpts, role [][32]byte, account []common.Address, sender []common.Address) (*ProposalsStateRoleRevokedIterator, error) {
+
+	var roleRule []interface{}
+	for _, roleItem := range role {
+		roleRule = append(roleRule, roleItem)
+	}
+	var accountRule []interface{}
+	for _, accountItem := range account {
+		accountRule = append(accountRule, accountItem)
+	}
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+
+	logs, sub, err := _ProposalsState.contract.FilterLogs(opts, "RoleRevoked", roleRule, accountRule, senderRule)
+	if err != nil {
+		return nil, err
+	}
+	return &ProposalsStateRoleRevokedIterator{contract: _ProposalsState.contract, event: "RoleRevoked", logs: logs, sub: sub}, nil
+}
+
+// WatchRoleRevoked is a free log subscription operation binding the contract event 0xf6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b.
+//
+// Solidity: event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender)
+func (_ProposalsState *ProposalsStateFilterer) WatchRoleRevoked(opts *bind.WatchOpts, sink chan<- *ProposalsStateRoleRevoked, role [][32]byte, account []common.Address, sender []common.Address) (event.Subscription, error) {
+
+	var roleRule []interface{}
+	for _, roleItem := range role {
+		roleRule = append(roleRule, roleItem)
+	}
+	var accountRule []interface{}
+	for _, accountItem := range account {
+		accountRule = append(accountRule, accountItem)
+	}
+	var senderRule []interface{}
+	for _, senderItem := range sender {
+		senderRule = append(senderRule, senderItem)
+	}
+
+	logs, sub, err := _ProposalsState.contract.WatchLogs(opts, "RoleRevoked", roleRule, accountRule, senderRule)
+	if err != nil {
+		return nil, err
+	}
+	return event.NewSubscription(func(quit <-chan struct{}) error {
+		defer sub.Unsubscribe()
+		for {
+			select {
+			case log := <-logs:
+				// New log arrived, parse the event and forward to the user
+				event := new(ProposalsStateRoleRevoked)
+				if err := _ProposalsState.contract.UnpackLog(event, "RoleRevoked", log); err != nil {
+					return err
+				}
+				event.Raw = log
+
+				select {
+				case sink <- event:
+				case err := <-sub.Err():
+					return err
+				case <-quit:
+					return nil
+				}
+			case err := <-sub.Err():
+				return err
+			case <-quit:
+				return nil
+			}
+		}
+	}), nil
+}
+
+// ParseRoleRevoked is a log parse operation binding the contract event 0xf6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b.
+//
+// Solidity: event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender)
+func (_ProposalsState *ProposalsStateFilterer) ParseRoleRevoked(log types.Log) (*ProposalsStateRoleRevoked, error) {
+	event := new(ProposalsStateRoleRevoked)
+	if err := _ProposalsState.contract.UnpackLog(event, "RoleRevoked", log); err != nil {
 		return nil, err
 	}
 	event.Raw = log

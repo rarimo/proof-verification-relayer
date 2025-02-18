@@ -2,6 +2,7 @@ package checker
 
 import (
 	"context"
+	"errors"
 
 	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
@@ -29,7 +30,10 @@ func GetCountTx(cfg config.Config, votingId int64) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
-
+	if txFee == 0 {
+		cfg.Log().Warnf("txFee: %d", txFee)
+		return 0, errors.New("tx Fee is equal to zero")
+	}
 	voteBalance := votingInfo.Balance
 	countTx := voteBalance / txFee
 	return countTx, nil
@@ -43,6 +47,11 @@ func GetPredictCount(cfg config.Config, votingId int64, amount uint64) (uint64, 
 		logger.Errorf("Failed get fee: %v", err)
 		return 0, err
 	}
+	if txFee == 0 {
+		cfg.Log().Warnf("txFee: %d", txFee)
+		return 0, errors.New("tx Fee is equal to zero")
+	}
+
 	return amount / txFee, nil
 }
 
@@ -89,6 +98,10 @@ func AmountForCountTx(cfg config.Config, votingId int64, countTx uint64) (uint64
 	if err != nil {
 		logger.Errorf("Failed get fee: %v", err)
 		return 0, err
+	}
+	if txFee == 0 {
+		cfg.Log().Warnf("txFee: %d", txFee)
+		return 0, errors.New("tx Fee is equal to zero")
 	}
 	return countTx * txFee, nil
 }

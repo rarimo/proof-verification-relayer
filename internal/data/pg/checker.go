@@ -75,7 +75,7 @@ func (q *checkerQ) InsertVotingInfo(value data.VotingInfo) error {
 
 	err := q.db.Exec(query)
 	if err != nil {
-		return errors.Wrap(err, "failed to insert wallet to db")
+		return errors.Wrap(err, "failed to insert voting info to db")
 	}
 	return nil
 }

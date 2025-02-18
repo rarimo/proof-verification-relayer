@@ -2,7 +2,6 @@ package checker
 
 import (
 	"context"
-	"log"
 	"strings"
 	"time"
 
@@ -63,6 +62,7 @@ func (ch *checker) check(ctx context.Context) error {
 		return nil
 	}
 	ch.log.Info("Start Checker...")
+
 	startBlock, err := ch.getStartBlockNumber()
 	if err != nil {
 		ch.log.Errorf("Failed get start block: %v", err)
@@ -90,7 +90,8 @@ func (ch *checker) check(ctx context.Context) error {
 
 func (ch *checker) readNewEvents(ctx context.Context, isSub bool) {
 	if isSub {
-		go ch.readNewEventsSub(ctx)
+		go ch.readNewEventsSub(ctx, "ProposalCreated")
+		go ch.readNewEventsSub(ctx, "ProposalFunded")
 		return
 	}
 	go ch.readNewEventsWithoutSub(ctx)
@@ -134,11 +135,10 @@ func (ch *checker) readNewEventsWithoutSub(ctx context.Context) {
 		}
 		block = toBlock
 		toBlock = block + 1
-
 	}
 }
 
-func (ch *checker) readNewEventsSub(ctx context.Context) error {
+func (ch *checker) readNewEventsSub(ctx context.Context, eventName string) error {
 	parsedABI, err := abi.JSON(strings.NewReader(contracts.ProposalsStateABI))
 	if err != nil {
 		ch.log.Errorf("Failed to parse contract ABI: %v", err)
@@ -146,14 +146,14 @@ func (ch *checker) readNewEventsSub(ctx context.Context) error {
 	}
 
 	query := ethereum.FilterQuery{
-		Topics: [][]common.Hash{{parsedABI.Events["ProposalCreated"].ID}},
-
+		Topics:    [][]common.Hash{{parsedABI.Events[eventName].ID}},
 		Addresses: []common.Address{ch.VotingV2Config.Address},
 	}
 	logs := make(chan types.Log)
 	sub, err := ch.VotingV2Config.RPC.SubscribeFilterLogs(context.Background(), query, logs)
 	if err != nil {
-		log.Fatalf("Failed sub: %v", err)
+		ch.log.WithFields(logan.F{"Error": err, "eventName": eventName}).Error("failed subscribe event")
+		return err
 	}
 
 	for {
@@ -162,12 +162,15 @@ func (ch *checker) readNewEventsSub(ctx context.Context) error {
 			ch.log.Info("unsubscribe from events")
 			return nil
 		case err := <-sub.Err():
-			ch.log.Infof("Failed subscribe event: %v", err)
+			ch.log.WithFields(logan.F{
+				"Error":     err,
+				"eventName": eventName,
+			}).Info("failed subscribe event")
 			time.Sleep(ch.pinger.Timeout)
 		case vLog := <-logs:
-			err := ch.processLog(vLog)
+			err := ch.processLog(vLog, eventName)
 			if err != nil {
-				ch.log.WithFields(logan.F{"Error": err, "log_index": vLog.Index, "hash_tx": vLog.TxHash.Hex()}).Info("failed process log")
+				ch.log.WithFields(logan.F{"Error": err, "log_index": vLog.Index, "hash_tx": vLog.TxHash.Hex()}).Warn("failed process log")
 			}
 		}
 	}
@@ -181,27 +184,47 @@ func (ch *checker) checkFilter(block, toBlock uint64, contract *contracts.Propos
 		Context: context.Background(),
 	}
 
+	filterLogsF, err := contract.FilterProposalFunded(&query, nil)
+	if err != nil {
+		ch.log.WithField("Error", err).Info("failed to filter logs")
+		return errors.Wrap(err, "failed to filter logs", logan.F{"address": contractAddress, "start_block": block})
+	}
 	filterLogs, err := contract.FilterProposalCreated(&query, nil)
 	if err != nil {
 		ch.log.WithField("Error", err).Info("failed to filter logs")
 		return errors.Wrap(err, "failed to filter logs", logan.F{"address": contractAddress, "start_block": block})
 	}
+
+	ch.filterEvets(filterLogs, block, toBlock, "ProposalCreated")
+	ch.filterEvets(filterLogsF, block, toBlock, "ProposalFunded")
+
+	return nil
+}
+
+func (ch *checker) filterEvets(event contracts.ProposalEvent, block uint64, toBlock uint64, eventName string) {
 	events := 0
-	for filterLogs.Next() {
-		err := ch.processEvent(filterLogs.Event)
+	for event.Next() {
+		err := ch.processEvents(event)
 		if err != nil {
-			ch.log.WithFields(logan.F{"Error": err, "log_index": filterLogs.Event.Raw.Index, "hash_tx": filterLogs.Event.Raw.TxHash.Hex()}).Info("failed process log")
+			ch.log.WithFields(logan.F{
+				"Error":     err,
+				"log_index": event.LogIndex(),
+				"hash_tx":   event.TxHash().Hex(),
+				"value":     event.FundAmountU64(),
+				"eventName": eventName,
+			}).
+				Warn("failed process log")
 			continue
 		}
 		events += 1
 	}
 
 	ch.log.WithFields(logan.F{
-		"from":   block,
-		"to":     toBlock,
-		"events": events,
+		"from":      block,
+		"to":        toBlock,
+		"events":    events,
+		"eventName": eventName,
 	}).Debug("found events")
-	return nil
 }
 
 func (ch *checker) readOldEvents(ctx context.Context, block uint64) error {
@@ -219,18 +242,18 @@ func (ch *checker) readOldEvents(ctx context.Context, block uint64) error {
 		ch.log.WithField("Error", err).Info("failed to get latest block header")
 		return errors.Wrap(err, "failed to get latest block header")
 	}
-	ch.readFromToBlock(ctx, block, header.Number.Uint64(), contract)
+	toBlock := ch.readFromToBlock(ctx, block, header.Number.Uint64(), contract)
+	ch.log.WithField("to", toBlock).Info("finish reading old events")
 
 	return nil
 }
 
-func (ch *checker) readFromToBlock(ctx context.Context, fromBlock uint64, toBlock uint64, contract *contracts.ProposalsStateFilterer) {
-
+func (ch *checker) readFromToBlock(ctx context.Context, fromBlock uint64, toBlock uint64, contract *contracts.ProposalsStateFilterer) uint64 {
 	for ; fromBlock < toBlock; fromBlock = min(toBlock, fromBlock+ch.pinger.BlocksDistance) {
 		select {
 		case <-ctx.Done():
 			ch.log.Info("unsubscribe from events")
-			return
+			return toBlock
 		default:
 		}
 		toBlock := min(toBlock, fromBlock+ch.pinger.BlocksDistance)
@@ -245,8 +268,7 @@ func (ch *checker) readFromToBlock(ctx context.Context, fromBlock uint64, toBloc
 			fromBlock = max(0, fromBlock-ch.pinger.BlocksDistance)
 		}
 	}
-
-	ch.log.WithField("to", toBlock).Info("finish reading old events")
+	return toBlock
 }
 
 func Run(ctx context.Context, cfg config.Config) {
