@@ -221,20 +221,44 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Errors'
-  /integrations/proof-verification-relayer/v2/is-enough:
+  '/integrations/proof-verification-relayer/v2/count-remaining-votes/{voting_id}':
     get:
       tags:
-        - Voting
-      summary: Retrieve the predicted voting availability for a given address
+        - Voting Info
+      summary: Get predicted number of votes for an ID
+      operationId: getVotePrediction
+      parameters:
+        - $ref: '#/components/parameters/votingIdParam'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/vnd.api+json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/VoteCount'
+        '404':
+          description: Not Found Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '500':
+          description: Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalError'
+  '/integrations/proof-verification-relayer/v2/is-enough/{voting_id}':
+    get:
+      tags:
+        - Voting Info
+      summary: Retrieve the predicted voting availability for a given ID
       operationId: checkVotingAvailability
       parameters:
-        - name: address
-          in: path
-          required: true
-          schema:
-            type: string
-            pattern: '^0x[0-9a-fA-F]{40}$'
-          description: Address for which voting predictions are made
+        - $ref: '#/components/parameters/votingIdParam'
       responses:
         '200':
           description: Success
@@ -250,55 +274,54 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Errors'
+                $ref: '#/components/schemas/NotFoundError'
         '500':
           description: Internal Error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Errors'
+                $ref: '#/components/schemas/InternalError'
   /integrations/proof-verification-relayer/v2/predict:
-    get:
+    post:
       tags:
-        - Voting
-      summary: Get predicted number of votes for an address
-      operationId: getVotePrediction
-      parameters:
-        - name: address
-          in: path
-          required: true
-          schema:
-            type: string
-            pattern: '^0x[0-9a-fA-F]{40}$'
-          description: Address for which voting predictions are made
+        - Voting Info
+      summary: Voting Info
+      operationId: votingPredict
+      requestBody:
+        content:
+          application/vnd.api+json:
+            schema:
+              type: object
+              required:
+                - data
+              properties:
+                data:
+                  $ref: '#/components/schemas/VotingPredict'
       responses:
         '200':
           description: Success
           content:
-            application/vnd.api+json:
+            application/json:
               schema:
-                type: object
-                properties:
-                  data:
-                    $ref: '#/components/schemas/VotePrediction'
-        '404':
-          description: Not Found Error
+                $ref: '#/components/schemas/VotingPredictResp'
+        '400':
+          description: Bad Request Error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Errors'
+                $ref: '#/components/schemas/BadRequestError'
         '500':
           description: Internal Error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Errors'
+                $ref: '#/components/schemas/InternalError'
   /integrations/proof-verification-relayer/v2/vote:
     post:
       tags:
-        - Voting
-      summary: Voting
-      operationId: vote
+        - Votes V2
+      summary: Voting V2
+      operationId: vote_v2
       requestBody:
         content:
           application/vnd.api+json:
@@ -325,15 +348,34 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Errors'
+                $ref: '#/components/schemas/BadRequestError'
+        '403':
+          description: Forbidden Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForbiddenError'
         '500':
           description: Internal Error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Errors'
+                $ref: '#/components/schemas/InternalError'
 components:
   schemas:
+    BadRequestError:
+      type: object
+      required:
+        - title
+        - status
+      properties:
+        title:
+          type: string
+          example: Bad Request
+        status:
+          type: string
+          enum:
+            - '400'
     Errors:
       description: 'Standard JSON:API error'
       type: object
@@ -369,6 +411,45 @@ components:
                   - 409
                   - 429
                   - 500
+    ForbiddenError:
+      type: object
+      required:
+        - title
+        - status
+      properties:
+        title:
+          type: string
+          example: Forbidden
+        status:
+          type: string
+          enum:
+            - '403'
+    InternalError:
+      type: object
+      required:
+        - title
+        - status
+      properties:
+        title:
+          type: string
+          example: Internal Error
+        status:
+          type: string
+          enum:
+            - '500'
+    NotFoundError:
+      type: object
+      required:
+        - title
+        - status
+      properties:
+        title:
+          type: string
+          example: Not Found
+        status:
+          type: string
+          enum:
+            - '404'
     SendTx:
       allOf:
         - $ref: '#/components/schemas/SendTxKey'
@@ -382,7 +463,6 @@ components:
               required:
                 - tx_data
                 - destination
-                - proposal_id
               properties:
                 tx_data:
                   type: string
@@ -394,10 +474,6 @@ components:
                   pattern: '^0x[0-9a-fA-F]{40}'
                   example: 0xdead...beaf
                   description: Address of the contract to which the transaction data should be sent
-                proposal_id:
-                  type: integer
-                  format: int64
-                  example: 34234
     SendTxKey:
       type: object
       required:
@@ -468,53 +544,150 @@ components:
           type: string
           enum:
             - txs
-    VotePrediction:
-      x-go-is-request: true
-      type: object
-      required:
-        - id
-        - type
-        - attributes
-      properties:
-        id:
-          type: string
-          pattern: '^0x[0-9a-fA-F]{40}'
-          example: '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
-        type:
-          type: string
-          example: vote_count
-        attributes:
-          $ref: '#/components/schemas/VotePredictionAttributes'
-    VotePredictionAttributes:
+    VoteCount:
+      allOf:
+        - $ref: '#/components/schemas/VoteCountKey'
+        - type: object
+          required:
+            - attributes
+          properties:
+            attributes:
+              type: object
+              required:
+                - vote_count
+              properties:
+                vote_count:
+                  type: integer
+                  format: uint64
+                  example: 0
+    VoteCountAttributes:
       type: object
       properties:
         vote_count:
           type: integer
           format: uint64
           example: 0
-    VotingAvailability:
-      x-go-is-request: true
+    VoteCountKey:
       type: object
       required:
         - id
         - type
-        - attributes
       properties:
         id:
           type: string
-          pattern: '^0x[0-9a-fA-F]{40}'
-          example: '0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef'
+          pattern: '^[0-9]+$'
+          example: '333'
+          description: ID of the voting to which the vote
         type:
           type: string
-          example: is_enough
-        attributes:
-          $ref: '#/components/schemas/VotingAvailabilityAttributes'
+          enum:
+            - vote_count
+    VotingAvailability:
+      allOf:
+        - $ref: '#/components/schemas/VotingAvailabilityKey'
+        - type: object
+          required:
+            - attributes
+          properties:
+            attributes:
+              $ref: '#/components/schemas/VotingAvailabilityAttributes'
     VotingAvailabilityAttributes:
       type: object
       properties:
         is_enough:
           type: boolean
           example: true
+    VotingAvailabilityKey:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          pattern: '^[0-9]+$'
+          example: '222'
+          description: ID of the voting to which the vote
+        type:
+          type: string
+          enum:
+            - is_enough
+    VotingPredict:
+      allOf:
+        - $ref: '#/components/schemas/VotingPredictKey'
+        - type: object
+          x-go-is-request: true
+          required:
+            - attributes
+          properties:
+            attributes:
+              $ref: '#/components/schemas/VotingPredictAttributes'
+    VotingPredictAttributes:
+      type: object
+      x-go-is-request: true
+      required:
+        - voting_id
+      properties:
+        amount:
+          type: string
+          pattern: '^[0-9]+$'
+          example: '10000'
+          description: The amount of tokens available for covering transactions
+        count_tx:
+          type: string
+          pattern: '^[0-9]+$'
+          example: '10000'
+          description: The number of transactions that need to be covered
+        voting_id:
+          type: string
+          pattern: '^[0-9]+$'
+          example: '12'
+          description: ID of the voting to which the vote
+    VotingPredictKey:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - vote_predict_amount
+            - vote_predict_count_tx
+    VotingPredictResp:
+      allOf:
+        - $ref: '#/components/schemas/VotingPredictRespKey'
+        - type: object
+          required:
+            - attributes
+          properties:
+            attributes:
+              $ref: '#/components/schemas/VotingPredictRespAttributes'
+    VotingPredictRespAttributes:
+      type: object
+      properties:
+        count_tx_predict:
+          type: string
+          example: '10000'
+        amount_predict:
+          type: string
+          example: '2000000'
+    VotingPredictRespKey:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          pattern: '^[0-9]+:[0-9]+:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$'
+          example: '777:223231:2025-02-10T14:15:23Z'
+          description: 'The ID consists of the proposal_id, the value as passed in the request (count_tx or amount), and the timestamp when the request was processed. These values are separated by '':''.'
+        type:
+          type: string
+          enum:
+            - vote_predict_amount
+            - vote_predict_count_tx
+          description: The type of response corresponds to the type of request
   parameters:
     pageLimitParam:
       in: query
@@ -544,3 +717,11 @@ components:
           - desc
         default: desc
         description: 'Order of records on the page. If sortingParam is not specified, order of records is by default sorted by ID.'
+    votingIdParam:
+      name: voting_id
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[0-9]+$'
+      description: Id for which voting predictions are made
