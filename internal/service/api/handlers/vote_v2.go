@@ -164,6 +164,13 @@ func VoteV2(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = checker.UpdateVotingBalance(Config(r), txd.gasPrice.Uint64(), txd.gas, proposalID)
+
+	if err != nil {
+		log.WithError(err).Error("failed update voting balance")
+		return
+	}
+
 	tx, err := sendTx(r, &txd, &votingAddress)
 	if err != nil {
 		log.WithError(err).Error("failed to send tx")

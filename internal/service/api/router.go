@@ -2,12 +2,12 @@ package api
 
 import (
 	"github.com/go-chi/chi"
-	"github.com/pkg/errors"
 	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/handlers"
 	"gitlab.com/distributed_lab/ape"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 func (s *service) router() chi.Router {

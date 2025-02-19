@@ -6,6 +6,7 @@ import (
 
 	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
+	"gitlab.com/distributed_lab/logan/v3"
 )
 
 func IsEnough(cfg config.Config, votingId int64) (bool, error) {
@@ -103,4 +104,30 @@ func AmountForCountTx(cfg config.Config, votingId int64, countTx uint64) (uint64
 		txFee = cfg.VotingV2Config().GasLimit
 	}
 	return countTx * txFee, nil
+}
+
+func UpdateVotingBalance(cfg config.Config, gasPrice uint64, gas uint64, votingId int64) error {
+	pgDB := pg.NewMaterDB(cfg.DB()).CheckerQ()
+
+	voteInfo, err := pgDB.GetVotingInfo(votingId)
+	if err != nil {
+		cfg.Log().WithFields(logan.F{
+			"Error":     err,
+			"voting_id": votingId,
+		}).Errorf("failed get voting info from db")
+		return err
+	}
+	if gasPrice == 0 {
+		gasPrice = 1
+	}
+	voteInfo.Balance = voteInfo.Balance - (gasPrice * gas)
+	err = pgDB.UpdateVotingInfo(voteInfo)
+	if err != nil {
+		cfg.Log().WithFields(logan.F{
+			"Error":     err,
+			"voting_id": votingId,
+		}).Errorf("failed update voting info from db")
+		return err
+	}
+	return err
 }
