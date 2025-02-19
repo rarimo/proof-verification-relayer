@@ -1,0 +1,9 @@
+type: object
+required:
+  - type
+properties:
+  type:
+    type: string
+    enum: 
+      - "vote_predict_amount"
+      - "vote_predict_count_tx"

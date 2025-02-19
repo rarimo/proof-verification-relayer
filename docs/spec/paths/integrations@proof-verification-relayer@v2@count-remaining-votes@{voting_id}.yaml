@@ -1,0 +1,29 @@
+get:
+  tags:
+    - Voting Info
+  summary: Get predicted number of votes for an ID
+  operationId: getVotePrediction
+  parameters:
+    - $ref: '#/components/parameters/votingIdParam'
+  responses:
+    200:
+      description: Success
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/VoteCount'
+    404:
+      description: Not Found Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NotFoundError'
+    500:
+      description: Internal Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InternalError'

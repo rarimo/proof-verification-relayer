@@ -18,11 +18,11 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
-type RelayerConfiger interface {
-	RelayerConfig() *RelayerConfig
+type VotingV2Configer interface {
+	VotingV2Config() *VotingV2Config
 }
 
-func NewRelayerConfiger(getter kv.Getter) RelayerConfiger {
+func NewVotingV2Configer(getter kv.Getter) VotingV2Configer {
 	return &ethereumVoting{
 		getter: getter,
 	}
@@ -33,7 +33,7 @@ type ethereumVoting struct {
 	getter kv.Getter
 }
 
-type RelayerConfig struct {
+type VotingV2Config struct {
 	RPC        *ethclient.Client
 	ChainID    *big.Int
 	PrivateKey *ecdsa.PrivateKey
@@ -42,33 +42,55 @@ type RelayerConfig struct {
 	mut        *sync.Mutex
 	GasLimit   uint64
 	Block      uint64
+	Enable     bool
+	WithSub    bool
 }
 
-func (e *ethereumVoting) RelayerConfig() *RelayerConfig {
+func (e *ethereumVoting) VotingV2Config() *VotingV2Config {
 	return e.once.Do(func() interface{} {
-		var result RelayerConfig
+
+		raw := kv.MustGetStringMap(e.getter, "voting_v2")
+
+		var probe struct {
+			Enable bool `fig:"enable"`
+		}
+
+		if err := figure.Out(&probe).From(raw).Please(); err != nil {
+			panic(errors.Wrap(err, "failed to figure out ethereum probe"))
+		}
+
+		if !probe.Enable {
+			return &VotingV2Config{
+				Enable: false,
+			}
+		}
+
+		var result VotingV2Config
 
 		networkConfig := struct {
 			RPC            *ethclient.Client `fig:"rpc,required"`
 			PrivateKey     *ecdsa.PrivateKey `fig:"private_key"`
 			VaultAddress   string            `fig:"vault_address"`
 			VaultMountPath string            `fig:"vault_mount_path"`
-			Address        common.Address    `fig:"address,required"`
+			Address        common.Address    `fig:"proposal_state_address,required"`
 			Block          uint64            `fig:"block"`
 			GasLimit       uint64            `fig:"gas_limit"`
+			Enable         bool              `fig:"enable"`
+			WithSub        bool              `fig:"check_with_subscribe"`
 		}{}
 		err := figure.
 			Out(&networkConfig).
 			With(figure.EthereumHooks).
-			From(kv.MustGetStringMap(e.getter, "network_voting")).
+			From(raw).
 			Please()
 		if err != nil {
 			panic(errors.Wrap(err, "failed to figure out ethereum config"))
 		}
 
 		result.RPC = networkConfig.RPC
-
+		result.Enable = networkConfig.Enable
 		result.ChainID, err = result.RPC.ChainID(context.Background())
+		result.WithSub = networkConfig.WithSub
 		if err != nil {
 			panic(errors.Wrap(err, "failed to get chain ID"))
 		}
@@ -88,27 +110,27 @@ func (e *ethereumVoting) RelayerConfig() *RelayerConfig {
 		result.GasLimit = networkConfig.GasLimit
 
 		return &result
-	}).(*RelayerConfig)
+	}).(*VotingV2Config)
 }
 
-func (n *RelayerConfig) LockNonce() {
+func (n *VotingV2Config) LockNonce() {
 	n.mut.Lock()
 }
 
-func (n *RelayerConfig) UnlockNonce() {
+func (n *VotingV2Config) UnlockNonce() {
 	n.mut.Unlock()
 }
 
-func (n *RelayerConfig) Nonce() uint64 {
+func (n *VotingV2Config) Nonce() uint64 {
 	return n.nonce
 }
 
-func (n *RelayerConfig) IncrementNonce() {
+func (n *VotingV2Config) IncrementNonce() {
 	n.nonce++
 }
 
 // ResetNonce sets nonce to the value received from a node
-func (n *RelayerConfig) ResetNonce(client *ethclient.Client) error {
+func (n *VotingV2Config) ResetNonce(client *ethclient.Client) error {
 	nonce, err := client.NonceAt(context.Background(), crypto.PubkeyToAddress(n.PrivateKey.PublicKey), nil)
 	if err != nil {
 		return errors.Wrap(err, "failed to get nonce")

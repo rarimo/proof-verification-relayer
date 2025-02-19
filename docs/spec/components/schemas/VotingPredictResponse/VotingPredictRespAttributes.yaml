@@ -1,0 +1,8 @@
+type: object
+properties:
+  count_tx_predict:
+    type: string
+    example: "10000"
+  amount_predict:
+    type: string
+    example: "2000000"

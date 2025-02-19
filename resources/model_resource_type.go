@@ -8,7 +8,11 @@ type ResourceType string
 
 // List of ResourceType
 const (
-	SEND_TRANSACTION ResourceType = "send_transaction"
-	STATE            ResourceType = "state"
-	TXS              ResourceType = "txs"
+	SEND_TRANSACTION      ResourceType = "send_transaction"
+	STATE                 ResourceType = "state"
+	TXS                   ResourceType = "txs"
+	VOTE_COUNT            ResourceType = "vote_count"
+	IS_ENOUGH             ResourceType = "is_enough"
+	VOTE_PREDICT_AMOUNT   ResourceType = "vote_predict_amount"
+	VOTE_PREDICT_COUNT_TX ResourceType = "vote_predict_count_tx"
 )

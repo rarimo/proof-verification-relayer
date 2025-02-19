@@ -1,0 +1,12 @@
+type: object
+required:
+  - title
+  - status
+properties:
+  title:
+    type: string
+    example: "Not Found"
+  status:
+    type: string
+    enum:
+      - "404"

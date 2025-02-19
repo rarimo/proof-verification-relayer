@@ -1,0 +1,9 @@
+allOf:
+  - $ref: '#/components/schemas/VotingPredictKey'
+  - type: object
+    x-go-is-request: true
+    required:
+      - attributes
+    properties:
+      attributes:
+        $ref: '#/components/schemas/VotingPredictAttributes'

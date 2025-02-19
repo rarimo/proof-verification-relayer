@@ -1,0 +1,15 @@
+allOf:
+  - $ref: '#/components/schemas/VoteCountKey'
+  - type: object
+    required:
+      - attributes
+    properties:
+      attributes:
+        type: object
+        required:
+          - vote_count
+        properties:
+          vote_count:
+            type: integer
+            format: uint64
+            example: 0

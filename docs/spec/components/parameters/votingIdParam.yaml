@@ -1,0 +1,7 @@
+name: voting_id
+in: path
+required: true
+schema:
+  type: string
+  pattern: "^[0-9]+$"
+description: Id for which voting predictions are made
