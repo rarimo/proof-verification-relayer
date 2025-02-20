@@ -2,6 +2,7 @@ package checker
 
 import (
 	"context"
+	"database/sql"
 	"math/big"
 
 	"github.com/rarimo/proof-verification-relayer/internal/config"
@@ -66,7 +67,10 @@ func getTxFee(cfg config.Config, votingId int64) (*big.Int, error) {
 	}
 
 	votingInfo, err := pg.NewCheckerQ(cfg.DB()).GetVotingInfo(votingId)
-	if err != nil {
+	if err == sql.ErrNoRows {
+		votingInfo.GasLimit = cfg.VotingV2Config().GasLimit
+	}
+	if err != nil && err != sql.ErrNoRows {
 		return new(big.Int), err
 	}
 	if feeCap.Uint64() == 0 {

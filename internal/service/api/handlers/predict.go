@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"database/sql"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -44,17 +43,16 @@ func PredictHandlers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	votingIdStr := req.Data.Attributes.VotingId
-	votingId, err := strconv.ParseInt(votingIdStr, 10, 64)
+	if *votingIdStr == "" {
+		*votingIdStr = "0"
+	}
+	votingId, err := strconv.ParseInt(*votingIdStr, 10, 64)
 	if err != nil {
 		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
 	}
 
 	resultAns, err := сheckByType[string(req.Data.Type)](Config(r), votingId, reqArgument)
-	if err == sql.ErrNoRows {
-		ape.RenderErr(w, problems.NotFound())
-		return
-	}
 	if err != nil {
 		Log(r).Warnf("Failed check is predict: %v", err)
 		ape.RenderErr(w, problems.InternalError())
@@ -73,7 +71,7 @@ func PredictHandlers(w http.ResponseWriter, r *http.Request) {
 	ape.Render(w, resources.VotingPredictRespResponse{
 		Data: resources.VotingPredictResp{
 			Key: resources.Key{
-				ID:   votingIdStr + ":" + *value + ":" + timestamp,
+				ID:   *votingIdStr + ":" + *value + ":" + timestamp,
 				Type: req.Data.Type,
 			},
 			Attributes: attribut,

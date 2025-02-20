@@ -1,7 +1,5 @@
 type: object
 x-go-is-request: true
-required:
-  - voting_id
 properties:
   amount:
     type: string
