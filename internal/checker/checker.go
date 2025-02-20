@@ -210,7 +210,7 @@ func (ch *checker) filterEvets(event contracts.ProposalEvent, block uint64, toBl
 				"Error":     err,
 				"log_index": event.LogIndex(),
 				"hash_tx":   event.TxHash().Hex(),
-				"value":     event.FundAmountU64(),
+				"value":     event.FundAmount().String(),
 				"eventName": eventName,
 			}).
 				Warn("failed process log")

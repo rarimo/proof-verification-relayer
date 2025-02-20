@@ -1,10 +1,14 @@
 package contracts
 
-import "github.com/ethereum/go-ethereum/common"
+import (
+	"math/big"
+
+	"github.com/ethereum/go-ethereum/common"
+)
 
 type ProposalEvent interface {
 	ProposalID() int64
-	FundAmountU64() uint64
+	FundAmount() *big.Int
 
 	BlockNumber() int64
 	LogIndex() int64
@@ -16,8 +20,8 @@ func (p *ProposalsStateProposalCreatedIterator) ProposalID() int64 {
 	return p.Event.ProposalId.Int64()
 }
 
-func (p *ProposalsStateProposalCreatedIterator) FundAmountU64() uint64 {
-	return p.Event.FundAmount.Uint64()
+func (p *ProposalsStateProposalCreatedIterator) FundAmount() *big.Int {
+	return p.Event.FundAmount
 }
 
 func (p *ProposalsStateProposalCreatedIterator) BlockNumber() int64 {
@@ -36,8 +40,8 @@ func (p *ProposalsStateProposalFundedIterator) ProposalID() int64 {
 	return p.Event.ProposalId.Int64()
 }
 
-func (p *ProposalsStateProposalFundedIterator) FundAmountU64() uint64 {
-	return p.Event.FundAmount.Uint64()
+func (p *ProposalsStateProposalFundedIterator) FundAmount() *big.Int {
+	return p.Event.FundAmount
 }
 
 func (p *ProposalsStateProposalFundedIterator) BlockNumber() int64 {

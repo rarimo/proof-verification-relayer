@@ -2,6 +2,7 @@ package checker
 
 import (
 	"database/sql"
+	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -27,7 +28,7 @@ func (ch *checker) processEvents(event contracts.ProposalEvent) error {
 
 		return err
 	}
-	votingInfo.Balance += event.FundAmountU64()
+	votingInfo.Balance = *new(big.Int).Add(&votingInfo.Balance, event.FundAmount())
 
 	if err := ch.checkerQ.UpdateVotingInfo(votingInfo); err != nil {
 		ch.log.Errorf("Failed Update voting balance: %v", err)
@@ -61,7 +62,7 @@ func (ch *checker) processLog(vLog types.Log, eventName string) error {
 		ch.log.WithFields(logan.F{"Error": err, "eventName": eventName, "Voting ID": votingId}).Error("failed get voting info")
 		return err
 	}
-	votingInfo.Balance = votingInfo.Balance + value
+	votingInfo.Balance = *new(big.Int).Add(&votingInfo.Balance, value)
 
 	err = ch.checkerQ.UpdateVotingInfo(votingInfo)
 	if err != nil {
@@ -71,11 +72,11 @@ func (ch *checker) processLog(vLog types.Log, eventName string) error {
 	return nil
 }
 
-func (ch *checker) getTransferEvent(eventName string, vLog types.Log) (votingId int64, value uint64, err error) {
+func (ch *checker) getTransferEvent(eventName string, vLog types.Log) (votingId int64, value *big.Int, err error) {
 	parsedABI, err := abi.JSON(strings.NewReader(contracts.ProposalsStateABI))
 	if err != nil {
 		ch.log.Errorf("Failed to parse contract ABI: %v", err)
-		return 0, 0, err
+		return 0, new(big.Int), err
 	}
 
 	if eventName == "ProposalCreated" {
@@ -83,18 +84,18 @@ func (ch *checker) getTransferEvent(eventName string, vLog types.Log) (votingId 
 		err = parsedABI.UnpackIntoInterface(&transferEvent, eventName, vLog.Data)
 		if err != nil {
 			ch.log.Errorf("Failed to unpack log data: %v", err)
-			return 0, 0, err
+			return 0, new(big.Int), err
 		}
-		return transferEvent.ProposalId.Int64(), transferEvent.FundAmount.Uint64(), nil
+		return transferEvent.ProposalId.Int64(), transferEvent.FundAmount, nil
 	}
 
 	var transferEvent contracts.ProposalsStateProposalFunded
 	err = parsedABI.UnpackIntoInterface(&transferEvent, eventName, vLog.Data)
 	if err != nil {
 		ch.log.Errorf("Failed to unpack log data: %v", err)
-		return 0, 0, err
+		return 0, new(big.Int), err
 	}
-	return transferEvent.ProposalId.Int64(), transferEvent.FundAmount.Uint64(), nil
+	return transferEvent.ProposalId.Int64(), transferEvent.FundAmount, nil
 }
 
 func (ch *checker) insertProcessedEventLog(processedEvent data.ProcessedEvent) error {
@@ -118,7 +119,7 @@ func (ch *checker) checkVoteAndGetBalance(votingId int64) (data.VotingInfo, erro
 	if err == sql.ErrNoRows {
 		newVote := &data.VotingInfo{
 			VotingId: votingId,
-			Balance:  0,
+			Balance:  *new(big.Int),
 			GasLimit: ch.VotingV2Config.GasLimit,
 		}
 

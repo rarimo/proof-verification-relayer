@@ -3,6 +3,7 @@ package handlers
 import (
 	"database/sql"
 	"fmt"
+	"math/big"
 	"net/http"
 	"strconv"
 	"time"
@@ -16,7 +17,7 @@ import (
 )
 
 func PredictHandlers(w http.ResponseWriter, r *http.Request) {
-	сheckByType := map[string]func(cfg config.Config, votingId int64, countTx uint64) (uint64, error){
+	сheckByType := map[string]func(cfg config.Config, votingId int64, countTx *big.Int) (*big.Int, error){
 		string(resources.VOTE_PREDICT_AMOUNT):   checker.AmountForCountTx,
 		string(resources.VOTE_PREDICT_COUNT_TX): checker.GetPredictCount,
 	}
@@ -35,8 +36,8 @@ func PredictHandlers(w http.ResponseWriter, r *http.Request) {
 	}
 	Log(r).Infof("New predict request for address: %v", req.Data.Attributes.VotingId)
 
-	reqArgument, err := strconv.ParseUint(*value, 10, 64)
-	if err != nil {
+	reqArgument, ok := new(big.Int).SetString(*value, 10)
+	if !ok {
 		Log(r).WithError(err).Error("failed to get request")
 		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
