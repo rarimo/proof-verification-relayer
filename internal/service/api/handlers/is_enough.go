@@ -21,13 +21,13 @@ func IsEnoughHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	isEnough, err := checker.IsEnough(Config(r), votingId)
-	if err == sql.ErrNoRows {
-		ape.RenderErr(w, problems.NotFound())
-		return
-	}
 	if err != nil {
-		Log(r).Warnf("Failed check is enough balance: %v", err)
-		ape.RenderErr(w, problems.InternalError())
+		if err != sql.ErrNoRows {
+			Log(r).WithField("voting_id", votingId).Errorf("Failed check is enough balance: %v", err)
+			ape.RenderErr(w, problems.InternalError())
+			return
+		}
+		ape.RenderErr(w, problems.NotFound())
 		return
 	}
 
@@ -42,5 +42,4 @@ func IsEnoughHandler(w http.ResponseWriter, r *http.Request) {
 			},
 		},
 	})
-
 }

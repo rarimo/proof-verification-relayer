@@ -17,8 +17,8 @@ import (
 
 func PredictHandlers(w http.ResponseWriter, r *http.Request) {
 	сheckByType := map[string]func(cfg config.Config, votingId int64, countTx *big.Int) (*big.Int, error){
-		string(resources.VOTE_PREDICT_AMOUNT):   checker.AmountForCountTx,
-		string(resources.VOTE_PREDICT_COUNT_TX): checker.GetPredictCount,
+		string(resources.VOTE_PREDICT_AMOUNT):   checker.GetAmountForCountTx,
+		string(resources.VOTE_PREDICT_COUNT_TX): checker.GetCountTxForAmount,
 	}
 
 	req, value, err := requests.NewVotingPredictRequest(r)
@@ -28,13 +28,6 @@ func PredictHandlers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, exists := сheckByType[string(req.Data.Type)]
-	if !exists {
-		ape.RenderErr(w, problems.BadRequest(err)...)
-		return
-	}
-	Log(r).Infof("New predict request for address: %v", req.Data.Attributes.VotingId)
-
 	reqArgument, ok := new(big.Int).SetString(*value, 10)
 	if !ok {
 		Log(r).WithError(err).Error("failed to get request")
@@ -42,11 +35,15 @@ func PredictHandlers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	votingIdStr := req.Data.Attributes.VotingId
-	if *votingIdStr == "" {
-		*votingIdStr = "0"
+	var votingIdStr string
+	switch req.Data.Attributes.VotingId {
+	case nil:
+		votingIdStr = "0"
+	default:
+		votingIdStr = *req.Data.Attributes.VotingId
 	}
-	votingId, err := strconv.ParseInt(*votingIdStr, 10, 64)
+
+	votingId, err := strconv.ParseInt(votingIdStr, 10, 64)
 	if err != nil {
 		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
@@ -71,11 +68,10 @@ func PredictHandlers(w http.ResponseWriter, r *http.Request) {
 	ape.Render(w, resources.VotingPredictRespResponse{
 		Data: resources.VotingPredictResp{
 			Key: resources.Key{
-				ID:   *votingIdStr + ":" + *value + ":" + timestamp,
+				ID:   votingIdStr + ":" + *value + ":" + timestamp,
 				Type: req.Data.Type,
 			},
 			Attributes: attribut,
 		},
 	})
-
 }

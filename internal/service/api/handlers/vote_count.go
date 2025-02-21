@@ -21,13 +21,13 @@ func VoteCountHandlers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	countTx, err := checker.GetCountTx(Config(r), votingId)
-	if err == sql.ErrNoRows {
-		ape.RenderErr(w, problems.NotFound())
-		return
-	}
 	if err != nil {
-		Log(r).Errorf("Failed get count tx for wallet: %v", err)
-		ape.RenderErr(w, problems.InternalError())
+		if err != sql.ErrNoRows {
+			Log(r).WithField("voting_id", votingId).Errorf("Failed get count tx for vote: %v", err)
+			ape.RenderErr(w, problems.InternalError())
+			return
+		}
+		ape.RenderErr(w, problems.NotFound())
 		return
 	}
 

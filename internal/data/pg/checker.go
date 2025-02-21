@@ -53,11 +53,11 @@ func (cq *checkerQ) GetVotingInfo(votingId int64) (data.VotingInfo, error) {
 	query := sq.Select("*").From("voting_contract_accounts").Where(sq.Eq{"voting_id": votingId})
 
 	err := cq.db.Get(&votingInfo, query)
-	if err == sql.ErrNoRows {
-		return data.VotingInfo{}, err
-	}
 	if err != nil {
-		return data.VotingInfo{}, errors.Wrap(err, "failed to get voting residual balance from db")
+		if err != sql.ErrNoRows {
+			return data.VotingInfo{}, errors.Wrap(err, "failed to get voting residual balance from db")
+		}
+		return data.VotingInfo{}, err
 	}
 
 	balance, success := new(big.Int).SetString(votingInfo.Balance, 10)
@@ -91,7 +91,7 @@ func (q *checkerQ) UpdateVotingInfo(value data.VotingInfo) error {
 		Where(sq.Eq{"voting_id": value.VotingId})
 
 	err := q.db.Exec(query)
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil {
 		return errors.Wrap(err, "failed to update balance to db")
 	}
 	return nil
@@ -105,28 +105,25 @@ func (cq *checkerQ) GetLastBlock() (uint64, error) {
 		Limit(1)
 
 	err := cq.db.Get(&block, query)
-	if err == sql.ErrNoRows {
-		return 0, err
-	}
 	if err != nil {
-		return 0, errors.Wrap(err, "failed to get block from db")
+		return 0, err
 	}
 	return block, nil
 }
 
-func (q *checkerQ) CheckProcessedEventExist(value data.ProcessedEvent) (bool, error) {
-	var isExist int
+func (q *checkerQ) CheckProcessedEventExist(value data.ProcessedEvent) error {
+	var isExist bool
 	query := sq.Select("1").From("processed_events").
 		Where(sq.Eq{"transaction_hash": value.TransactionHash, "log_index": value.LogIndex}).Limit(1)
 
 	err := q.db.Get(&isExist, query)
-	if err == sql.ErrNoRows {
-		return false, nil
-	}
 	if err != nil {
-		return false, errors.Wrap(err, "failed to check exist event in db")
+		return err
 	}
-	return true, nil
+	if isExist {
+		return errors.New("duplicate event in db")
+	}
+	return nil
 }
 
 func (q *checkerQ) InsertProcessedEvent(value data.ProcessedEvent) error {
