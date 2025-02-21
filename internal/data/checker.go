@@ -6,9 +6,9 @@ import (
 )
 
 type VotingInfo struct {
-	VotingId int64   `db:"voting_id"`
-	Balance  big.Int `db:"residual_balance"`
-	GasLimit uint64  `db:"gas_limit"`
+	VotingId int64    `db:"voting_id"`
+	Balance  *big.Int `db:"residual_balance"`
+	GasLimit uint64   `db:"gas_limit"`
 }
 
 type ProcessedEvent struct {

@@ -36,7 +36,7 @@ func GetCountTx(cfg config.Config, votingId int64) (uint64, error) {
 		txFee = big.NewInt(int64(cfg.VotingV2Config().GasLimit))
 	}
 	voteBalance := votingInfo.Balance
-	countTx := new(big.Int).Div(&voteBalance, txFee)
+	countTx := new(big.Int).Div(voteBalance, txFee)
 	return countTx.Uint64(), nil
 }
 
@@ -124,7 +124,7 @@ func UpdateVotingBalance(cfg config.Config, gasPrice *big.Int, gas uint64, votin
 	if gasPrice.Int64() == 0 {
 		gasPrice = big.NewInt(1)
 	}
-	voteInfo.Balance = *new(big.Int).Sub(&voteInfo.Balance, new(big.Int).Mul(big.NewInt(int64(gas)), gasPrice))
+	voteInfo.Balance = new(big.Int).Sub(voteInfo.Balance, new(big.Int).Mul(big.NewInt(int64(gas)), gasPrice))
 	err = pgDB.UpdateVotingInfo(voteInfo)
 	if err != nil {
 		cfg.Log().WithFields(logan.F{

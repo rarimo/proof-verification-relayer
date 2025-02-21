@@ -28,7 +28,7 @@ func (ch *checker) processEvents(event contracts.ProposalEvent) error {
 
 		return err
 	}
-	votingInfo.Balance = *new(big.Int).Add(&votingInfo.Balance, event.FundAmount())
+	votingInfo.Balance = new(big.Int).Add(votingInfo.Balance, event.FundAmount())
 
 	if err := ch.checkerQ.UpdateVotingInfo(votingInfo); err != nil {
 		ch.log.Errorf("Failed Update voting balance: %v", err)
@@ -62,7 +62,7 @@ func (ch *checker) processLog(vLog types.Log, eventName string) error {
 		ch.log.WithFields(logan.F{"Error": err, "eventName": eventName, "Voting ID": votingId}).Error("failed get voting info")
 		return err
 	}
-	votingInfo.Balance = *new(big.Int).Add(&votingInfo.Balance, value)
+	votingInfo.Balance = new(big.Int).Add(votingInfo.Balance, value)
 
 	err = ch.checkerQ.UpdateVotingInfo(votingInfo)
 	if err != nil {
@@ -117,18 +117,18 @@ func (ch *checker) insertProcessedEventLog(processedEvent data.ProcessedEvent) e
 func (ch *checker) checkVoteAndGetBalance(votingId int64) (data.VotingInfo, error) {
 	votingInfo, err := ch.checkerQ.GetVotingInfo(votingId)
 	if err == sql.ErrNoRows {
-		newVote := &data.VotingInfo{
+		newVote := data.VotingInfo{
 			VotingId: votingId,
-			Balance:  *new(big.Int),
+			Balance:  new(big.Int),
 			GasLimit: ch.VotingV2Config.GasLimit,
 		}
 
-		err := ch.checkerQ.InsertVotingInfo(*newVote)
+		err := ch.checkerQ.InsertVotingInfo(newVote)
 		if err != nil {
 			ch.log.Errorf("Failed insert new voting info: %v", err)
-			return *newVote, err
+			return newVote, err
 		}
-		return *newVote, nil
+		return newVote, nil
 	} else if err != nil {
 		ch.log.Errorf("Error get voting: %v", err)
 		return data.VotingInfo{}, err

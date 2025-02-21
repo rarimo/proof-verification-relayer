@@ -68,7 +68,7 @@ func (cq *checkerQ) GetVotingInfo(votingId int64) (data.VotingInfo, error) {
 	return data.VotingInfo{
 		GasLimit: votingInfo.GasLimit,
 		VotingId: votingInfo.VotingId,
-		Balance:  *balance,
+		Balance:  balance,
 	}, nil
 }
 
