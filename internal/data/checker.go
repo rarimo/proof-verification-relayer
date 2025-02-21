@@ -24,11 +24,11 @@ type CheckerDB interface {
 }
 
 type CheckerQ interface {
-	InsertVotingInfo(value VotingInfo) error
-	GetVotingInfo(votingId int64) (VotingInfo, error)
-	UpdateVotingInfo(value VotingInfo) error
+	InsertVotingInfo(value *VotingInfo) error
+	GetVotingInfo(votingId int64) (*VotingInfo, error)
+	UpdateVotingInfo(value *VotingInfo) error
 
 	InsertProcessedEvent(value ProcessedEvent) error
 	GetLastBlock() (uint64, error)
-	CheckProcessedEventExist(value ProcessedEvent) error
+	CheckProcessedEventExist(value ProcessedEvent) (bool, error)
 }

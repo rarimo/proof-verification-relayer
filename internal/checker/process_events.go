@@ -91,37 +91,40 @@ func (ch *checker) getTransferEvent(eventName string, vLog types.Log) (votingId 
 }
 
 func (ch *checker) insertProcessedEventLog(processedEvent data.ProcessedEvent) error {
-	err := ch.checkerQ.CheckProcessedEventExist(processedEvent)
+	isExist, err := ch.checkerQ.CheckProcessedEventExist(processedEvent)
+	if isExist {
+		return errors.New("Duplicate event in db")
+	}
 	if err != nil {
-		if err != sql.ErrNoRows {
-			return err
-		}
-		err = ch.checkerQ.InsertProcessedEvent(processedEvent)
-		if err != nil {
-			return err
-		}
+		return err
+	}
+	err = ch.checkerQ.InsertProcessedEvent(processedEvent)
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
-func (ch *checker) checkVoteAndGetBalance(votingId int64) (votingInfo data.VotingInfo, err error) {
-	votingInfo, err = ch.checkerQ.GetVotingInfo(votingId)
+func (ch *checker) checkVoteAndGetBalance(votingId int64) (*data.VotingInfo, error) {
+	votingInfo, err := ch.checkerQ.GetVotingInfo(votingId)
 	if err != nil {
-		if err != sql.ErrNoRows {
-			return votingInfo, err
-		}
-		newVote := data.VotingInfo{
-			VotingId: votingId,
-			Balance:  new(big.Int),
-			GasLimit: ch.VotingV2Config.GasLimit,
-		}
-
-		err := ch.checkerQ.InsertVotingInfo(newVote)
-		if err != nil {
-			return votingInfo, errors.Wrap(err, "failed insert new voting info")
-		}
-		return newVote, err
+		return nil, err
 	}
+	if votingInfo != nil {
+		return votingInfo, nil
+	}
+
+	votingInfo = &data.VotingInfo{
+		VotingId: votingId,
+		Balance:  big.NewInt(0),
+		GasLimit: ch.VotingV2Config.GasLimit,
+	}
+
+	err = ch.checkerQ.InsertVotingInfo(votingInfo)
+	if err != nil {
+		return votingInfo, errors.Wrap(err, "failed insert new voting info")
+	}
+
 	return votingInfo, nil
 }
 

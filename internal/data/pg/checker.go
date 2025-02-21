@@ -47,7 +47,7 @@ type checkerQ struct {
 	sql sq.StatementBuilderType
 }
 
-func (cq *checkerQ) GetVotingInfo(votingId int64) (data.VotingInfo, error) {
+func (cq *checkerQ) GetVotingInfo(votingId int64) (*data.VotingInfo, error) {
 	var votingInfo votingInf
 
 	query := sq.Select("*").From("voting_contract_accounts").Where(sq.Eq{"voting_id": votingId})
@@ -55,24 +55,24 @@ func (cq *checkerQ) GetVotingInfo(votingId int64) (data.VotingInfo, error) {
 	err := cq.db.Get(&votingInfo, query)
 	if err != nil {
 		if err != sql.ErrNoRows {
-			return data.VotingInfo{}, errors.Wrap(err, "failed to get voting residual balance from db")
+			return nil, errors.Wrap(err, "failed to get voting residual balance from db")
 		}
-		return data.VotingInfo{}, err
+		return nil, nil
 	}
 
 	balance, success := new(big.Int).SetString(votingInfo.Balance, 10)
 	if !success {
-		return data.VotingInfo{}, errors.New("error converting string balance to big.Int")
+		return nil, errors.New("error converting string balance to big.Int")
 	}
 
-	return data.VotingInfo{
+	return &data.VotingInfo{
 		GasLimit: votingInfo.GasLimit,
 		VotingId: votingInfo.VotingId,
 		Balance:  balance,
 	}, nil
 }
 
-func (q *checkerQ) InsertVotingInfo(value data.VotingInfo) error {
+func (q *checkerQ) InsertVotingInfo(value *data.VotingInfo) error {
 	query := sq.Insert("voting_contract_accounts").
 		Columns("voting_id", "residual_balance", "gas_limit").
 		Values(value.VotingId, value.Balance.String(), value.GasLimit)
@@ -84,7 +84,7 @@ func (q *checkerQ) InsertVotingInfo(value data.VotingInfo) error {
 	return nil
 }
 
-func (q *checkerQ) UpdateVotingInfo(value data.VotingInfo) error {
+func (q *checkerQ) UpdateVotingInfo(value *data.VotingInfo) error {
 	query := sq.Update("voting_contract_accounts").
 		Set("residual_balance", value.Balance.String()).
 		Set("gas_limit", value.GasLimit).
@@ -111,19 +111,20 @@ func (cq *checkerQ) GetLastBlock() (uint64, error) {
 	return block, nil
 }
 
-func (q *checkerQ) CheckProcessedEventExist(value data.ProcessedEvent) error {
+func (q *checkerQ) CheckProcessedEventExist(value data.ProcessedEvent) (bool, error) {
 	var isExist bool
 	query := sq.Select("1").From("processed_events").
 		Where(sq.Eq{"transaction_hash": value.TransactionHash, "log_index": value.LogIndex}).Limit(1)
 
 	err := q.db.Get(&isExist, query)
 	if err != nil {
-		return err
+		if err != sql.ErrNoRows {
+			return false, errors.Wrap(err, "failed to check exist event in db")
+		}
+
+		return false, nil
 	}
-	if isExist {
-		return errors.New("duplicate event in db")
-	}
-	return nil
+	return true, nil
 }
 
 func (q *checkerQ) InsertProcessedEvent(value data.ProcessedEvent) error {
