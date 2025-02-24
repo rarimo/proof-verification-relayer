@@ -37,14 +37,3 @@ func NewVotingPredictRequest(r *http.Request, logger *logan.Entry) (req resource
 		return req, nil, errors.New("unknown resource type")
 	}
 }
-
-// func checkValue(value *string) {
-
-// 	reqArgument, ok := new(big.Int).SetString(*value, 10)
-// 	if !ok {
-// 		Log(r).WithError(err).Error("failed to get request")
-// 		ape.RenderErr(w, problems.BadRequest(err)...)
-// 		return
-// 	}
-
-// }
