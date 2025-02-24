@@ -59,15 +59,20 @@ func getTxFee(cfg config.Config, votingId int64) (*big.Int, error) {
 	if feeCap.Uint64() == 0 {
 		feeCap = big.NewInt(1)
 	}
-
 	votingInfo, err := pg.NewCheckerQ(cfg.DB()).GetVotingInfo(votingId)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			return nil, err
 		}
-		votingInfo.GasLimit = cfg.VotingV2Config().GasLimit
+
 	}
-	totalFee := new(big.Int).Mul(big.NewInt(int64(votingInfo.GasLimit)), feeCap)
+
+	gasLimit := int64(cfg.VotingV2Config().GasLimit)
+	if votingInfo != nil {
+		gasLimit = int64(votingInfo.GasLimit)
+	}
+
+	totalFee := new(big.Int).Mul(big.NewInt(gasLimit), feeCap)
 	return totalFee, nil
 }
 
@@ -99,8 +104,16 @@ func GetAmountForCountTx(cfg config.Config, votingId int64, countTx *big.Int) (*
 }
 
 func UpdateVotingBalance(cfg config.Config, gasPrice *big.Int, gas uint64, votingId int64) error {
-	pgDB := pg.NewMaterDB(cfg.DB()).CheckerQ()
+	checkIsEnough, err := IsEnough(cfg, votingId)
+	if err != nil {
+		return errors.Wrap(err, "Insufficient balance check failed")
+	}
 
+	if !checkIsEnough {
+		return errors.New("Insufficient funds in the voting account")
+	}
+
+	pgDB := pg.NewMaterDB(cfg.DB()).CheckerQ()
 	voteInfo, err := pgDB.GetVotingInfo(votingId)
 	if err != nil {
 		return fmt.Errorf("failed get voting info from db: %w", err)

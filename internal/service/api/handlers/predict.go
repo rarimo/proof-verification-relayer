@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/big"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/rarimo/proof-verification-relayer/internal/checker"
@@ -21,35 +20,15 @@ func PredictHandlers(w http.ResponseWriter, r *http.Request) {
 		string(resources.VOTE_PREDICT_COUNT_TX): checker.GetCountTxForAmount,
 	}
 
-	req, value, err := requests.NewVotingPredictRequest(r)
-	if err != nil || value == nil {
-		Log(r).WithError(err).Error("failed to get request")
-		ape.RenderErr(w, problems.BadRequest(err)...)
-		return
-	}
-
-	reqArgument, ok := new(big.Int).SetString(*value, 10)
-	if !ok {
-		Log(r).WithError(err).Error("failed to get request")
-		ape.RenderErr(w, problems.BadRequest(err)...)
-		return
-	}
-
-	var votingIdStr string
-	switch req.Data.Attributes.VotingId {
-	case nil:
-		votingIdStr = "0"
-	default:
-		votingIdStr = *req.Data.Attributes.VotingId
-	}
-
-	votingId, err := strconv.ParseInt(votingIdStr, 10, 64)
+	req, value, err := requests.NewVotingPredictRequest(r, Log(r))
 	if err != nil {
+		Log(r).WithError(err).Error("failed to get request")
 		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
 	}
 
-	resultAns, err := сheckByType[string(req.Data.Type)](Config(r), votingId, reqArgument)
+	reqArgument, _ := new(big.Int).SetString(*value, 10)
+	resultAns, err := сheckByType[string(req.Data.Type)](Config(r), *req.Data.Attributes.VotingId, reqArgument)
 	if err != nil {
 		Log(r).Warnf("Failed check is predict: %v", err)
 		ape.RenderErr(w, problems.InternalError())
@@ -57,21 +36,21 @@ func PredictHandlers(w http.ResponseWriter, r *http.Request) {
 	}
 	timestamp := time.Now().UTC().Format(time.RFC3339)
 	resultAnsStr := fmt.Sprintf("%d", resultAns)
-	var attribut resources.VotingPredictRespAttributes
+	var attribute resources.VotingPredictRespAttributes
 	switch req.Data.Type {
 	case resources.VOTE_PREDICT_AMOUNT:
-		attribut.AmountPredict = &resultAnsStr
+		attribute.AmountPredict = &resultAnsStr
 	case resources.VOTE_PREDICT_COUNT_TX:
-		attribut.CountTxPredict = &resultAnsStr
+		attribute.CountTxPredict = &resultAnsStr
 	}
 
 	ape.Render(w, resources.VotingPredictRespResponse{
 		Data: resources.VotingPredictResp{
 			Key: resources.Key{
-				ID:   votingIdStr + ":" + *value + ":" + timestamp,
+				ID:   fmt.Sprint(*req.Data.Attributes.VotingId) + ":" + *value + ":" + timestamp,
 				Type: req.Data.Type,
 			},
-			Attributes: attribut,
+			Attributes: attribute,
 		},
 	})
 }

@@ -7,6 +7,7 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/rarimo/proof-verification-relayer/resources"
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
@@ -14,10 +15,13 @@ var (
 	amountRegexp = regexp.MustCompile("^[0-9]+$")
 )
 
-func NewVotingPredictRequest(r *http.Request) (req resources.VotingPredictRequest, value *string, err error) {
+func NewVotingPredictRequest(r *http.Request, logger *logan.Entry) (req resources.VotingPredictRequest, value *string, err error) {
 	err = json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		return req, nil, errors.Wrap(err, "failed to unmarshal")
+	}
+	if req.Data.Attributes.VotingId == nil {
+		req.Data.Attributes.VotingId = new(int64)
 	}
 
 	switch req.Data.Type {
@@ -33,3 +37,14 @@ func NewVotingPredictRequest(r *http.Request) (req resources.VotingPredictReques
 		return req, nil, errors.New("unknown resource type")
 	}
 }
+
+// func checkValue(value *string) {
+
+// 	reqArgument, ok := new(big.Int).SetString(*value, 10)
+// 	if !ok {
+// 		Log(r).WithError(err).Error("failed to get request")
+// 		ape.RenderErr(w, problems.BadRequest(err)...)
+// 		return
+// 	}
+
+// }
