@@ -457,7 +457,8 @@
         "tags": [
           "Voting Info"
         ],
-        "summary": "Voting Info",
+        "summary": "Prediction of voting parameters (number of transactions or required amount)",
+        "description": "This endpoint allows predicting voting parameters. The user can provide a voting ID and select one of the prediction types: forecasting the required amount for a given number of transactions or estimating the possible number of transactions with a specified amount",
         "operationId": "votingPredict",
         "requestBody": {
           "content": {
@@ -987,9 +988,6 @@
       "VotingPredictAttributes": {
         "type": "object",
         "x-go-is-request": true,
-        "required": [
-          "voting_id"
-        ],
         "properties": {
           "amount": {
             "type": "string",
@@ -1004,8 +1002,8 @@
             "description": "The number of transactions that need to be covered"
           },
           "voting_id": {
-            "type": "string",
-            "pattern": "^[0-9]+$",
+            "type": "integer",
+            "format": "int64",
             "example": "12",
             "description": "ID of the voting to which the vote"
           }
