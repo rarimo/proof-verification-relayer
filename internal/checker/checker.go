@@ -65,15 +65,13 @@ func (ch *checker) check(ctx context.Context) error {
 
 	startBlock, err := ch.getStartBlockNumber()
 	if err != nil {
-		ch.log.Errorf("Failed get start block: %v", err)
-		return err
+		return errors.Wrap(err, "Failed get start block")
 	}
 
 	ch.readOldEvents(ctx, startBlock)
 	startBlock, err = ch.getStartBlockNumber()
 	if err != nil {
-		ch.log.Errorf("Failed get start block: %v", err)
-		return err
+		return errors.Wrap(err, "Failed get start block")
 	}
 	go ch.readNewEvents(ctx, ch.VotingV2Config.WithSub)
 
@@ -138,11 +136,11 @@ func (ch *checker) readNewEventsWithoutSub(ctx context.Context) {
 	}
 }
 
-func (ch *checker) readNewEventsSub(ctx context.Context, eventName string) error {
+func (ch *checker) readNewEventsSub(ctx context.Context, eventName string) {
 	parsedABI, err := abi.JSON(strings.NewReader(contracts.ProposalsStateABI))
 	if err != nil {
 		ch.log.Errorf("Failed to parse contract ABI: %v", err)
-		return err
+		return
 	}
 
 	query := ethereum.FilterQuery{
@@ -153,14 +151,14 @@ func (ch *checker) readNewEventsSub(ctx context.Context, eventName string) error
 	sub, err := ch.VotingV2Config.RPC.SubscribeFilterLogs(context.Background(), query, logs)
 	if err != nil {
 		ch.log.WithFields(logan.F{"Error": err, "eventName": eventName}).Error("failed subscribe event")
-		return err
+		return
 	}
 
 	for {
 		select {
 		case <-ctx.Done():
 			ch.log.Info("unsubscribe from events")
-			return nil
+			return
 		case err := <-sub.Err():
 			ch.log.WithFields(logan.F{
 				"Error":     err,
@@ -170,7 +168,12 @@ func (ch *checker) readNewEventsSub(ctx context.Context, eventName string) error
 		case vLog := <-logs:
 			err := ch.processLog(vLog, eventName)
 			if err != nil {
-				ch.log.WithFields(logan.F{"Error": err, "log_index": vLog.Index, "hash_tx": vLog.TxHash.Hex()}).Warn("failed process log")
+				ch.log.WithFields(logan.F{
+					"Error":      err,
+					"log_index":  vLog.Index,
+					"hash_tx":    vLog.TxHash.Hex(),
+					"event_name": eventName}).
+					Warn("failed process log")
 			}
 		}
 	}
@@ -186,12 +189,13 @@ func (ch *checker) checkFilter(block, toBlock uint64, contract *contracts.Propos
 
 	filterLogsF, err := contract.FilterProposalFunded(&query, nil)
 	if err != nil {
-		ch.log.WithField("Error", err).Info("failed to filter logs")
-		return errors.Wrap(err, "failed to filter logs", logan.F{"address": contractAddress, "start_block": block})
+		return errors.Wrap(err, "failed to filter logs", logan.F{
+			"address":     contractAddress,
+			"start_block": block,
+		})
 	}
 	filterLogs, err := contract.FilterProposalCreated(&query, nil)
 	if err != nil {
-		ch.log.WithField("Error", err).Info("failed to filter logs")
 		return errors.Wrap(err, "failed to filter logs", logan.F{"address": contractAddress, "start_block": block})
 	}
 
@@ -210,7 +214,7 @@ func (ch *checker) filterEvets(event contracts.ProposalEvent, block uint64, toBl
 				"Error":     err,
 				"log_index": event.LogIndex(),
 				"hash_tx":   event.TxHash().Hex(),
-				"value":     event.FundAmountU64(),
+				"value":     event.FundAmount().String(),
 				"eventName": eventName,
 			}).
 				Warn("failed process log")
@@ -227,7 +231,7 @@ func (ch *checker) filterEvets(event contracts.ProposalEvent, block uint64, toBl
 	}).Debug("found events")
 }
 
-func (ch *checker) readOldEvents(ctx context.Context, block uint64) error {
+func (ch *checker) readOldEvents(ctx context.Context, block uint64) {
 	client := ch.VotingV2Config.RPC
 	contractAddress := ch.VotingV2Config.Address
 	ch.log.WithField("from", block).Info("start reading old events")
@@ -235,17 +239,15 @@ func (ch *checker) readOldEvents(ctx context.Context, block uint64) error {
 	contract, err := contracts.NewProposalsStateFilterer(contractAddress, client)
 	if err != nil {
 		ch.log.Errorf("failed cretate proposal state filter: %v", err)
-		return err
+		return
 	}
 	header, err := client.HeaderByNumber(ctx, nil)
 	if err != nil {
 		ch.log.WithField("Error", err).Info("failed to get latest block header")
-		return errors.Wrap(err, "failed to get latest block header")
+		return
 	}
 	toBlock := ch.readFromToBlock(ctx, block, header.Number.Uint64(), contract)
 	ch.log.WithField("to", toBlock).Info("finish reading old events")
-
-	return nil
 }
 
 func (ch *checker) readFromToBlock(ctx context.Context, fromBlock uint64, toBlock uint64, contract *contracts.ProposalsStateFilterer) uint64 {

@@ -1,11 +1,14 @@
 package data
 
-import "time"
+import (
+	"math/big"
+	"time"
+)
 
 type VotingInfo struct {
-	VotingId int64  `db:"voting_id"`
-	Balance  uint64 `db:"residual_balance"`
-	GasLimit uint64 `db:"gas_limit"`
+	VotingId int64    `db:"voting_id"`
+	Balance  *big.Int `db:"residual_balance"`
+	GasLimit uint64   `db:"gas_limit"`
 }
 
 type ProcessedEvent struct {
@@ -21,10 +24,9 @@ type CheckerDB interface {
 }
 
 type CheckerQ interface {
-	InsertVotingInfo(value VotingInfo) error
-	GetVotingInfo(votingId int64) (VotingInfo, error)
-	UpdateVotingInfo(value VotingInfo) error
-	GetBalance(votingId int64) (uint64, error)
+	InsertVotingInfo(value *VotingInfo) error
+	GetVotingInfo(votingId int64) (*VotingInfo, error)
+	UpdateVotingInfo(value *VotingInfo) error
 
 	InsertProcessedEvent(value ProcessedEvent) error
 	GetLastBlock() (uint64, error)

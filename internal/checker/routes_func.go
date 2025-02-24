@@ -2,11 +2,13 @@ package checker
 
 import (
 	"context"
+	"database/sql"
+	"fmt"
 	"math/big"
 
 	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
-	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 func IsEnough(cfg config.Config, votingId int64) (bool, error) {
@@ -14,65 +16,63 @@ func IsEnough(cfg config.Config, votingId int64) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
 	return countTx != 0, nil
 }
 
 func GetCountTx(cfg config.Config, votingId int64) (uint64, error) {
-	logger := cfg.Log()
 	pg := pg.NewMaterDB(cfg.DB())
 	txFee, err := getTxFee(cfg, votingId)
 	if err != nil {
-		logger.Errorf("Failed get fee: %v", err)
-		return 0, err
+		return 0, errors.Wrap(err, "failed get fee")
 	}
 
 	votingInfo, err := pg.CheckerQ().GetVotingInfo(votingId)
 	if err != nil {
 		return 0, err
 	}
-	if txFee == 0 {
-		txFee = cfg.VotingV2Config().GasLimit
+	if txFee.Int64() == 0 {
+		txFee = big.NewInt(int64(cfg.VotingV2Config().GasLimit))
 	}
-	voteBalance := votingInfo.Balance
-	countTx := voteBalance / txFee
-	return countTx, nil
+	countTx := new(big.Int).Div(votingInfo.Balance, txFee)
+	return countTx.Uint64(), nil
 }
 
-func GetPredictCount(cfg config.Config, votingId int64, amount uint64) (uint64, error) {
-	logger := cfg.Log()
-
+func GetCountTxForAmount(cfg config.Config, votingId int64, amount *big.Int) (*big.Int, error) {
 	txFee, err := getTxFee(cfg, votingId)
 	if err != nil {
-		logger.Errorf("Failed get fee: %v", err)
-		return 0, err
+		return nil, errors.Wrap(err, "failed get fee")
 	}
-	if txFee == 0 {
-		txFee = cfg.VotingV2Config().GasLimit
+	if txFee.Int64() == 0 {
+		txFee = big.NewInt(int64(cfg.VotingV2Config().GasLimit))
 	}
-
-	return amount / txFee, nil
+	return new(big.Int).Div(amount, txFee), nil
 }
 
-func getTxFee(cfg config.Config, votingId int64) (uint64, error) {
-	logger := cfg.Log()
+func getTxFee(cfg config.Config, votingId int64) (*big.Int, error) {
 	networkParam := cfg.VotingV2Config()
 	client := networkParam.RPC
 
 	feeCap, err := client.SuggestGasPrice(context.Background())
 	if err != nil {
-		logger.Warnf("Failed get gas price")
-		return 0, err
-	}
-
-	votingInfo, err := pg.NewCheckerQ(cfg.DB()).GetVotingInfo(votingId)
-	if err != nil {
-		return 0, err
+		return nil, errors.Wrap(err, "failed get gas price")
 	}
 	if feeCap.Uint64() == 0 {
 		feeCap = big.NewInt(1)
 	}
-	totalFee := votingInfo.GasLimit * feeCap.Uint64()
+	votingInfo, err := pg.NewCheckerQ(cfg.DB()).GetVotingInfo(votingId)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return nil, err
+		}
+
+	}
+
+	gasLimit := int64(cfg.VotingV2Config().GasLimit)
+	if votingInfo != nil {
+		gasLimit = int64(votingInfo.GasLimit)
+	}
+
+	totalFee := new(big.Int).Mul(big.NewInt(gasLimit), feeCap)
 	return totalFee, nil
 }
 
@@ -92,42 +92,40 @@ func CheckUpdateGasLimit(value uint64, cfg config.Config, votingId int64) error 
 	return nil
 }
 
-func AmountForCountTx(cfg config.Config, votingId int64, countTx uint64) (uint64, error) {
-	logger := cfg.Log()
-
+func GetAmountForCountTx(cfg config.Config, votingId int64, countTx *big.Int) (*big.Int, error) {
 	txFee, err := getTxFee(cfg, votingId)
 	if err != nil {
-		logger.Errorf("Failed get fee: %v", err)
-		return 0, err
+		return nil, errors.Wrap(err, "failed get fee")
 	}
-	if txFee == 0 {
-		txFee = cfg.VotingV2Config().GasLimit
+	if txFee.Int64() == 0 {
+		big.NewInt(int64(cfg.VotingV2Config().GasLimit))
 	}
-	return countTx * txFee, nil
+	return new(big.Int).Mul(countTx, txFee), nil
 }
 
-func UpdateVotingBalance(cfg config.Config, gasPrice uint64, gas uint64, votingId int64) error {
-	pgDB := pg.NewMaterDB(cfg.DB()).CheckerQ()
+func UpdateVotingBalance(cfg config.Config, gasPrice *big.Int, gas uint64, votingId int64) error {
+	checkIsEnough, err := IsEnough(cfg, votingId)
+	if err != nil {
+		return errors.Wrap(err, "Insufficient balance check failed")
+	}
 
+	if !checkIsEnough {
+		return errors.New("Insufficient funds in the voting account")
+	}
+
+	pgDB := pg.NewMaterDB(cfg.DB()).CheckerQ()
 	voteInfo, err := pgDB.GetVotingInfo(votingId)
 	if err != nil {
-		cfg.Log().WithFields(logan.F{
-			"Error":     err,
-			"voting_id": votingId,
-		}).Errorf("failed get voting info from db")
-		return err
+		return fmt.Errorf("failed get voting info from db: %w", err)
 	}
-	if gasPrice == 0 {
-		gasPrice = 1
+	if gasPrice.Int64() == 0 {
+		gasPrice = big.NewInt(1)
 	}
-	voteInfo.Balance = voteInfo.Balance - (gasPrice * gas)
+	voteInfo.Balance = new(big.Int).Sub(voteInfo.Balance, new(big.Int).Mul(big.NewInt(int64(gas)), gasPrice))
+
 	err = pgDB.UpdateVotingInfo(voteInfo)
 	if err != nil {
-		cfg.Log().WithFields(logan.F{
-			"Error":     err,
-			"voting_id": votingId,
-		}).Errorf("failed update voting info from db")
-		return err
+		return fmt.Errorf("failed update voting info from db: %w", err)
 	}
 	return err
 }

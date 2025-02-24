@@ -2,6 +2,7 @@ package checker
 
 import (
 	"database/sql"
+	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -18,20 +19,16 @@ func (ch *checker) processEvents(event contracts.ProposalEvent) error {
 	processedEvent.LogIndex = event.LogIndex()
 	processedEvent.TransactionHash = event.TxHash().Bytes()
 	if err := ch.insertProcessedEventLog(processedEvent); err != nil {
-		ch.log.WithField("Error", err).Debug("failed insert processed event")
-		return err
+		return errors.Wrap(err, "failed insert processed event")
 	}
 	votingInfo, err := ch.checkVoteAndGetBalance(event.ProposalID())
 	if err != nil {
-		ch.log.WithField("Error", err).Errorf("failed insert processed event")
-
-		return err
+		return errors.Wrap(err, "failed get voting info")
 	}
-	votingInfo.Balance += event.FundAmountU64()
+	votingInfo.Balance = new(big.Int).Add(votingInfo.Balance, event.FundAmount())
 
 	if err := ch.checkerQ.UpdateVotingInfo(votingInfo); err != nil {
-		ch.log.Errorf("Failed Update voting balance: %v", err)
-		return err
+		return errors.Wrap(err, "failed Update voting balance")
 	}
 
 	return nil
@@ -47,8 +44,7 @@ func (ch *checker) processLog(vLog types.Log, eventName string) error {
 
 	err := ch.insertProcessedEventLog(processedEvent)
 	if err != nil {
-		ch.log.WithFields(logan.F{"Error": err, "eventName": eventName}).Error("failed insert processed event")
-		return err
+		return errors.Wrap(err, "failed insert processed event")
 	}
 
 	votingId, value, err := ch.getTransferEvent(eventName, vLog)
@@ -58,24 +54,22 @@ func (ch *checker) processLog(vLog types.Log, eventName string) error {
 
 	votingInfo, err := ch.checkVoteAndGetBalance(votingId)
 	if err != nil {
-		ch.log.WithFields(logan.F{"Error": err, "eventName": eventName, "Voting ID": votingId}).Error("failed get voting info")
-		return err
+		return errors.Wrap(err, "failed get voting info", logan.F{"Voting ID": votingId})
 	}
-	votingInfo.Balance = votingInfo.Balance + value
+	votingInfo.Balance = new(big.Int).Add(votingInfo.Balance, value)
 
 	err = ch.checkerQ.UpdateVotingInfo(votingInfo)
 	if err != nil {
-		ch.log.WithFields(logan.F{"Error": err, "eventName": eventName, "Voting ID": votingId}).Error("Failed Update voting balance")
-		return err
+		return errors.Wrap(err, "failed update voting balance", logan.F{"Voting ID": votingId})
 	}
 	return nil
 }
 
-func (ch *checker) getTransferEvent(eventName string, vLog types.Log) (votingId int64, value uint64, err error) {
+func (ch *checker) getTransferEvent(eventName string, vLog types.Log) (votingId int64, value *big.Int, err error) {
 	parsedABI, err := abi.JSON(strings.NewReader(contracts.ProposalsStateABI))
 	if err != nil {
 		ch.log.Errorf("Failed to parse contract ABI: %v", err)
-		return 0, 0, err
+		return 0, nil, err
 	}
 
 	if eventName == "ProposalCreated" {
@@ -83,27 +77,25 @@ func (ch *checker) getTransferEvent(eventName string, vLog types.Log) (votingId 
 		err = parsedABI.UnpackIntoInterface(&transferEvent, eventName, vLog.Data)
 		if err != nil {
 			ch.log.Errorf("Failed to unpack log data: %v", err)
-			return 0, 0, err
+			return 0, nil, err
 		}
-		return transferEvent.ProposalId.Int64(), transferEvent.FundAmount.Uint64(), nil
+		return transferEvent.ProposalId.Int64(), transferEvent.FundAmount, nil
 	}
 
 	var transferEvent contracts.ProposalsStateProposalFunded
 	err = parsedABI.UnpackIntoInterface(&transferEvent, eventName, vLog.Data)
 	if err != nil {
-		ch.log.Errorf("Failed to unpack log data: %v", err)
-		return 0, 0, err
+		return 0, nil, errors.Wrap(err, "failed to unpack log data")
 	}
-	return transferEvent.ProposalId.Int64(), transferEvent.FundAmount.Uint64(), nil
+	return transferEvent.ProposalId.Int64(), transferEvent.FundAmount, nil
 }
 
 func (ch *checker) insertProcessedEventLog(processedEvent data.ProcessedEvent) error {
 	isExist, err := ch.checkerQ.CheckProcessedEventExist(processedEvent)
 	if isExist {
-		ch.log.WithField("event_index_log", processedEvent.LogIndex).Debug("Duplicate event in db")
 		return errors.New("Duplicate event in db")
 	}
-	if err != nil && err != sql.ErrNoRows {
+	if err != nil {
 		return err
 	}
 	err = ch.checkerQ.InsertProcessedEvent(processedEvent)
@@ -113,36 +105,36 @@ func (ch *checker) insertProcessedEventLog(processedEvent data.ProcessedEvent) e
 	return nil
 }
 
-func (ch *checker) checkVoteAndGetBalance(votingId int64) (data.VotingInfo, error) {
+func (ch *checker) checkVoteAndGetBalance(votingId int64) (*data.VotingInfo, error) {
 	votingInfo, err := ch.checkerQ.GetVotingInfo(votingId)
-	if err == sql.ErrNoRows {
-		newVote := &data.VotingInfo{
-			VotingId: votingId,
-			Balance:  0,
-			GasLimit: ch.VotingV2Config.GasLimit,
-		}
-
-		err := ch.checkerQ.InsertVotingInfo(*newVote)
-		if err != nil {
-			ch.log.Errorf("Failed insert new voting info: %v", err)
-			return *newVote, err
-		}
-		return *newVote, nil
-	} else if err != nil {
-		ch.log.Errorf("Error get voting: %v", err)
-		return data.VotingInfo{}, err
+	if err != nil {
+		return nil, err
 	}
-	return votingInfo, err
+	if votingInfo != nil {
+		return votingInfo, nil
+	}
+
+	votingInfo = &data.VotingInfo{
+		VotingId: votingId,
+		Balance:  big.NewInt(0),
+		GasLimit: ch.VotingV2Config.GasLimit,
+	}
+
+	err = ch.checkerQ.InsertVotingInfo(votingInfo)
+	if err != nil {
+		return votingInfo, errors.Wrap(err, "failed insert new voting info")
+	}
+
+	return votingInfo, nil
 }
 
 func (ch *checker) getStartBlockNumber() (uint64, error) {
 	block, err := ch.checkerQ.GetLastBlock()
-	if err == sql.ErrNoRows {
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return 0, errors.Wrap(err, "failed get block from db")
+		}
 		block = ch.VotingV2Config.Block
-	} else if err != nil {
-		ch.log.Errorf("Failed get block from db: %v", err)
-		return ch.VotingV2Config.Block, err
 	}
-
 	return block, nil
 }

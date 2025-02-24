@@ -76,13 +76,13 @@ func VoteV2(w http.ResponseWriter, r *http.Request) {
 		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
 	}
-	voteInfo, err := parseCallData(r, txd.dataBytes)
+	calldataInfo, err := parseCallData(txd.dataBytes)
 	if err != nil {
-		Log(r).WithError(err).Error("Failed get voteInfo")
+		Log(r).WithError(err).Error("Failed parsed calldata")
 		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
 	}
-	proposalID := voteInfo.proposalId_.Int64()
+	proposalID := calldataInfo.proposalId_.Int64()
 
 	log := Log(r).WithFields(logan.F{
 		"user-agent":  r.Header.Get("User-Agent"),
@@ -93,20 +93,17 @@ func VoteV2(w http.ResponseWriter, r *http.Request) {
 	log.Debug("voting request")
 
 	checkIsEnough, err := checker.IsEnough(Config(r), proposalID)
-	if err == sql.ErrNoRows {
+	if err != nil {
+		if err != sql.ErrNoRows {
+			log.WithError(err).Warn("Insufficient balance check failed")
+			ape.RenderErr(w, problems.InternalError())
+			return
+		}
 		ape.RenderErr(w, problems.NotFound())
 		return
 	}
-	if err != nil {
-		Log(r).WithFields(logan.F{
-			"destination": req.Data.Attributes.Destination,
-			"error":       err,
-		}).Warn("Insufficient balance check failed")
-		ape.RenderErr(w, problems.InternalError())
-		return
-	}
 	if !checkIsEnough {
-		Log(r).Infof("Insufficient funds in the voting account: %v", destination)
+		log.Info("Insufficient funds in the voting account")
 		ape.RenderErr(w, problems.Forbidden())
 		return
 	}
@@ -160,12 +157,11 @@ func VoteV2(w http.ResponseWriter, r *http.Request) {
 
 	err = checker.CheckUpdateGasLimit(txd.gas, Config(r), proposalBigID.Int64())
 	if err != nil {
-		log.WithError(err).Error("failed to check and update gas price")
+		log.WithError(err).Error("failed to check and update gas limit")
 		return
 	}
 
-	err = checker.UpdateVotingBalance(Config(r), txd.gasPrice.Uint64(), txd.gas, proposalID)
-
+	err = checker.UpdateVotingBalance(Config(r), txd.gasPrice, txd.gas, proposalID)
 	if err != nil {
 		log.WithError(err).Error("failed update voting balance")
 		return
@@ -250,17 +246,15 @@ func signTx(r *http.Request, txd *txData, receiver *common.Address) (tx *types.T
 	return tx, err
 }
 
-func parseCallData(r *http.Request, calldata []byte) (*votingInfo, error) {
+func parseCallData(calldata []byte) (*votingInfo, error) {
 	var params votingInfo
 	parsedABI, err := abi.JSON(strings.NewReader(biopassportvoting.BioPassportVotingABI))
 	if err != nil {
-		Log(r).Errorf("Failed to parse contract ABI: %v", err)
-		return nil, err
+		return nil, errors.Wrap(err, "failed to parse contract ABI")
 	}
 
 	err = parsedABI.UnpackIntoInterface(&params, "vote", calldata)
 	if err != nil {
-		Log(r).Errorf("Failed to parse calldata: %v", err)
 		return nil, err
 	}
 

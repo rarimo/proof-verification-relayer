@@ -1,7 +1,8 @@
 post:
   tags:
     - Voting Info
-  summary: Voting Info
+  summary: Prediction of voting parameters (number of transactions or required amount)
+  description: "This endpoint allows predicting voting parameters. The user can provide a voting ID and select one of the prediction types: forecasting the required amount for a given number of transactions or estimating the possible number of transactions with a specified amount"
   operationId: votingPredict
   requestBody:
     content:
