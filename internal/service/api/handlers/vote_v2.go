@@ -158,12 +158,14 @@ func VoteV2(w http.ResponseWriter, r *http.Request) {
 	err = checker.CheckUpdateGasLimit(txd.gas, Config(r), proposalBigID.Int64())
 	if err != nil {
 		log.WithError(err).Error("failed to check and update gas limit")
+		ape.RenderErr(w, problems.InternalError())
 		return
 	}
 
 	err = checker.UpdateVotingBalance(Config(r), txd.gasPrice, txd.gas, proposalID)
 	if err != nil {
 		log.WithError(err).Error("failed update voting balance")
+		ape.RenderErr(w, problems.InternalError())
 		return
 	}
 
