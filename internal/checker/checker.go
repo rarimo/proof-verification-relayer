@@ -99,7 +99,7 @@ func (ch *checker) readNewEventsWithoutSub(ctx context.Context) {
 	client := ch.VotingV2Config.RPC
 	header, err := client.HeaderByNumber(ctx, nil)
 	if err != nil {
-		ch.log.WithField("Error", err).Info("failed to get latest block header")
+		ch.log.WithField("Error", err).Error("failed to get latest block header")
 		return
 	}
 
@@ -131,8 +131,14 @@ func (ch *checker) readNewEventsWithoutSub(ctx context.Context) {
 			}).Info("failed check blocks")
 			continue
 		}
+		header, err := client.HeaderByNumber(ctx, nil)
+		if err != nil {
+			ch.log.WithField("Error", err).Info("failed to get latest block header")
+			continue
+		}
+
 		block = toBlock
-		toBlock = block + 1
+		toBlock = header.Number.Uint64()
 	}
 }
 

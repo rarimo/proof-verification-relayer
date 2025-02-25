@@ -30,6 +30,9 @@ func GetCountTx(cfg config.Config, votingId int64) (uint64, error) {
 	if err != nil {
 		return 0, err
 	}
+	if votingInfo == nil {
+		return 0, sql.ErrNoRows
+	}
 	if txFee.Int64() == 0 {
 		txFee = big.NewInt(int64(cfg.VotingV2Config().GasLimit))
 	}
@@ -83,6 +86,9 @@ func CheckUpdateGasLimit(value uint64, cfg config.Config, votingId int64) error 
 	if err != nil {
 		return err
 	}
+	if voteInfo == nil {
+		return errors.New("Vote Not Found")
+	}
 
 	voteInfo.GasLimit = value
 	err = pgDB.CheckerQ().UpdateVotingInfo(voteInfo)
@@ -117,6 +123,9 @@ func UpdateVotingBalance(cfg config.Config, gasPrice *big.Int, gas uint64, votin
 	voteInfo, err := pgDB.GetVotingInfo(votingId)
 	if err != nil {
 		return fmt.Errorf("failed get voting info from db: %w", err)
+	}
+	if voteInfo == nil {
+		return errors.New("Vote Not Found")
 	}
 	if gasPrice.Int64() == 0 {
 		gasPrice = big.NewInt(1)
