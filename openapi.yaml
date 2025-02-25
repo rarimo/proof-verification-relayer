@@ -640,7 +640,7 @@ components:
         voting_id:
           type: integer
           format: int64
-          example: '12'
+          example: 12
           description: ID of the voting to which the vote
     VotingPredictKey:
       type: object
