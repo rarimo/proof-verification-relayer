@@ -1,0 +1,11 @@
+type: object
+required:
+  - title
+  - variants
+properties:
+  title:
+    type: string
+  variants:
+    type: array
+    items:
+      type: string

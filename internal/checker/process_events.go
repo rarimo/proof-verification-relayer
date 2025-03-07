@@ -1,11 +1,13 @@
 package checker
 
 import (
+	"context"
 	"database/sql"
 	"math/big"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/data"
@@ -21,10 +23,16 @@ func (ch *checker) processEvents(event contracts.ProposalEvent) error {
 	if err := ch.insertProcessedEventLog(processedEvent); err != nil {
 		return errors.Wrap(err, "failed insert processed event")
 	}
-	votingInfo, err := ch.checkVoteAndGetBalance(event.ProposalID())
+	sender, err := ch.getSender(event.TxHash())
+	if err != nil {
+		errors.Wrap(err, "failed get creator")
+	}
+
+	votingInfo, err := ch.checkVoteAndGetBalance(event.ProposalID(), sender)
 	if err != nil {
 		return errors.Wrap(err, "failed get voting info")
 	}
+	votingInfo.CreatorAddress = sender
 	votingInfo.Balance = new(big.Int).Add(votingInfo.Balance, event.FundAmount())
 
 	if err := ch.checkerQ.UpdateVotingInfo(votingInfo); err != nil {
@@ -34,6 +42,18 @@ func (ch *checker) processEvents(event contracts.ProposalEvent) error {
 	return nil
 }
 
+func (ch *checker) getSender(txHash common.Hash) (string, error) {
+	tx, _, err := ch.client.TransactionByHash(context.Background(), txHash)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get transaction by hash")
+	}
+	sender, err := types.Sender(types.NewEIP155Signer(tx.ChainId()), tx)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get sender from transaction")
+	}
+	return sender.Hex(), nil
+}
+
 func (ch *checker) processLog(vLog types.Log, eventName string) error {
 	var processedEvent data.ProcessedEvent
 
@@ -41,23 +61,25 @@ func (ch *checker) processLog(vLog types.Log, eventName string) error {
 	processedEvent.BlockNumber = block
 	processedEvent.LogIndex = int64(vLog.Index)
 	processedEvent.TransactionHash = vLog.TxHash[:]
-
 	err := ch.insertProcessedEventLog(processedEvent)
 	if err != nil {
 		return errors.Wrap(err, "failed insert processed event")
 	}
-
+	sender, err := ch.getSender(vLog.TxHash)
+	if err != nil {
+		return errors.Wrap(err, "failed get processed event creator")
+	}
 	votingId, value, err := ch.getTransferEvent(eventName, vLog)
 	if err != nil {
 		return err
 	}
 
-	votingInfo, err := ch.checkVoteAndGetBalance(votingId)
+	votingInfo, err := ch.checkVoteAndGetBalance(votingId, sender)
 	if err != nil {
 		return errors.Wrap(err, "failed get voting info", logan.F{"Voting ID": votingId})
 	}
 	votingInfo.Balance = new(big.Int).Add(votingInfo.Balance, value)
-
+	votingInfo.CreatorAddress = sender
 	err = ch.checkerQ.UpdateVotingInfo(votingInfo)
 	if err != nil {
 		return errors.Wrap(err, "failed update voting balance", logan.F{"Voting ID": votingId})
@@ -105,7 +127,7 @@ func (ch *checker) insertProcessedEventLog(processedEvent data.ProcessedEvent) e
 	return nil
 }
 
-func (ch *checker) checkVoteAndGetBalance(votingId int64) (*data.VotingInfo, error) {
+func (ch *checker) checkVoteAndGetBalance(votingId int64, sender string) (*data.VotingInfo, error) {
 	votingInfo, err := ch.checkerQ.GetVotingInfo(votingId)
 	if err != nil {
 		return nil, err
@@ -115,9 +137,10 @@ func (ch *checker) checkVoteAndGetBalance(votingId int64) (*data.VotingInfo, err
 	}
 
 	votingInfo = &data.VotingInfo{
-		VotingId: votingId,
-		Balance:  big.NewInt(0),
-		GasLimit: ch.VotingV2Config.GasLimit,
+		VotingId:       votingId,
+		Balance:        big.NewInt(0),
+		GasLimit:       ch.VotingV2Config.GasLimit,
+		CreatorAddress: sender,
 	}
 
 	err = ch.checkerQ.InsertVotingInfo(votingInfo)

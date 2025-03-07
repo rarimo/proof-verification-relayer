@@ -40,6 +40,8 @@ voting_v2:
   gas_limit: 800000
   enable: true
   check_with_subscribe: false
+  ipfs_url: "https://ipfs.rarimo.com"
+
 
 replicator:
   address: 0x10f370A6d8782E0e0E85ba948be6DA2465Aab4E2

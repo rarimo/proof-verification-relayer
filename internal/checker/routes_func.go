@@ -3,11 +3,17 @@ package checker
 import (
 	"context"
 	"database/sql"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
 	"math/big"
+	"net/http"
 
 	"github.com/rarimo/proof-verification-relayer/internal/config"
+	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
+	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
@@ -137,4 +143,117 @@ func UpdateVotingBalance(cfg config.Config, gasPrice *big.Int, gas uint64, votin
 		return fmt.Errorf("failed update voting info from db: %w", err)
 	}
 	return err
+}
+
+type ProposalInfo struct {
+	IpfsCid        string
+	Description    ProposalDescription
+	ProposalID     int64
+	CreatorAddress string
+	Status         uint64
+	StartTimestamp int64
+	EndTimestamp   int64
+}
+
+type ProposalDescription struct {
+	Title           string              `json:"title"`
+	Description     string              `json:"description"`
+	AcceptedOptions []resources.Options `json:"acceptedOptions"`
+}
+
+func GetProposalList(cfg config.Config) ([]*resources.VotingInfoAttributes, error) {
+	var result []*resources.VotingInfoAttributes
+
+	pgDB := pg.NewMaterDB(cfg.DB()).CheckerQ()
+	votingInfoList, err := pgDB.SelectVotes()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, vote := range votingInfoList {
+		proposalInfo, err := GetProposalInfo(vote.VotingId, cfg, vote.CreatorAddress)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, proposalInfo)
+	}
+	return result, nil
+}
+
+func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string) (*resources.VotingInfoAttributes, error) {
+	contractAddress := cfg.VotingV2Config().Address
+	client := cfg.VotingV2Config().RPC
+	ipfsUrl := cfg.VotingV2Config().IpfsUrl
+	caller, err := contracts.NewProposalsStateCaller(contractAddress, client)
+	if err != nil {
+		return nil, err
+	}
+
+	proposalInfo, err := caller.GetProposalInfo(nil, big.NewInt(proposalId))
+	if err != nil {
+		return nil, err
+	}
+	startTimeStamp := proposalInfo.Config.StartTimestamp
+	endTimestamp := proposalInfo.Config.StartTimestamp + proposalInfo.Config.Duration
+
+	desc, err := getProposalDescFromIpfs(proposalInfo.Config.Description, ipfsUrl)
+	if err != nil {
+		return nil, err
+	}
+	votingConfig := proposalInfo.Config
+	var votingWhitelist []string
+
+	for _, addr := range votingConfig.VotingWhitelist {
+		votingWhitelist = append(votingWhitelist, addr.Hex())
+	}
+	for _, addr := range votingConfig.VotingWhitelist {
+		votingWhitelist = append(votingWhitelist, addr.Hex())
+	}
+	var votingWhitelistData []string
+	for _, data := range votingConfig.VotingWhitelistData {
+		votingWhitelistData = append(votingWhitelistData, hex.EncodeToString(data))
+	}
+	return &resources.VotingInfoAttributes{
+		Author:   creatorAddress,
+		Metadata: *desc,
+		Contract: resources.VotingInfoContractInfo{
+			ProposalSMT: proposalInfo.ProposalSMT.Hex(),
+			Status:      proposalInfo.Status,
+			Config: resources.VotingInfoConfig{
+				Description:         votingConfig.Description,
+				StartTimestamp:      int64(startTimeStamp),
+				EndTimestamp:        int64(endTimestamp),
+				Multichoice:         votingConfig.Multichoice.Int64(),
+				ProposalId:          proposalId,
+				VotingWhitelist:     votingWhitelist,
+				VotingWhitelistData: votingWhitelistData,
+			},
+		},
+	}, nil
+
+}
+
+func getProposalDescFromIpfs(desId string, ipfsUrl string) (*resources.VotingInfoAttributesMetadata, error) {
+	requestURL := fmt.Sprintf("%s/ipfs/%s", ipfsUrl, desId)
+	resp, err := http.Get(requestURL)
+	if err != nil {
+		return nil, fmt.Errorf("error making http request: %v", err)
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed read body response: %v", err)
+	}
+
+	var data ProposalDescription
+	if err := json.Unmarshal(body, &data); err != nil {
+		return nil, fmt.Errorf("failed parse JSON: %v", err)
+	}
+	return &resources.VotingInfoAttributesMetadata{
+		AcceptedOptions: data.AcceptedOptions,
+		Title:           data.Title,
+		Description:     data.Description,
+	}, nil
 }

@@ -6,9 +6,10 @@ import (
 )
 
 type VotingInfo struct {
-	VotingId int64    `db:"voting_id"`
-	Balance  *big.Int `db:"residual_balance"`
-	GasLimit uint64   `db:"gas_limit"`
+	VotingId       int64    `db:"voting_id"`
+	Balance        *big.Int `db:"residual_balance"`
+	GasLimit       uint64   `db:"gas_limit"`
+	CreatorAddress string   `db:"creator_address"`
 }
 
 type ProcessedEvent struct {
@@ -27,6 +28,7 @@ type CheckerQ interface {
 	InsertVotingInfo(value *VotingInfo) error
 	GetVotingInfo(votingId int64) (*VotingInfo, error)
 	UpdateVotingInfo(value *VotingInfo) error
+	SelectVotes() ([]*VotingInfo, error)
 
 	InsertProcessedEvent(value ProcessedEvent) error
 	GetLastBlock() (uint64, error)

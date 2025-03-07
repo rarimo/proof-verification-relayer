@@ -12,9 +12,10 @@ import (
 )
 
 type votingInf struct {
-	VotingId int64  `db:"voting_id"`
-	Balance  string `db:"residual_balance"`
-	GasLimit uint64 `db:"gas_limit"`
+	VotingId       int64  `db:"voting_id"`
+	Balance        string `db:"residual_balance"`
+	GasLimit       uint64 `db:"gas_limit"`
+	CreatorAddress string `db:"creator_address"`
 }
 
 func NewMaterDB(db *pgdb.DB) data.CheckerDB {
@@ -55,7 +56,7 @@ func (cq *checkerQ) GetVotingInfo(votingId int64) (*data.VotingInfo, error) {
 	err := cq.db.Get(&votingInfo, query)
 	if err != nil {
 		if err != sql.ErrNoRows {
-			return nil, errors.Wrap(err, "failed to get voting residual balance from db")
+			return nil, errors.Wrap(err, "failed to get voting info from db")
 		}
 		return nil, nil
 	}
@@ -72,10 +73,40 @@ func (cq *checkerQ) GetVotingInfo(votingId int64) (*data.VotingInfo, error) {
 	}, nil
 }
 
+func (cq *checkerQ) SelectVotes() ([]*data.VotingInfo, error) {
+	var votingInfoList []votingInf
+
+	query := sq.Select("*").From("voting_contract_accounts")
+
+	err := cq.db.Select(&votingInfoList, query)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			return nil, errors.Wrap(err, "failed to select all votes from db")
+		}
+		return nil, nil
+	}
+
+	var result []*data.VotingInfo
+	for _, vote := range votingInfoList {
+		balance, success := new(big.Int).SetString(vote.Balance, 10)
+		if !success {
+			continue
+		}
+		result = append(result, &data.VotingInfo{
+			GasLimit:       vote.GasLimit,
+			VotingId:       vote.VotingId,
+			Balance:        balance,
+			CreatorAddress: vote.CreatorAddress,
+		})
+	}
+
+	return result, nil
+}
+
 func (q *checkerQ) InsertVotingInfo(value *data.VotingInfo) error {
 	query := sq.Insert("voting_contract_accounts").
-		Columns("voting_id", "residual_balance", "gas_limit").
-		Values(value.VotingId, value.Balance.String(), value.GasLimit)
+		Columns("voting_id", "residual_balance", "gas_limit", "creator_address").
+		Values(value.VotingId, value.Balance.String(), value.GasLimit, value.CreatorAddress)
 
 	err := q.db.Exec(query)
 	if err != nil {
