@@ -3,13 +3,16 @@ package data
 import (
 	"math/big"
 	"time"
+
+	"github.com/rarimo/proof-verification-relayer/resources"
 )
 
 type VotingInfo struct {
-	VotingId       int64    `db:"voting_id"`
-	Balance        *big.Int `db:"residual_balance"`
-	GasLimit       uint64   `db:"gas_limit"`
-	CreatorAddress string   `db:"creator_address"`
+	VotingId               int64                          `db:"voting_id"`
+	Balance                *big.Int                       `db:"residual_balance"`
+	GasLimit               uint64                         `db:"gas_limit"`
+	CreatorAddress         string                         `db:"creator_address"`
+	ProposalInfoWithConfig resources.VotingInfoAttributes `db:"proposal_info_with_config"`
 }
 
 type ProcessedEvent struct {

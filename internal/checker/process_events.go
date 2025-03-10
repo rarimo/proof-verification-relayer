@@ -11,11 +11,12 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/data"
+	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
-func (ch *checker) processEvents(event contracts.ProposalEvent) error {
+func (ch *checker) processEvents(event contracts.ProposalEvent, eventName string) error {
 	var processedEvent data.ProcessedEvent
 	processedEvent.BlockNumber = event.BlockNumber()
 	processedEvent.LogIndex = event.LogIndex()
@@ -27,13 +28,28 @@ func (ch *checker) processEvents(event contracts.ProposalEvent) error {
 	if err != nil {
 		errors.Wrap(err, "failed get creator")
 	}
-
 	votingInfo, err := ch.checkVoteAndGetBalance(event.ProposalID(), sender)
 	if err != nil {
 		return errors.Wrap(err, "failed get voting info")
 	}
-	votingInfo.CreatorAddress = sender
-	votingInfo.Balance = new(big.Int).Add(votingInfo.Balance, event.FundAmount())
+	var proposalInfoWithConfig *resources.VotingInfoAttributes
+
+	switch eventName {
+	case "ProposalCreated", "ProposalConfigChanged":
+		proposalInfoWithConfig, err = GetProposalInfo(event.ProposalID(), ch.cfg, votingInfo.CreatorAddress)
+		if err != nil {
+			return err
+		}
+	default:
+		proposalInfoWithConfig = nil
+	}
+
+	if event.FundAmount() != nil {
+		votingInfo.Balance = new(big.Int).Add(votingInfo.Balance, event.FundAmount())
+	}
+	if proposalInfoWithConfig != nil {
+		votingInfo.ProposalInfoWithConfig = *proposalInfoWithConfig
+	}
 
 	if err := ch.checkerQ.UpdateVotingInfo(votingInfo); err != nil {
 		return errors.Wrap(err, "failed Update voting balance")
@@ -69,7 +85,7 @@ func (ch *checker) processLog(vLog types.Log, eventName string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed get processed event creator")
 	}
-	votingId, value, err := ch.getTransferEvent(eventName, vLog)
+	votingId, value, proposalInfoWithConfig, err := ch.getTransferEvent(eventName, vLog, sender)
 	if err != nil {
 		return err
 	}
@@ -78,8 +94,14 @@ func (ch *checker) processLog(vLog types.Log, eventName string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed get voting info", logan.F{"Voting ID": votingId})
 	}
-	votingInfo.Balance = new(big.Int).Add(votingInfo.Balance, value)
-	votingInfo.CreatorAddress = sender
+
+	if value != nil {
+		votingInfo.Balance = new(big.Int).Add(votingInfo.Balance, value)
+	}
+	if proposalInfoWithConfig != nil {
+		votingInfo.ProposalInfoWithConfig = *proposalInfoWithConfig
+	}
+
 	err = ch.checkerQ.UpdateVotingInfo(votingInfo)
 	if err != nil {
 		return errors.Wrap(err, "failed update voting balance", logan.F{"Voting ID": votingId})
@@ -87,29 +109,51 @@ func (ch *checker) processLog(vLog types.Log, eventName string) error {
 	return nil
 }
 
-func (ch *checker) getTransferEvent(eventName string, vLog types.Log) (votingId int64, value *big.Int, err error) {
+func (ch *checker) getTransferEvent(eventName string, vLog types.Log, sender string) (
+	votingId int64,
+	value *big.Int,
+	proposalInfoWithConfig *resources.VotingInfoAttributes,
+	err error) {
 	parsedABI, err := abi.JSON(strings.NewReader(contracts.ProposalsStateABI))
 	if err != nil {
 		ch.log.Errorf("Failed to parse contract ABI: %v", err)
-		return 0, nil, err
+		return 0, nil, nil, err
 	}
 
-	if eventName == "ProposalCreated" {
+	switch eventName {
+	case "ProposalCreated":
 		var transferEvent contracts.ProposalsStateProposalCreated
 		err = parsedABI.UnpackIntoInterface(&transferEvent, eventName, vLog.Data)
 		if err != nil {
 			ch.log.Errorf("Failed to unpack log data: %v", err)
-			return 0, nil, err
+			return 0, nil, nil, err
 		}
-		return transferEvent.ProposalId.Int64(), transferEvent.FundAmount, nil
+		proposalInfoWithConfig, err = GetProposalInfo(transferEvent.ProposalId.Int64(), ch.cfg, sender)
+		if err != nil {
+			return 0, nil, nil, errors.Wrap(err, "failed get proposal info")
+		}
+		return transferEvent.ProposalId.Int64(), transferEvent.FundAmount, proposalInfoWithConfig, nil
+	case "ProposalFunded":
+		var transferEvent contracts.ProposalsStateProposalFunded
+		err = parsedABI.UnpackIntoInterface(&transferEvent, eventName, vLog.Data)
+		if err != nil {
+			return 0, nil, nil, errors.Wrap(err, "failed to unpack log data")
+		}
+		return transferEvent.ProposalId.Int64(), transferEvent.FundAmount, nil, nil
+	case "ProposalConfigChanged":
+		var transferEvent contracts.ProposalsStateProposalConfigChanged
+		err = parsedABI.UnpackIntoInterface(&transferEvent, eventName, vLog.Data)
+		if err != nil {
+			return 0, nil, nil, errors.Wrap(err, "failed to unpack log data")
+		}
+		proposalInfoWithConfig, err = GetProposalInfo(transferEvent.ProposalId.Int64(), ch.cfg, sender)
+		if err != nil {
+			return 0, nil, nil, errors.Wrap(err, "failed get proposal info")
+		}
+		return transferEvent.ProposalId.Int64(), nil, proposalInfoWithConfig, nil
+	default:
+		return 0, nil, nil, errors.New("unknown event")
 	}
-
-	var transferEvent contracts.ProposalsStateProposalFunded
-	err = parsedABI.UnpackIntoInterface(&transferEvent, eventName, vLog.Data)
-	if err != nil {
-		return 0, nil, errors.Wrap(err, "failed to unpack log data")
-	}
-	return transferEvent.ProposalId.Int64(), transferEvent.FundAmount, nil
 }
 
 func (ch *checker) insertProcessedEventLog(processedEvent data.ProcessedEvent) error {

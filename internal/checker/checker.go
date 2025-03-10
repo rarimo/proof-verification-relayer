@@ -90,6 +90,7 @@ func (ch *checker) readNewEvents(ctx context.Context, isSub bool) {
 	if isSub {
 		go ch.readNewEventsSub(ctx, "ProposalCreated")
 		go ch.readNewEventsSub(ctx, "ProposalFunded")
+		go ch.readNewEventsSub(ctx, "ProposalConfigChanged")
 		return
 	}
 	go ch.readNewEventsWithoutSub(ctx)
@@ -200,6 +201,13 @@ func (ch *checker) checkFilter(block, toBlock uint64, contract *contracts.Propos
 			"start_block": block,
 		})
 	}
+	filterLogsChabgedConfig, err := contract.FilterProposalConfigChanged(&query, nil)
+	if err != nil {
+		return errors.Wrap(err, "failed to filter logs", logan.F{
+			"address":     contractAddress,
+			"start_block": block,
+		})
+	}
 	filterLogs, err := contract.FilterProposalCreated(&query, nil)
 	if err != nil {
 		return errors.Wrap(err, "failed to filter logs", logan.F{"address": contractAddress, "start_block": block})
@@ -207,6 +215,7 @@ func (ch *checker) checkFilter(block, toBlock uint64, contract *contracts.Propos
 
 	ch.filterEvets(filterLogs, block, toBlock, "ProposalCreated")
 	ch.filterEvets(filterLogsF, block, toBlock, "ProposalFunded")
+	ch.filterEvets(filterLogsChabgedConfig, block, toBlock, "ProposalConfigChanged")
 
 	return nil
 }
@@ -214,7 +223,7 @@ func (ch *checker) checkFilter(block, toBlock uint64, contract *contracts.Propos
 func (ch *checker) filterEvets(event contracts.ProposalEvent, block uint64, toBlock uint64, eventName string) {
 	events := 0
 	for event.Next() {
-		err := ch.processEvents(event)
+		err := ch.processEvents(event, eventName)
 		if err != nil {
 			ch.log.WithFields(logan.F{
 				"Error":     err,

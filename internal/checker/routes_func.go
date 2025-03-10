@@ -145,16 +145,6 @@ func UpdateVotingBalance(cfg config.Config, gasPrice *big.Int, gas uint64, votin
 	return err
 }
 
-type ProposalInfo struct {
-	IpfsCid        string
-	Description    ProposalDescription
-	ProposalID     int64
-	CreatorAddress string
-	Status         uint64
-	StartTimestamp int64
-	EndTimestamp   int64
-}
-
 type ProposalDescription struct {
 	Title           string              `json:"title"`
 	Description     string              `json:"description"`
@@ -171,11 +161,7 @@ func GetProposalList(cfg config.Config) ([]*resources.VotingInfoAttributes, erro
 	}
 
 	for _, vote := range votingInfoList {
-		proposalInfo, err := GetProposalInfo(vote.VotingId, cfg, vote.CreatorAddress)
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, proposalInfo)
+		result = append(result, &vote.ProposalInfoWithConfig)
 	}
 	return result, nil
 }

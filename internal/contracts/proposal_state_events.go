@@ -55,3 +55,23 @@ func (p *ProposalsStateProposalFundedIterator) LogIndex() int64 {
 func (p *ProposalsStateProposalFundedIterator) TxHash() common.Hash {
 	return p.Event.Raw.TxHash
 }
+
+func (p *ProposalsStateProposalConfigChangedIterator) ProposalID() int64 {
+	return p.Event.ProposalId.Int64()
+}
+
+func (p *ProposalsStateProposalConfigChangedIterator) FundAmount() *big.Int {
+	return nil
+}
+
+func (p *ProposalsStateProposalConfigChangedIterator) BlockNumber() int64 {
+	return int64(p.Event.Raw.BlockNumber)
+}
+
+func (p *ProposalsStateProposalConfigChangedIterator) LogIndex() int64 {
+	return int64(p.Event.Raw.Index)
+}
+
+func (p *ProposalsStateProposalConfigChangedIterator) TxHash() common.Hash {
+	return p.Event.Raw.TxHash
+}
