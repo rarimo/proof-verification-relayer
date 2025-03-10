@@ -4,6 +4,8 @@ get:
   summary: Get the info of proposals
   description: This endpoint returns details about the proposal, including its current status, configuration, voting options, and results.
   operationId: votingInfo
+  parameters:
+    - $ref: '#/components/parameters/proposalCreatorParam'
   responses:
     200:
       description: Success

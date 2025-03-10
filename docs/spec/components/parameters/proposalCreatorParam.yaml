@@ -1,0 +1,6 @@
+in: query
+name: 'filter[creator]'
+required: false
+schema:
+  type: string
+  description: Creator address.

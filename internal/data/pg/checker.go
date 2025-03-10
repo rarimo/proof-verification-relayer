@@ -84,11 +84,15 @@ func (cq *checkerQ) GetVotingInfo(votingId int64) (*data.VotingInfo, error) {
 	}, nil
 }
 
-func (cq *checkerQ) SelectVotes() ([]*data.VotingInfo, error) {
+func (cq *checkerQ) SelectVotes(creators []string) ([]*data.VotingInfo, error) {
 	var votingInfoList []votingInf
 
 	query := sq.Select("*").From("voting_contract_accounts")
-
+	if len(creators) > 0 {
+		query = query.Where(
+			sq.Eq{"creator_address": creators},
+		)
+	}
 	err := cq.db.Select(&votingInfoList, query)
 	if err != nil {
 		if err != sql.ErrNoRows {

@@ -31,7 +31,7 @@ type CheckerQ interface {
 	InsertVotingInfo(value *VotingInfo) error
 	GetVotingInfo(votingId int64) (*VotingInfo, error)
 	UpdateVotingInfo(value *VotingInfo) error
-	SelectVotes() ([]*VotingInfo, error)
+	SelectVotes(creators []string) ([]*VotingInfo, error)
 
 	InsertProcessedEvent(value ProcessedEvent) error
 	GetLastBlock() (uint64, error)

@@ -151,15 +151,14 @@ type ProposalDescription struct {
 	AcceptedOptions []resources.Options `json:"acceptedOptions"`
 }
 
-func GetProposalList(cfg config.Config) ([]*resources.VotingInfoAttributes, error) {
+func GetProposalList(cfg config.Config, creators []string) ([]*resources.VotingInfoAttributes, error) {
 	var result []*resources.VotingInfoAttributes
 
 	pgDB := pg.NewMaterDB(cfg.DB()).CheckerQ()
-	votingInfoList, err := pgDB.SelectVotes()
+	votingInfoList, err := pgDB.SelectVotes(creators)
 	if err != nil {
 		return nil, err
 	}
-
 	for _, vote := range votingInfoList {
 		result = append(result, &vote.ProposalInfoWithConfig)
 	}
