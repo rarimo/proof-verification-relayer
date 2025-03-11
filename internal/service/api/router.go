@@ -2,43 +2,46 @@ package api
 
 import (
 	"github.com/go-chi/chi"
+	"github.com/rarimo/proof-verification-relayer/internal/config"
+	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/handlers"
 	"gitlab.com/distributed_lab/ape"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 func (s *service) router() chi.Router {
 	r := chi.NewRouter()
 
-	// verifierABI, err := contracts.VoteVerifierMetaData.GetAbi()
-	// if err != nil {
-	// 	panic(errors.Wrap(err, "failed to get vote verifier ABI"))
-	// }
+	verifierABI, err := contracts.VoteVerifierMetaData.GetAbi()
+	if err != nil {
+		panic(errors.Wrap(err, "failed to get vote verifier ABI"))
+	}
 
-	// registerMethod, ok := verifierABI.Methods["register"]
-	// if !ok {
-	// 	panic(errors.New("register method not found"))
-	// }
+	registerMethod, ok := verifierABI.Methods["register"]
+	if !ok {
+		panic(errors.New("register method not found"))
+	}
 
-	// votingRegistry, err := contracts.NewVotingRegistry(s.cfg.ContractsConfig()[config.VotingRegistry].Address, s.cfg.NetworkConfig().Client)
-	// if err != nil {
-	// 	panic(errors.Wrap(err, "failed to initialize new voting registry"))
-	// }
+	votingRegistry, err := contracts.NewVotingRegistry(s.cfg.ContractsConfig()[config.VotingRegistry].Address, s.cfg.NetworkConfig().Client)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to initialize new voting registry"))
+	}
 
-	// lightweightState, err := contracts.NewLightweightState(s.cfg.ContractsConfig()[config.LightweightState].Address, s.cfg.NetworkConfig().Client)
-	// if err != nil {
-	// 	panic(errors.Wrap(err, "failed to initialize new lightweight state"))
-	// }
+	lightweightState, err := contracts.NewLightweightState(s.cfg.ContractsConfig()[config.LightweightState].Address, s.cfg.NetworkConfig().Client)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to initialize new lightweight state"))
+	}
 
-	// lightweightStateABI, err := contracts.LightweightStateMetaData.GetAbi()
-	// if err != nil {
-	// 	panic(errors.Wrap(err, "failed to get lightweight state ABI"))
-	// }
+	lightweightStateABI, err := contracts.LightweightStateMetaData.GetAbi()
+	if err != nil {
+		panic(errors.Wrap(err, "failed to get lightweight state ABI"))
+	}
 
-	// signedTransitState, ok := lightweightStateABI.Methods["signedTransitState"]
-	// if !ok {
-	// 	panic(errors.New("signedTransitState method not found"))
-	// }
+	signedTransitState, ok := lightweightStateABI.Methods["signedTransitState"]
+	if !ok {
+		panic(errors.New("signedTransitState method not found"))
+	}
 
 	r.Use(
 		ape.RecoverMiddleware(s.log),
@@ -46,10 +49,10 @@ func (s *service) router() chi.Router {
 		ape.CtxMiddleware(
 			handlers.CtxLog(s.log),
 			handlers.CtxConfig(s.cfg),
-			// handlers.CtxVoteVerifierRegisterMethod(&registerMethod),
-			// handlers.CtxVotingRegistry(votingRegistry),
-			// handlers.CtxLightweightState(lightweightState),
-			// handlers.CtxSignedTransitStateMethod(&signedTransitState),
+			handlers.CtxVoteVerifierRegisterMethod(&registerMethod),
+			handlers.CtxVotingRegistry(votingRegistry),
+			handlers.CtxLightweightState(lightweightState),
+			handlers.CtxSignedTransitStateMethod(&signedTransitState),
 			handlers.CtxStateQ(pg.NewStateQ(s.cfg.DB().Clone())),
 			handlers.CtxVotingV2Config(s.cfg.VotingV2Config()),
 		),
