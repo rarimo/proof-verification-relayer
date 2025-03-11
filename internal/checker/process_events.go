@@ -33,7 +33,6 @@ func (ch *checker) processEvents(event contracts.ProposalEvent, eventName string
 		return errors.Wrap(err, "failed get voting info")
 	}
 	var proposalInfoWithConfig *resources.VotingInfoAttributes
-
 	switch eventName {
 	case "ProposalCreated", "ProposalConfigChanged":
 		proposalInfoWithConfig, err = GetProposalInfo(event.ProposalID(), ch.cfg, votingInfo.CreatorAddress)
@@ -41,7 +40,6 @@ func (ch *checker) processEvents(event contracts.ProposalEvent, eventName string
 			return err
 		}
 	default:
-		proposalInfoWithConfig = nil
 	}
 
 	if event.FundAmount() != nil {

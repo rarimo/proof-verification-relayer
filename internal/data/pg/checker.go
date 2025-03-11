@@ -3,12 +3,14 @@ package pg
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"math/big"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"
 
 	"github.com/rarimo/proof-verification-relayer/internal/data"
+	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/kit/pgdb"
 )
@@ -84,15 +86,33 @@ func (cq *checkerQ) GetVotingInfo(votingId int64) (*data.VotingInfo, error) {
 	}, nil
 }
 
-func (cq *checkerQ) SelectVotes(creators []string) ([]*data.VotingInfo, error) {
+func (cq *checkerQ) SelectVotes(req requests.ProposalInfoFilter) ([]*data.VotingInfo, error) {
 	var votingInfoList []votingInf
 
 	query := sq.Select("*").From("voting_contract_accounts")
-	if len(creators) > 0 {
+	if len(req.CreatorAddress) > 0 {
 		query = query.Where(
-			sq.Eq{"creator_address": creators},
+			sq.Eq{"creator_address": req.CreatorAddress},
 		)
 	}
+	if len(req.MinAge) > 0 {
+		query = query.Where(
+			sq.Eq{
+				"CAST(proposal_info_with_config->'contract'->'config'->'parsed_voting_whitelist_data'->>'min_age' AS INTEGER)": req.MinAge},
+		)
+	}
+	if len(req.ProposalId) > 0 {
+		query = query.Where(
+			sq.Eq{
+				"CAST(proposal_info_with_config->'contract'->'config'->>'proposal_id' AS INTEGER)": req.ProposalId},
+		)
+	}
+
+	for _, citizenship := range req.CitizenshipList {
+		query = query.Where(
+			"proposal_info_with_config->'contract'->'config'->'parsed_voting_whitelist_data'->'citizenship_whitelist' @> ?", fmt.Sprintf("[\"%v\"]", citizenship))
+	}
+
 	err := cq.db.Select(&votingInfoList, query)
 	if err != nil {
 		if err != sql.ErrNoRows {
@@ -107,6 +127,7 @@ func (cq *checkerQ) SelectVotes(creators []string) ([]*data.VotingInfo, error) {
 		if !success {
 			continue
 		}
+
 		var proposalInfo resources.VotingInfoAttributes
 		err = json.Unmarshal([]byte(vote.ProposalInfoWithConfig), &proposalInfo)
 		if err != nil {
@@ -125,14 +146,14 @@ func (cq *checkerQ) SelectVotes(creators []string) ([]*data.VotingInfo, error) {
 }
 
 func (q *checkerQ) InsertVotingInfo(value *data.VotingInfo) error {
-	jsonData, err := json.Marshal(value.ProposalInfoWithConfig)
+	jsonDataProposalInfo, err := json.Marshal(value.ProposalInfoWithConfig)
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal ProposalInfoWithConfig")
 	}
 
 	query := sq.Insert("voting_contract_accounts").
 		Columns("voting_id", "residual_balance", "gas_limit", "creator_address", "proposal_info_with_config").
-		Values(value.VotingId, value.Balance.String(), value.GasLimit, value.CreatorAddress, jsonData)
+		Values(value.VotingId, value.Balance.String(), value.GasLimit, value.CreatorAddress, jsonDataProposalInfo)
 
 	err = q.db.Exec(query)
 	if err != nil {
@@ -142,16 +163,20 @@ func (q *checkerQ) InsertVotingInfo(value *data.VotingInfo) error {
 }
 
 func (q *checkerQ) UpdateVotingInfo(value *data.VotingInfo) error {
-	jsonData, err := json.Marshal(value.ProposalInfoWithConfig)
+	jsonDataProposalInfo, err := json.Marshal(value.ProposalInfoWithConfig)
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal ProposalInfoWithConfig")
 	}
+	var query sq.UpdateBuilder
+	query = sq.Update("voting_contract_accounts")
+	columns := []string{"voting_id", "residual_balance", "gas_limit", "creator_address", "proposal_info_with_config"}
+	values := []any{value.VotingId, value.Balance.String(), value.GasLimit, value.CreatorAddress, jsonDataProposalInfo}
 
-	query := sq.Update("voting_contract_accounts").
-		Set("residual_balance", value.Balance.String()).
-		Set("gas_limit", value.GasLimit).
-		Set("proposal_info_with_config", jsonData).
-		Where(sq.Eq{"voting_id": value.VotingId})
+	for indx, column := range columns {
+		query = query.Set(column, values[indx])
+	}
+
+	query = query.Where(sq.Eq{"voting_id": value.VotingId})
 
 	err = q.db.Exec(query)
 	if err != nil {

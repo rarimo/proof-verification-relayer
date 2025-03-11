@@ -1,0 +1,25 @@
+type: object
+required:
+  - birth_date_upperbound
+  - citizenship_whitelist
+  - expiration_date_lower_bound
+  - identity_counter_upper_bound
+  - identity_creation_timestamp_upper_bound
+  - min_age
+properties:
+  birth_date_upperbound:
+    type: string
+    description: birth_date_upperbound in hex format
+  expiration_date_lower_bound:
+    type: string
+  identity_counter_upper_bound:
+    type: string
+  identity_creation_timestamp_upper_bound:
+    type: string
+  citizenship_whitelist:
+    type: array
+    items:
+      type: string
+  min_age:
+    type: integer
+    format: int64

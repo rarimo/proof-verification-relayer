@@ -6,8 +6,9 @@ required:
   - proposal_id
   - description
   - multichoice
-  - votingWhitelist
-  - votingWhitelistData
+  - voting_whitelist
+  - voting_whitelist_data
+  - parsed_voting_whitelist_data
 properties:
   start_timestamp:
     type: integer
@@ -28,16 +29,18 @@ properties:
     type: integer
     format: int64
     description: "Multichoice option for voting"
-  votingWhitelist:
+  voting_whitelist:
     type: array
     items:
       type: string
       description: "Address in the voting whitelist"
     description: "List of addresses allowed to vote"
-  votingWhitelistData:
+  voting_whitelist_data:
     type: array
     items:
       type: string
       format: byte
       description: "Additional data for whitelisted voters"
     description: "Additional whitelist data in bytes"
+  parsed_voting_whitelist_data:
+    $ref: '#/components/schemas/ParsedVotingWhitelistData'

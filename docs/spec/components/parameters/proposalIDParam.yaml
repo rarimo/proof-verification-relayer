@@ -1,0 +1,7 @@
+name: 'filter[proposal_id]'
+in: query
+required: false
+schema:
+  type: string
+  pattern: "^[0-9]+$"
+description: Id for proposal

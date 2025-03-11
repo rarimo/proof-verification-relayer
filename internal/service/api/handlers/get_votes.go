@@ -14,16 +14,20 @@ import (
 func GetVotes(w http.ResponseWriter, r *http.Request) {
 	cfg := Config(r)
 
-	creator, err := requests.GetVotesRequest(r)
+	req, err := requests.GetVotesRequest(r)
 	if err != nil {
 		Log(r).Errorf("failed get filters params: %v", err)
-		ape.RenderErr(w, problems.InternalError())
+		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
 	}
-	voteList, err := checker.GetProposalList(cfg, creator.CreatorAddress)
+	voteList, err := checker.GetProposalList(cfg, req)
 	if err != nil {
 		Log(r).Errorf("failed get voting info list: %v", err)
 		ape.RenderErr(w, problems.InternalError())
+		return
+	}
+	if len(voteList) == 0 {
+		ape.RenderErr(w, problems.NotFound())
 		return
 	}
 	var resp resources.VotingInfoListResponse

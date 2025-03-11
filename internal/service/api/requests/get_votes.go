@@ -7,7 +7,10 @@ import (
 )
 
 type ProposalInfoFilter struct {
-	CreatorAddress []string `filter:"creator"`
+	CreatorAddress  []string `filter:"creator"`
+	CitizenshipList []string `filter:"citizenship"`
+	MinAge          []int64  `filter:"age"`
+	ProposalId      []int64  `filter:"proposal_id"`
 }
 
 func GetVotesRequest(r *http.Request) (ProposalInfoFilter, error) {

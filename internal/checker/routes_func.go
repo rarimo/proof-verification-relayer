@@ -3,7 +3,6 @@ package checker
 import (
 	"context"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,7 +10,6 @@ import (
 	"net/http"
 
 	"github.com/rarimo/proof-verification-relayer/internal/config"
-	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
 	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/logan/v3/errors"
@@ -149,73 +147,6 @@ type ProposalDescription struct {
 	Title           string              `json:"title"`
 	Description     string              `json:"description"`
 	AcceptedOptions []resources.Options `json:"acceptedOptions"`
-}
-
-func GetProposalList(cfg config.Config, creators []string) ([]*resources.VotingInfoAttributes, error) {
-	var result []*resources.VotingInfoAttributes
-
-	pgDB := pg.NewMaterDB(cfg.DB()).CheckerQ()
-	votingInfoList, err := pgDB.SelectVotes(creators)
-	if err != nil {
-		return nil, err
-	}
-	for _, vote := range votingInfoList {
-		result = append(result, &vote.ProposalInfoWithConfig)
-	}
-	return result, nil
-}
-
-func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string) (*resources.VotingInfoAttributes, error) {
-	contractAddress := cfg.VotingV2Config().Address
-	client := cfg.VotingV2Config().RPC
-	ipfsUrl := cfg.VotingV2Config().IpfsUrl
-	caller, err := contracts.NewProposalsStateCaller(contractAddress, client)
-	if err != nil {
-		return nil, err
-	}
-
-	proposalInfo, err := caller.GetProposalInfo(nil, big.NewInt(proposalId))
-	if err != nil {
-		return nil, err
-	}
-	startTimeStamp := proposalInfo.Config.StartTimestamp
-	endTimestamp := proposalInfo.Config.StartTimestamp + proposalInfo.Config.Duration
-
-	desc, err := getProposalDescFromIpfs(proposalInfo.Config.Description, ipfsUrl)
-	if err != nil {
-		return nil, err
-	}
-	votingConfig := proposalInfo.Config
-	var votingWhitelist []string
-
-	for _, addr := range votingConfig.VotingWhitelist {
-		votingWhitelist = append(votingWhitelist, addr.Hex())
-	}
-	for _, addr := range votingConfig.VotingWhitelist {
-		votingWhitelist = append(votingWhitelist, addr.Hex())
-	}
-	var votingWhitelistData []string
-	for _, data := range votingConfig.VotingWhitelistData {
-		votingWhitelistData = append(votingWhitelistData, hex.EncodeToString(data))
-	}
-	return &resources.VotingInfoAttributes{
-		Author:   creatorAddress,
-		Metadata: *desc,
-		Contract: resources.VotingInfoContractInfo{
-			ProposalSMT: proposalInfo.ProposalSMT.Hex(),
-			Status:      proposalInfo.Status,
-			Config: resources.VotingInfoConfig{
-				Description:         votingConfig.Description,
-				StartTimestamp:      int64(startTimeStamp),
-				EndTimestamp:        int64(endTimestamp),
-				Multichoice:         votingConfig.Multichoice.Int64(),
-				ProposalId:          proposalId,
-				VotingWhitelist:     votingWhitelist,
-				VotingWhitelistData: votingWhitelistData,
-			},
-		},
-	}, nil
-
 }
 
 func getProposalDescFromIpfs(desId string, ipfsUrl string) (*resources.VotingInfoAttributesMetadata, error) {

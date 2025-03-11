@@ -11,13 +11,14 @@ type VotingInfoConfig struct {
 	// End time of the proposal
 	EndTimestamp int64 `json:"end_timestamp"`
 	// Multichoice option for voting
-	Multichoice int64 `json:"multichoice"`
+	Multichoice               int64                     `json:"multichoice"`
+	ParsedVotingWhitelistData ParsedVotingWhitelistData `json:"parsed_voting_whitelist_data"`
 	// Unique identifier of the proposal
 	ProposalId int64 `json:"proposal_id"`
 	// Start time of the proposal
 	StartTimestamp int64 `json:"start_timestamp"`
 	// List of addresses allowed to vote
-	VotingWhitelist []string `json:"votingWhitelist"`
+	VotingWhitelist []string `json:"voting_whitelist"`
 	// Additional whitelist data in bytes
-	VotingWhitelistData []string `json:"votingWhitelistData"`
+	VotingWhitelistData []string `json:"voting_whitelist_data"`
 }

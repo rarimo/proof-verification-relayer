@@ -6,6 +6,9 @@ get:
   operationId: votingInfo
   parameters:
     - $ref: '#/components/parameters/proposalCreatorParam'
+    - $ref: '#/components/parameters/citizenshipParam'
+    - $ref: '#/components/parameters/ageParam'
+    - $ref: '#/components/parameters/proposalIDParam'
   responses:
     200:
       description: Success
