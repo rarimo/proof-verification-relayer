@@ -1,8 +1,8 @@
 get:
   tags:
     - Voting Info
-  summary: Get the info of proposals
-  description: This endpoint returns details about the proposal, including its current status, configuration, voting options, and results.
+  summary: Get the voting info
+  description: This endpoint returns details about the voting, including its current status, configuration, voting options, and results.
   operationId: votingInfo
   parameters:
     - $ref: '#/components/parameters/proposalCreatorParam'

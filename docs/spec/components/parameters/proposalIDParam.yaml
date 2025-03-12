@@ -1,7 +1,7 @@
-name: 'filter[proposal_id]'
+name: 'filter[voting_id]'
 in: query
 required: false
 schema:
-  type: string
-  pattern: "^[0-9]+$"
+  type: integer
+  format: int64
 description: Id for proposal

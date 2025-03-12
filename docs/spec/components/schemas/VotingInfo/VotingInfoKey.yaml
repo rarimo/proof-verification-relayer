@@ -5,4 +5,4 @@ properties:
   type:
     type: string
     enum: 
-      - "vote_info"
+      - "voting_info"

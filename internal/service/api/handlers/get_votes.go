@@ -11,10 +11,10 @@ import (
 	"gitlab.com/distributed_lab/ape/problems"
 )
 
-func GetVotes(w http.ResponseWriter, r *http.Request) {
+func GetVotingInfo(w http.ResponseWriter, r *http.Request) {
 	cfg := Config(r)
 
-	req, err := requests.GetVotesRequest(r)
+	req, err := requests.GetVotingInfoRequest(r)
 	if err != nil {
 		Log(r).Errorf("failed get filters params: %v", err)
 		ape.RenderErr(w, problems.BadRequest(err)...)
@@ -37,7 +37,7 @@ func GetVotes(w http.ResponseWriter, r *http.Request) {
 		resp.Data = append(resp.Data, resources.VotingInfo{
 			Key: resources.Key{
 				ID:   id,
-				Type: resources.VOTE_INFO,
+				Type: resources.VOTING_INFO,
 			},
 			Attributes: *vote,
 		})

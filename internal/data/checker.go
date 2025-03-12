@@ -16,15 +16,6 @@ type VotingWhitelistDataBigInt struct {
 	ExpirationDateLowerBound            *big.Int   `abi:"expirationDateLowerBound"`
 }
 
-// type ParsedVotingWhitelistData struct {
-// 	CitizenshipWhitelist                []string `json:"citizenship_whitelist"`
-// 	IdentityCreationTimestampUpperBound string   `json:"identity_creation_timestamp_upper_bound"`
-// 	IdentityCounterUpperBound           string   `json:"identity_counter_upper_bound" `
-// 	BirthDateUpperbound                 string   `json:"birth_date_upperbound"`
-// 	ExpirationDateLowerBound            string   `json:"expiration_date_lower_bound"`
-// 	MinAge                              int64    `json:"min_age"`
-// }
-
 type VotingInfo struct {
 	VotingId               int64                          `db:"voting_id"`
 	Balance                *big.Int                       `db:"residual_balance"`

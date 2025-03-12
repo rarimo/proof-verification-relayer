@@ -10,10 +10,10 @@ type ProposalInfoFilter struct {
 	CreatorAddress  []string `filter:"creator"`
 	CitizenshipList []string `filter:"citizenship"`
 	MinAge          []int64  `filter:"age"`
-	ProposalId      []int64  `filter:"proposal_id"`
+	ProposalId      []int64  `filter:"voting_id"`
 }
 
-func GetVotesRequest(r *http.Request) (ProposalInfoFilter, error) {
+func GetVotingInfoRequest(r *http.Request) (ProposalInfoFilter, error) {
 	var request ProposalInfoFilter
 	err := urlval.DecodeSilently(r.URL.Query(), &request)
 	if err != nil {

@@ -9,7 +9,6 @@ CREATE INDEX IF NOT EXISTS idx_proposal_info_with_config ON voting_contract_acco
 
 -- +migrate Down
 
-
 DROP INDEX IF EXISTS idx_creator_address;
 DROP INDEX IF EXISTS idx_proposal_info_with_config;
 
