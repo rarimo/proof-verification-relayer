@@ -204,7 +204,7 @@ func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string)
 					CitizenshipWhitelist:                citizenshipWhitelist,
 					IdentityCreationTimestampUpperBound: parsedVotingWhitelistData.IdentityCreationTimestampUpperBound.String(),
 					IdentityCounterUpperBound:           parsedVotingWhitelistData.IdentityCounterUpperBound.String(),
-					BirthDateUpperbound:                 parsedVotingWhitelistData.BirthDateUpperbound.Text(16),
+					BirthDateUpperBound:                 parsedVotingWhitelistData.BirthDateUpperbound.Text(16),
 					ExpirationDateLowerBound:            parsedVotingWhitelistData.ExpirationDateLowerBound.Text(16),
 					MinAge:                              minAge,
 				},

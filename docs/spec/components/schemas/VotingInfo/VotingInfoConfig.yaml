@@ -24,7 +24,7 @@ properties:
     description: Unique identifier of the proposal
   description:
     type: string
-    description: Detailed description of the proposal
+    description: Ipfs CID
   multichoice:
     type: integer
     format: int64

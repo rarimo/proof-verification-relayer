@@ -1,7 +1,7 @@
 get:
   tags:
     - Voting Info
-  summary: Get the voting info
+  summary: Get voting info
   description: This endpoint returns details about the voting, including its current status, configuration, voting options, and results.
   operationId: votingInfo
   parameters:

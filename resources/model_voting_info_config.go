@@ -6,7 +6,7 @@ package resources
 
 // Proposal info
 type VotingInfoConfig struct {
-	// Detailed description of the proposal
+	// Ipfs CID
 	Description string `json:"description"`
 	// End time of the proposal
 	EndTimestamp int64 `json:"end_timestamp"`
