@@ -98,19 +98,19 @@ func (cq *checkerQ) SelectVotes(req requests.ProposalInfoFilter) ([]*data.Voting
 	if len(req.MinAge) > 0 {
 		query = query.Where(
 			sq.Eq{
-				"CAST(proposal_info_with_config->'contract'->'config'->'parsed_voting_whitelist_data'->>'min_age' AS INTEGER)": req.MinAge},
+				"proposal_info_with_config #> '{contract, config, parsed_voting_whitelist_data, 0, min_age}'": req.MinAge},
 		)
 	}
 	if len(req.ProposalId) > 0 {
 		query = query.Where(
 			sq.Eq{
-				"CAST(proposal_info_with_config->'contract'->'config'->>'proposal_id' AS INTEGER)": req.ProposalId},
+				"proposal_info_with_config->'contract'->'config'->'proposal_id'": req.ProposalId},
 		)
 	}
 
 	for _, citizenship := range req.CitizenshipList {
 		query = query.Where(
-			"proposal_info_with_config->'contract'->'config'->'parsed_voting_whitelist_data'->'citizenship_whitelist' @> ?", fmt.Sprintf("[\"%v\"]", citizenship))
+			"proposal_info_with_config #> '{contract, config, parsed_voting_whitelist_data, 0, citizenship_whitelist}' @> ?", fmt.Sprintf("[\"%v\"]", citizenship))
 	}
 
 	err := cq.db.Select(&votingInfoList, query)

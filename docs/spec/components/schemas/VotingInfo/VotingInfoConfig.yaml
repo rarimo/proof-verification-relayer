@@ -43,4 +43,6 @@ properties:
       description: "Additional data for whitelisted voters"
     description: "Additional whitelist data in bytes"
   parsed_voting_whitelist_data:
-    $ref: '#/components/schemas/ParsedVotingWhitelistData'
+    type: array
+    items:
+      $ref: '#/components/schemas/ParsedVotingWhiteData'

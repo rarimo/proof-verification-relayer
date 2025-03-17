@@ -9,11 +9,11 @@ import (
 )
 
 type VotingWhitelistDataBigInt struct {
-	CitizenshipWhitelist                []*big.Int `abi:"citizenshipWhitelist"`
-	IdentityCreationTimestampUpperBound *big.Int   `abi:"identityCreationTimestampUpperBound"`
-	IdentityCounterUpperBound           *big.Int   `abi:"identityCounterUpperBound"`
-	BirthDateUpperbound                 *big.Int   `abi:"birthDateUpperbound"`
-	ExpirationDateLowerBound            *big.Int   `abi:"expirationDateLowerBound"`
+	CitizenshipWhitelist                []*big.Int `json:"citizenshipWhitelist"`
+	IdentityCreationTimestampUpperBound *big.Int   `json:"identityCreationTimestampUpperBound"`
+	IdentityCounterUpperBound           *big.Int   `json:"identityCounterUpperBound"`
+	BirthDateUpperbound                 *big.Int   `json:"birthDateUpperbound"`
+	ExpirationDateLowerBound            *big.Int   `json:"expirationDateLowerBound"`
 }
 
 type VotingInfo struct {

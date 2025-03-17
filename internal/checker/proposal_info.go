@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"reflect"
 	"strings"
 	"time"
 
@@ -17,72 +16,64 @@ import (
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/logan/v3"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
-func decodeVotingConfig(encodedHex string) (data.VotingWhitelistDataBigInt, error) {
-	var config data.VotingWhitelistDataBigInt
+func decodeVotingConfig(encodedHex string) ([]data.VotingWhitelistDataBigInt, error) {
+	var whiteData []data.VotingWhitelistDataBigInt
 	dataBytes, err := hexutil.Decode(encodedHex)
 	if err != nil {
-		return config, err
+		return whiteData, err
 	}
 
-	rawABI := `
-    [
-      {
-        "type":"function",
-        "name":"ProposalRules",
-        "inputs":[
-          {
-            "name":"config",
-            "type":"tuple",
-            "components":[
-              {"name":"citizenshipWhitelist","type":"uint256[]"},
-              {"name":"identityCreationTimestampUpperBound","type":"uint256"},
-              {"name":"identityCounterUpperBound","type":"uint256"},
-              {"name":"birthDateUpperbound","type":"uint256"},
-              {"name":"expirationDateLowerBound","type":"uint256"}
-            ]
-          }
-        ],
-        "outputs":[]
-      }
-    ]`
+	rawABI := `[
+		{
+		  "name": "ProposalRules",
+		  "type": "event",
+		  "inputs": [	
+		  {"name": "whiteData", "type":"tuple", "components": [
+		  {"name": "citizenshipWhitelist", "type": "uint256[]"},
+			{"name": "identityCreationTimestampUpperBound", "type": "uint256"},
+			{"name": "identityCounterUpperBound", "type": "uint256"},
+			{"name": "birthDateUpperbound", "type": "uint256"},
+			{"name": "expirationDateLowerBound", "type": "uint256"}
+		  ]}  
+		  ]
+		}
+	  ]`
 	parsedABI, err := abi.JSON(strings.NewReader(rawABI))
 	if err != nil {
-		return config, err
+		return whiteData, errors.Wrap(err, "ERROR parsed ABI")
 	}
 
-	method, ok := parsedABI.Methods["ProposalRules"]
+	method, ok := parsedABI.Events["ProposalRules"]
 	if !ok {
-		return config, fmt.Errorf("method ProposalRules not found in ABI")
+		return whiteData, fmt.Errorf("method ProposalRules not found in ABI")
 	}
 
 	decoded, err := method.Inputs.Unpack(dataBytes)
 	if err != nil {
-		return config, err
+		return whiteData, fmt.Errorf("failed to unpack calldata: %v", err)
 	}
 
-	if len(decoded) != 1 {
-		return config, fmt.Errorf("unexpected argument count, want 1 got %d", len(decoded))
+	for _, decodedWhiteData := range decoded {
+		dc := decodedWhiteData.(struct {
+			CitizenshipWhitelist                []*big.Int `json:"citizenshipWhitelist"`
+			IdentityCreationTimestampUpperBound *big.Int   `json:"identityCreationTimestampUpperBound"`
+			IdentityCounterUpperBound           *big.Int   `json:"identityCounterUpperBound"`
+			BirthDateUpperbound                 *big.Int   `json:"birthDateUpperbound"`
+			ExpirationDateLowerBound            *big.Int   `json:"expirationDateLowerBound"`
+		})
+		whiteData = append(whiteData, data.VotingWhitelistDataBigInt{
+			CitizenshipWhitelist:                dc.CitizenshipWhitelist,
+			IdentityCreationTimestampUpperBound: dc.IdentityCreationTimestampUpperBound,
+			IdentityCounterUpperBound:           dc.IdentityCounterUpperBound,
+			BirthDateUpperbound:                 dc.BirthDateUpperbound,
+			ExpirationDateLowerBound:            dc.ExpirationDateLowerBound,
+		})
 	}
 
-	val := reflect.ValueOf(decoded[0])
-
-	arrField := val.FieldByName("CitizenshipWhitelist").Interface()
-	citizenshipWhitelist, ok := arrField.([]*big.Int)
-	if !ok {
-		return config, fmt.Errorf("failed to cast citizenshipWhitelist")
-	}
-
-	config = data.VotingWhitelistDataBigInt{
-		CitizenshipWhitelist:                citizenshipWhitelist,
-		IdentityCreationTimestampUpperBound: val.FieldByName("IdentityCreationTimestampUpperBound").Interface().(*big.Int),
-		IdentityCounterUpperBound:           val.FieldByName("IdentityCounterUpperBound").Interface().(*big.Int),
-		BirthDateUpperbound:                 val.FieldByName("BirthDateUpperbound").Interface().(*big.Int),
-		ExpirationDateLowerBound:            val.FieldByName("ExpirationDateLowerBound").Interface().(*big.Int),
-	}
-
-	return config, nil
+	return whiteData, nil
 }
 
 func GetMinAge(birthDateUpperbound string, expirationDateLowerBound string, log *logan.Entry) (int64, error) {
@@ -164,28 +155,47 @@ func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string)
 	}
 	votingWhitelistDataHex := fmt.Sprintf("0x%v", votingWhitelistData[0])
 
-	parsedVotingWhitelistData, _ := decodeVotingConfig(votingWhitelistDataHex)
-	var citizenshipWhitelist []string
-	for _, citizenship := range parsedVotingWhitelistData.CitizenshipWhitelist {
-		bytes, err := hex.DecodeString(citizenship.Text(16))
-		if err != nil {
-			cfg.Log().WithFields(logan.F{
-				"error":       err,
-				"proposal_id": proposalId,
-			}).Debug("failed decoding citizenship")
-			continue
-		}
-		asciiString := string(bytes)
-		citizenshipWhitelist = append(citizenshipWhitelist, asciiString)
-	}
-
-	minAge, err := GetMinAge(parsedVotingWhitelistData.BirthDateUpperbound.Text(16), parsedVotingWhitelistData.ExpirationDateLowerBound.Text(16), cfg.Log())
+	votingWhitelistDataBigInt, err := decodeVotingConfig(votingWhitelistDataHex)
 	if err != nil {
 		cfg.Log().WithFields(logan.F{
 			"error":       err,
 			"proposal_id": proposalId,
-		}).Debug("failed get min age")
+		}).Debug("failed decoding voting white list data")
 	}
+	var parsedVotingWhitelistData []resources.ParsedVotingWhiteData
+	for _, whiteData := range votingWhitelistDataBigInt {
+		var citizenshipWhitelist []string
+		for _, citizenship := range whiteData.CitizenshipWhitelist {
+			bytes, err := hex.DecodeString(citizenship.Text(16))
+			if err != nil {
+				cfg.Log().WithFields(logan.F{
+					"error":       err,
+					"proposal_id": proposalId,
+				}).Debug("failed decoding citizenship")
+				continue
+			}
+			asciiString := string(bytes)
+			citizenshipWhitelist = append(citizenshipWhitelist, asciiString)
+		}
+
+		minAge, err := GetMinAge(whiteData.BirthDateUpperbound.Text(16), whiteData.ExpirationDateLowerBound.Text(16), cfg.Log())
+		if err != nil {
+			cfg.Log().WithFields(logan.F{
+				"error":       err,
+				"proposal_id": proposalId,
+			}).Debug("failed get min age")
+		}
+
+		parsedVotingWhitelistData = append(parsedVotingWhitelistData, resources.ParsedVotingWhiteData{
+			CitizenshipWhitelist:                citizenshipWhitelist,
+			IdentityCreationTimestampUpperBound: whiteData.IdentityCreationTimestampUpperBound.String(),
+			IdentityCounterUpperBound:           whiteData.IdentityCounterUpperBound.String(),
+			BirthDateUpperBound:                 whiteData.BirthDateUpperbound.Text(16),
+			ExpirationDateLowerBound:            whiteData.ExpirationDateLowerBound.Text(16),
+			MinAge:                              minAge,
+		})
+	}
+
 	return &resources.VotingInfoAttributes{
 		Author:   creatorAddress,
 		Metadata: *desc,
@@ -193,21 +203,14 @@ func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string)
 			ProposalSMT: proposalInfo.ProposalSMT.Hex(),
 			Status:      proposalInfo.Status,
 			Config: resources.VotingInfoConfig{
-				Description:         votingConfig.Description,
-				StartTimestamp:      int64(startTimeStamp),
-				EndTimestamp:        int64(endTimestamp),
-				Multichoice:         votingConfig.Multichoice.Int64(),
-				ProposalId:          proposalId,
-				VotingWhitelist:     votingWhitelist,
-				VotingWhitelistData: votingWhitelistData,
-				ParsedVotingWhitelistData: resources.ParsedVotingWhitelistData{
-					CitizenshipWhitelist:                citizenshipWhitelist,
-					IdentityCreationTimestampUpperBound: parsedVotingWhitelistData.IdentityCreationTimestampUpperBound.String(),
-					IdentityCounterUpperBound:           parsedVotingWhitelistData.IdentityCounterUpperBound.String(),
-					BirthDateUpperBound:                 parsedVotingWhitelistData.BirthDateUpperbound.Text(16),
-					ExpirationDateLowerBound:            parsedVotingWhitelistData.ExpirationDateLowerBound.Text(16),
-					MinAge:                              minAge,
-				},
+				Description:               votingConfig.Description,
+				StartTimestamp:            int64(startTimeStamp),
+				EndTimestamp:              int64(endTimestamp),
+				Multichoice:               votingConfig.Multichoice.Int64(),
+				ProposalId:                proposalId,
+				VotingWhitelist:           votingWhitelist,
+				VotingWhitelistData:       votingWhitelistData,
+				ParsedVotingWhitelistData: parsedVotingWhitelistData,
 			},
 		},
 	}, nil
