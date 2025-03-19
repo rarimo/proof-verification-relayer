@@ -32,15 +32,6 @@ const (
 	TRANSACTION resources.ResourceType = "transaction"
 )
 
-type votingInfo struct {
-	registrationRoot_ [32]byte
-	currentDate_      *big.Int
-	proposalId_       *big.Int
-	vote_             []*big.Int
-	userData_         biopassportvoting.BaseVotingUserData
-	zkPoints_         biopassportvoting.VerifierHelperProofPoints
-}
-
 type txData struct {
 	dataBytes []byte
 	gasPrice  *big.Int
@@ -82,8 +73,8 @@ func VoteV2(w http.ResponseWriter, r *http.Request) {
 		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
 	}
-	proposalID := calldataInfo.proposalId_.Int64()
 
+	proposalID := calldataInfo.ProposalID.Int64()
 	log := Log(r).WithFields(logan.F{
 		"user-agent":  r.Header.Get("User-Agent"),
 		"calldata":    calldata,
@@ -248,17 +239,76 @@ func signTx(r *http.Request, txd *txData, receiver *common.Address) (tx *types.T
 	return tx, err
 }
 
-func parseCallData(calldata []byte) (*votingInfo, error) {
-	var params votingInfo
+type VoteCalldata struct {
+	RegistrationRoot [32]byte
+	CurrentDate      *big.Int
+	ProposalID       *big.Int
+	Vote             []*big.Int
+	UserData         biopassportvoting.BaseVotingUserData
+	ZkPoints         biopassportvoting.VerifierHelperProofPoints
+}
+
+func parseCallData(data []byte) (VoteCalldata, error) {
+	var config VoteCalldata
+	if len(data) < 4 {
+		return config, fmt.Errorf("calldata is too short")
+	}
+
 	parsedABI, err := abi.JSON(strings.NewReader(biopassportvoting.BioPassportVotingABI))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to parse contract ABI")
+		return config, err
 	}
 
-	err = parsedABI.UnpackIntoInterface(&params, "vote", calldata)
+	method, ok := parsedABI.Methods["vote"]
+	if !ok {
+		return config, fmt.Errorf("method 'vote' not found in ABI")
+	}
+
+	decoded, err := method.Inputs.Unpack(data[4:])
 	if err != nil {
-		return nil, err
+		return config, fmt.Errorf("failed to unpack calldata: %v", err)
 	}
 
-	return &params, nil
+	if len(decoded) != 6 {
+		return config, fmt.Errorf("unexpected argument count, expected 6 got %d", len(decoded))
+	}
+
+	config.RegistrationRoot = decoded[0].([32]byte)
+	config.CurrentDate = decoded[1].(*big.Int)
+	config.ProposalID = decoded[2].(*big.Int)
+	config.Vote = decoded[3].([]*big.Int)
+	userDataRaw := decoded[4]
+
+	userDataStruct, ok := userDataRaw.(struct {
+		Nullifier                 *big.Int `json:"nullifier"`
+		Citizenship               *big.Int `json:"citizenship"`
+		IdentityCreationTimestamp *big.Int `json:"identityCreationTimestamp"`
+	})
+	if !ok {
+		return config, fmt.Errorf("failed to cast userData_ to expected struct, got %T", userDataRaw)
+	}
+
+	config.UserData = biopassportvoting.BaseVotingUserData{
+		Nullifier:                 userDataStruct.Nullifier,
+		Citizenship:               userDataStruct.Citizenship,
+		IdentityCreationTimestamp: userDataStruct.IdentityCreationTimestamp,
+	}
+
+	zkPointsRaw := decoded[5]
+	zkPointsStruct, ok := zkPointsRaw.(struct {
+		A [2]*big.Int    `json:"a"`
+		B [2][2]*big.Int `json:"b"`
+		C [2]*big.Int    `json:"c"`
+	})
+	if !ok {
+		return config, fmt.Errorf("failed to cast zkPoints_ to expected struct, got %T", zkPointsRaw)
+	}
+
+	config.ZkPoints = biopassportvoting.VerifierHelperProofPoints{
+		A: zkPointsStruct.A,
+		B: zkPointsStruct.B,
+		C: zkPointsStruct.C,
+	}
+
+	return config, nil
 }
