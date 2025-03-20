@@ -2,7 +2,9 @@
 
 ## Description
 
-This service is responsible for sending proof verification transaction, paying fees instead of a user.
+This service listens to `RootUpdated` events and saves it to database. 
+See [endpoint doc](https://rarimo.github.io/proof-verification-relayer/#tag/State/operation/GetState) to get signed state data.
+Send signed state to [on-chain replicator](https://github.com/rarimo/passport-voting-contracts/blob/master/contracts/replication/RegistrationSMTReplicator.sol#L32).
 
 ## Install
 
@@ -14,6 +16,16 @@ This service is responsible for sending proof verification transaction, paying f
   ./main migrate up
   ./main run service
   ```
+
+## Configuration
+
+### Transit state mode
+
+Use [config_transit_state.yaml](config_transit_state.yaml) and set:
+
+- `private_key` of your signer on smart contract
+- `address` of your state replica
+- `db_url` Postgres database to store state roots
 
 ## Documentation
 

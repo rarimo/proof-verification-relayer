@@ -1,0 +1,40 @@
+network:
+  rpc: "https://l2.rarimo.com/"
+  vault_address: "http://127.0.0.1:8200"
+  vault_mount_path: "secret_data"
+  gas_multiplier: 1.23
+  private_key: without '0x' # For security purposes this key may be omitted and flow with Vault would be used
+
+replicator:
+  address: 0xabc # address of your contract
+  source_smt: 0x479F84502Db545FA8d2275372E0582425204A879
+  root_prefix: Rarimo root
+
+db:
+  url: db_url # set your database
+
+contracts:
+  register2:
+    address: "0x479F84502Db545FA8d2275372E0582425204A879"
+    block: 830 # Block is optional field for contract listeners, default value is 0 if nothing set
+
+log:
+  level: debug
+  disable_sentry: true
+
+pinger:
+  blocks_distance: 1000
+  timeout: 5s # timeout to ping logs when 'subscribed' via http
+  normal_period: 15s
+  min_abnormal_period: 20s
+  max_abnormal_period: 50s
+
+listener:
+  addr: :8000
+
+cop:
+  disabled: true
+  endpoint: "http://..."
+  upstream: "http://..."
+  service_name: proof-verification-relayer
+  service_port: 80
