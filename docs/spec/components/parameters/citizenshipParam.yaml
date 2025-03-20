@@ -1,0 +1,6 @@
+in: query
+name: 'filter[citizenship]'
+required: false
+schema:
+  type: string
+  description: Citizenship string like "UKR".

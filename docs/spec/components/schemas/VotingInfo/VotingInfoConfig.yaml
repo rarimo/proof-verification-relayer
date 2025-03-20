@@ -1,0 +1,48 @@
+type: object
+description: Proposal info
+required:
+  - start_timestamp
+  - end_timestamp
+  - proposal_id
+  - description
+  - multichoice
+  - voting_whitelist
+  - voting_whitelist_data
+  - parsed_voting_whitelist_data
+properties:
+  start_timestamp:
+    type: integer
+    format: int64
+    description: Start time of the proposal
+  end_timestamp:
+    type: integer
+    format: int64
+    description: End time of the proposal
+  proposal_id:
+    type: integer
+    format: int64
+    description: Unique identifier of the proposal
+  description:
+    type: string
+    description: Ipfs CID
+  multichoice:
+    type: integer
+    format: int64
+    description: "Multichoice option for voting"
+  voting_whitelist:
+    type: array
+    items:
+      type: string
+      description: "Address in the voting whitelist"
+    description: "List of addresses allowed to vote"
+  voting_whitelist_data:
+    type: array
+    items:
+      type: string
+      format: byte
+      description: "Additional data for whitelisted voters"
+    description: "Additional whitelist data in bytes"
+  parsed_voting_whitelist_data:
+    type: array
+    items:
+      $ref: '#/components/schemas/ParsedVotingWhiteData'

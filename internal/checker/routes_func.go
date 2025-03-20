@@ -3,11 +3,15 @@ package checker
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"io"
 	"math/big"
+	"net/http"
 
 	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
+	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
@@ -137,4 +141,35 @@ func UpdateVotingBalance(cfg config.Config, gasPrice *big.Int, gas uint64, votin
 		return fmt.Errorf("failed update voting info from db: %w", err)
 	}
 	return err
+}
+
+type ProposalDescription struct {
+	Title           string              `json:"title"`
+	Description     string              `json:"description"`
+	AcceptedOptions []resources.Options `json:"acceptedOptions"`
+}
+
+func getProposalDescFromIpfs(desId string, ipfsUrl string) (*resources.VotingInfoAttributesMetadata, error) {
+	requestURL := fmt.Sprintf("%s/ipfs/%s", ipfsUrl, desId)
+	resp, err := http.Get(requestURL)
+	if err != nil {
+		return nil, fmt.Errorf("error making http request: %v", err)
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed read body response: %v", err)
+	}
+
+	var data ProposalDescription
+	if err := json.Unmarshal(body, &data); err != nil {
+		return nil, fmt.Errorf("failed parse JSON: %v", err)
+	}
+	return &resources.VotingInfoAttributesMetadata{
+		AcceptedOptions: data.AcceptedOptions,
+		Title:           data.Title,
+		Description:     data.Description,
+	}, nil
 }

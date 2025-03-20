@@ -1,0 +1,30 @@
+type: object
+required:
+  - birth_date_upper_bound
+  - citizenship_whitelist
+  - expiration_date_lower_bound
+  - identity_counter_upper_bound
+  - identity_creation_timestamp_upper_bound
+  - min_age
+properties:
+  birth_date_upper_bound:
+    type: string
+    description: birth_date_upper_bound in hex format without first 0x
+  expiration_date_lower_bound:
+    type: string
+    description: expiration_date_lower_bound in hex format without first 0x
+  identity_counter_upper_bound:
+    type: string
+    description: uniqueness 0 | 1
+  identity_creation_timestamp_upper_bound:
+    type: string
+  citizenship_whitelist:
+    type: array
+    items:
+      type: string
+      description: Citizenship string like "UKR".
+    example: ["UKR", "TWN"]
+    description: Citizenship whitelist for the voting
+  min_age:
+    type: integer
+    format: int64

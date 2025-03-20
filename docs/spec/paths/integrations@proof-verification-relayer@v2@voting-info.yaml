@@ -1,0 +1,33 @@
+get:
+  tags:
+    - Voting Info
+  summary: Get voting info
+  description: This endpoint returns details about the voting, including its current status, configuration, voting options, and results.
+  operationId: votingInfo
+  parameters:
+    - $ref: '#/components/parameters/proposalCreatorParam'
+    - $ref: '#/components/parameters/citizenshipParam'
+    - $ref: '#/components/parameters/ageParam'
+    - $ref: '#/components/parameters/proposalIDParam'
+  responses:
+    200:
+      description: Success
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/VotingInfo'
+    404:
+      description: Not Found Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NotFoundError'
+    500:
+      description: Internal Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InternalError'

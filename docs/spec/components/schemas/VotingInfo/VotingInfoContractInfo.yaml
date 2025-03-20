@@ -1,0 +1,15 @@
+type: object
+required:
+  - proposalSMT
+  - status
+  - config
+properties:
+  proposalSMT:
+    type: string
+    description: "Address of the proposal SMT"
+  status:
+    type: integer
+    format: uint8
+    description: "Status of the proposal"
+  config:
+    $ref: '#/components/schemas/VotingInfoConfig'

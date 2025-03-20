@@ -1,0 +1,7 @@
+in: query
+name: 'filter[age]'
+required: false
+schema:
+  type: integer
+  format: int64
+  description: Minimal age for proposal.

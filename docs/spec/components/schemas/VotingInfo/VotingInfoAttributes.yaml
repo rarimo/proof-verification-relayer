@@ -1,0 +1,13 @@
+type: object
+required:
+  - contract
+  - author
+  - metadata
+properties:
+  contract:
+    $ref: '#/components/schemas/VotingInfoContractInfo'
+  author:
+    type: string
+    description: Address creator of the proposal
+  metadata:
+    $ref: '#/components/schemas/VotingInfoAttributesMetadata'
