@@ -187,13 +187,22 @@ func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string)
 			MinAge:                              minAge,
 		})
 	}
+	votingResults := make([][]int64, len(proposalInfo.Config.AcceptedOptions))
+
+	for indx, optionResult := range proposalInfo.VotingResults {
+		votingResults[indx] = make([]int64, 8)
+		for varIndx := 0; varIndx < 8; varIndx += 1 {
+			votingResults[indx][varIndx] = optionResult[varIndx].Int64()
+		}
+	}
 
 	return &resources.VotingInfoAttributes{
 		Author:   creatorAddress,
 		Metadata: *desc,
 		Contract: resources.VotingInfoContractInfo{
-			ProposalSMT: proposalInfo.ProposalSMT.Hex(),
-			Status:      proposalInfo.Status,
+			ProposalSMT:   proposalInfo.ProposalSMT.Hex(),
+			Status:        proposalInfo.Status,
+			VotingResults: votingResults,
 			Config: resources.VotingInfoConfig{
 				Description:               votingConfig.Description,
 				StartTimestamp:            int64(startTimeStamp),

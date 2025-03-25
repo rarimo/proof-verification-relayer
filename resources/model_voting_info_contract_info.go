@@ -9,5 +9,6 @@ type VotingInfoContractInfo struct {
 	// Address of the proposal SMT
 	ProposalSMT string `json:"proposalSMT"`
 	// Status of the proposal
-	Status uint8 `json:"status"`
+	Status        uint8     `json:"status"`
+	VotingResults [][]int64 `json:"voting_results"`
 }
