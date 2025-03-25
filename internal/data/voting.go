@@ -3,7 +3,6 @@ package data
 import (
 	"math/big"
 
-	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"github.com/rarimo/proof-verification-relayer/resources"
 )
 
@@ -30,5 +29,10 @@ type VotingQ interface {
 	UpdateVotingInfo(value *VotingInfo) error
 
 	GetVotingInfo(votingId int64) (*VotingInfo, error)
-	SelectVotingInfo(req requests.ProposalInfoFilter) ([]*VotingInfo, error)
+	SelectVotingInfo() ([]*VotingInfo, error)
+
+	FilterByVotingId(votingIds ...int64) VotingQ
+	FilterByCreator(creators ...string) VotingQ
+	FilterByMinAge(minAgeList ...int64) VotingQ
+	FilterByCitizenship(сitizenshipList ...string) VotingQ
 }

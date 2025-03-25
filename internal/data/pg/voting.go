@@ -5,14 +5,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/pkg/errors"
 
 	"github.com/rarimo/proof-verification-relayer/internal/data"
-	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/kit/pgdb"
+)
+
+var (
+	votingTableName = "voting_contract_accounts"
 )
 
 type votingInf struct {
@@ -24,27 +28,29 @@ type votingInf struct {
 }
 
 type votingQ struct {
-	db  *pgdb.DB
-	sql sq.StatementBuilderType
+	db       *pgdb.DB
+	sql      sq.StatementBuilderType
+	selector sq.SelectBuilder
 }
 
-func (q *votingQ) New() data.VotingQ {
+func (q votingQ) New() data.VotingQ {
 	return NewVotingQ(q.db.Clone())
 }
 
 func NewVotingQ(db *pgdb.DB) data.VotingQ {
 	return &votingQ{
-		db:  db,
-		sql: sq.StatementBuilder,
+		db:       db,
+		sql:      sq.StatementBuilder,
+		selector: sq.Select("*").From(votingTableName),
 	}
 }
 
-func (cq *votingQ) GetVotingInfo(votingId int64) (*data.VotingInfo, error) {
+func (q votingQ) GetVotingInfo(votingId int64) (*data.VotingInfo, error) {
 	var votingInfo votingInf
 
-	query := sq.Select("*").From("voting_contract_accounts").Where(sq.Eq{"voting_id": votingId})
+	query := sq.Select("*").From(votingTableName).Where(sq.Eq{"voting_id": votingId})
 
-	err := cq.db.Get(&votingInfo, query)
+	err := q.db.Get(&votingInfo, query)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			return nil, errors.Wrap(err, "failed to get voting info from db")
@@ -72,37 +78,13 @@ func (cq *votingQ) GetVotingInfo(votingId int64) (*data.VotingInfo, error) {
 	}, nil
 }
 
-func (cq *votingQ) SelectVotingInfo(req requests.ProposalInfoFilter) ([]*data.VotingInfo, error) {
+func (q votingQ) SelectVotingInfo() ([]*data.VotingInfo, error) {
 	var votingInfoList []votingInf
 
-	query := sq.Select("*").From("voting_contract_accounts")
-	if len(req.CreatorAddress) > 0 {
-		query = query.Where(
-			sq.Eq{"creator_address": req.CreatorAddress},
-		)
-	}
-	if len(req.MinAge) > 0 {
-		query = query.Where(
-			sq.Eq{
-				"proposal_info_with_config #> '{contract, config, parsed_voting_whitelist_data, 0, min_age}'": req.MinAge},
-		)
-	}
-	if len(req.ProposalId) > 0 {
-		query = query.Where(
-			sq.Eq{
-				"voting_id": req.ProposalId},
-		)
-	}
-
-	for _, citizenship := range req.CitizenshipList {
-		query = query.Where(
-			"proposal_info_with_config #> '{contract, config, parsed_voting_whitelist_data, 0, citizenship_whitelist}' @> ?", fmt.Sprintf("[\"%v\"]", citizenship))
-	}
-
-	err := cq.db.Select(&votingInfoList, query)
+	err := q.db.Select(&votingInfoList, q.selector)
 	if err != nil {
 		if err != sql.ErrNoRows {
-			return nil, errors.Wrap(err, "failed to select all votes from db")
+			return nil, errors.Wrap(err, "failed to select voting info from db")
 		}
 		return nil, nil
 	}
@@ -131,13 +113,13 @@ func (cq *votingQ) SelectVotingInfo(req requests.ProposalInfoFilter) ([]*data.Vo
 	return result, nil
 }
 
-func (q *votingQ) InsertVotingInfo(value *data.VotingInfo) error {
+func (q votingQ) InsertVotingInfo(value *data.VotingInfo) error {
 	jsonDataProposalInfo, err := json.Marshal(value.ProposalInfoWithConfig)
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal ProposalInfoWithConfig")
 	}
 
-	query := sq.Insert("voting_contract_accounts").
+	query := sq.Insert(votingTableName).
 		Columns("voting_id", "residual_balance", "gas_limit", "creator_address", "proposal_info_with_config").
 		Values(value.VotingId, value.Balance.String(), value.GasLimit, value.CreatorAddress, jsonDataProposalInfo)
 
@@ -148,13 +130,13 @@ func (q *votingQ) InsertVotingInfo(value *data.VotingInfo) error {
 	return nil
 }
 
-func (q *votingQ) UpdateVotingInfo(value *data.VotingInfo) error {
+func (q votingQ) UpdateVotingInfo(value *data.VotingInfo) error {
 	jsonDataProposalInfo, err := json.Marshal(value.ProposalInfoWithConfig)
 	if err != nil {
 		return errors.Wrap(err, "failed to marshal ProposalInfoWithConfig")
 	}
 	var query sq.UpdateBuilder
-	query = sq.Update("voting_contract_accounts")
+	query = sq.Update(votingTableName)
 	columns := []string{"voting_id", "residual_balance", "gas_limit", "creator_address", "proposal_info_with_config"}
 	values := []any{value.VotingId, value.Balance.String(), value.GasLimit, value.CreatorAddress, jsonDataProposalInfo}
 
@@ -169,4 +151,44 @@ func (q *votingQ) UpdateVotingInfo(value *data.VotingInfo) error {
 		return errors.Wrap(err, "failed to update voting info in db")
 	}
 	return nil
+}
+
+func (q votingQ) FilterByVotingId(votingIds ...int64) data.VotingQ {
+	if len(votingIds) == 0 {
+		return q
+	}
+	return q.withFilters(sq.Eq{"voting_id": votingIds})
+}
+
+func (q votingQ) FilterByCreator(creators ...string) data.VotingQ {
+	if len(creators) == 0 {
+		return q
+	}
+	return q.withFilters(sq.Eq{"creator_address": creators})
+}
+
+func (q votingQ) FilterByMinAge(minAgeList ...int64) data.VotingQ {
+	if len(minAgeList) == 0 {
+		return q
+	}
+	return q.withFilters(sq.Eq{
+		"proposal_info_with_config #> '{contract, config, parsed_voting_whitelist_data, 0, min_age}'": minAgeList})
+}
+
+func (q votingQ) FilterByCitizenship(сitizenshipList ...string) data.VotingQ {
+	if len(сitizenshipList) == 0 {
+		return q
+	}
+	var stmt []string
+	for _, citizenship := range сitizenshipList {
+		stmt = append(stmt, fmt.Sprintf("proposal_info_with_config #> '{contract, config, parsed_voting_whitelist_data, 0, citizenship_whitelist}' @> '[\"%v\"]'", citizenship))
+	}
+
+	return q.withFilters(fmt.Sprintf("(%v)", strings.Join(stmt, " OR ")))
+}
+
+func (q votingQ) withFilters(stmt interface{}) data.VotingQ {
+	q.selector = q.selector.Where(stmt)
+
+	return q
 }
