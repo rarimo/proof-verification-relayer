@@ -32,12 +32,12 @@ func (ch *checker) processLog(vLog types.Log, eventName string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed get processed event creator")
 	}
-	votingId, value, proposalInfoWithConfig, err := ch.getTransferEvent(eventName, vLog, sender)
+	votingId, value, proposalInfoWithConfig, err := ch.getEventData(eventName, vLog, sender)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed get event data")
 	}
 
-	votingInfo, err := ch.checkVoteAndGetBalance(votingId, sender)
+	votingInfo, err := ch.checkVotingAndGetBalance(votingId, sender)
 	if err != nil {
 		return errors.Wrap(err, "failed get voting info", logan.F{"Voting ID": votingId})
 	}
@@ -56,15 +56,14 @@ func (ch *checker) processLog(vLog types.Log, eventName string) error {
 	return nil
 }
 
-func (ch *checker) getTransferEvent(eventName string, vLog types.Log, sender string) (
+func (ch *checker) getEventData(eventName string, vLog types.Log, sender string) (
 	votingId int64,
 	value *big.Int,
 	proposalInfoWithConfig *resources.VotingInfoAttributes,
 	err error) {
 	parsedABI, err := abi.JSON(strings.NewReader(contracts.ProposalsStateABI))
 	if err != nil {
-		ch.log.Errorf("Failed to parse contract ABI: %v", err)
-		return 0, nil, nil, err
+		return 0, nil, nil, errors.Wrap(err, "failed to parse contract ABI")
 	}
 
 	switch eventName {
@@ -122,7 +121,7 @@ func (ch *checker) getSender(txHash common.Hash) (string, error) {
 		return "", errors.Wrap(err, "failed to get transaction by hash")
 	}
 
-	sender, err := types.Sender(types.NewEIP155Signer(tx.ChainId()), tx)
+	sender, err := types.Sender(types.NewCancunSigner(tx.ChainId()), tx)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get sender from transaction")
 	}
@@ -136,20 +135,20 @@ func (ch *checker) insertProcessedEventLog(processedEvent data.ProcessedEvent) e
 		return errors.New("Duplicate event in db")
 	}
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to check processed event exist in db")
 	}
 
 	err = ch.checkerQ.InsertProcessedEvent(processedEvent)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to insert processed event")
 	}
 	return nil
 }
 
-func (ch *checker) checkVoteAndGetBalance(votingId int64, sender string) (*data.VotingInfo, error) {
+func (ch *checker) checkVotingAndGetBalance(votingId int64, sender string) (*data.VotingInfo, error) {
 	votingInfo, err := ch.checkerQ.GetVotingInfo(votingId)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to get voting info")
 	}
 	if votingInfo != nil {
 		return votingInfo, nil

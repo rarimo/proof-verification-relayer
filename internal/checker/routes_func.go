@@ -3,22 +3,18 @@ package checker
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
-	"io"
 	"math/big"
-	"net/http"
 
 	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
-	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 func IsEnough(cfg config.Config, votingId int64) (bool, error) {
 	countTx, err := GetCountTx(cfg, votingId)
 	if err != nil {
-		return false, err
+		return false, errors.Wrap(err, "failed to get the available number of tx for voting")
 	}
 	return countTx != 0, nil
 }
@@ -32,7 +28,7 @@ func GetCountTx(cfg config.Config, votingId int64) (uint64, error) {
 
 	votingInfo, err := pg.CheckerQ().GetVotingInfo(votingId)
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "failed to get voting info from db")
 	}
 	if votingInfo == nil {
 		return 0, sql.ErrNoRows
@@ -66,12 +62,12 @@ func getTxFee(cfg config.Config, votingId int64) (*big.Int, error) {
 	if feeCap.Uint64() == 0 {
 		feeCap = big.NewInt(1)
 	}
+
 	votingInfo, err := pg.NewCheckerQ(cfg.DB()).GetVotingInfo(votingId)
 	if err != nil {
 		if err != sql.ErrNoRows {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to get voting info from db")
 		}
-
 	}
 
 	gasLimit := int64(cfg.VotingV2Config().GasLimit)
@@ -86,18 +82,18 @@ func getTxFee(cfg config.Config, votingId int64) (*big.Int, error) {
 func CheckUpdateGasLimit(value uint64, cfg config.Config, votingId int64) error {
 	pgDB := pg.NewMaterDB(cfg.DB())
 
-	voteInfo, err := pgDB.CheckerQ().GetVotingInfo(votingId)
+	votingInfo, err := pgDB.CheckerQ().GetVotingInfo(votingId)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to get voting info from db")
 	}
-	if voteInfo == nil {
-		return errors.New("Vote Not Found")
+	if votingInfo == nil {
+		return errors.New("voting Not Found")
 	}
 
-	voteInfo.GasLimit = value
-	err = pgDB.CheckerQ().UpdateVotingInfo(voteInfo)
+	votingInfo.GasLimit = value
+	err = pgDB.CheckerQ().UpdateVotingInfo(votingInfo)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed to update voting info from db")
 	}
 	return nil
 }
@@ -114,62 +110,23 @@ func GetAmountForCountTx(cfg config.Config, votingId int64, countTx *big.Int) (*
 }
 
 func UpdateVotingBalance(cfg config.Config, gasPrice *big.Int, gas uint64, votingId int64) error {
-	checkIsEnough, err := IsEnough(cfg, votingId)
-	if err != nil {
-		return errors.Wrap(err, "Insufficient balance check failed")
-	}
-
-	if !checkIsEnough {
-		return errors.New("Insufficient funds in the voting account")
-	}
-
 	pgDB := pg.NewMaterDB(cfg.DB()).CheckerQ()
-	voteInfo, err := pgDB.GetVotingInfo(votingId)
+
+	votingInfo, err := pgDB.GetVotingInfo(votingId)
 	if err != nil {
 		return fmt.Errorf("failed get voting info from db: %w", err)
 	}
-	if voteInfo == nil {
-		return errors.New("Vote Not Found")
+	if votingInfo == nil {
+		return errors.New("voting Not Found")
 	}
 	if gasPrice.Int64() == 0 {
 		gasPrice = big.NewInt(1)
 	}
-	voteInfo.Balance = new(big.Int).Sub(voteInfo.Balance, new(big.Int).Mul(big.NewInt(int64(gas)), gasPrice))
+	votingInfo.Balance = new(big.Int).Sub(votingInfo.Balance, new(big.Int).Mul(big.NewInt(int64(gas)), gasPrice))
 
-	err = pgDB.UpdateVotingInfo(voteInfo)
+	err = pgDB.UpdateVotingInfo(votingInfo)
 	if err != nil {
-		return fmt.Errorf("failed update voting info from db: %w", err)
+		return fmt.Errorf("failed update voting info: %w", err)
 	}
 	return err
-}
-
-type ProposalDescription struct {
-	Title           string              `json:"title"`
-	Description     string              `json:"description"`
-	AcceptedOptions []resources.Options `json:"acceptedOptions"`
-}
-
-func getProposalDescFromIpfs(desId string, ipfsUrl string) (*resources.VotingInfoAttributesMetadata, error) {
-	requestURL := fmt.Sprintf("%s/ipfs/%s", ipfsUrl, desId)
-	resp, err := http.Get(requestURL)
-	if err != nil {
-		return nil, fmt.Errorf("error making http request: %v", err)
-	}
-
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed read body response: %v", err)
-	}
-
-	var data ProposalDescription
-	if err := json.Unmarshal(body, &data); err != nil {
-		return nil, fmt.Errorf("failed parse JSON: %v", err)
-	}
-	return &resources.VotingInfoAttributesMetadata{
-		AcceptedOptions: data.AcceptedOptions,
-		Title:           data.Title,
-		Description:     data.Description,
-	}, nil
 }

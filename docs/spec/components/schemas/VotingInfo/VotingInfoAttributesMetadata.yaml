@@ -3,7 +3,7 @@ description: Additional proposal data stored on IPFS
 required:
   - title
   - description
-  - accepted_options
+  - acceptedOptions
 properties:
   title:
     type: string
@@ -11,7 +11,7 @@ properties:
   description:
     type: string
     description: Detailed description of the proposal
-  accepted_options:
+  acceptedOptions:
     type: array
     items:
       $ref: '#/components/schemas/Options'

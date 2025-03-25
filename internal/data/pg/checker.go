@@ -86,7 +86,7 @@ func (cq *checkerQ) GetVotingInfo(votingId int64) (*data.VotingInfo, error) {
 	}, nil
 }
 
-func (cq *checkerQ) SelectVotes(req requests.ProposalInfoFilter) ([]*data.VotingInfo, error) {
+func (cq *checkerQ) SelectVotingInfo(req requests.ProposalInfoFilter) ([]*data.VotingInfo, error) {
 	var votingInfoList []votingInf
 
 	query := sq.Select("*").From("voting_contract_accounts")

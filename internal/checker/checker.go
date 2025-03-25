@@ -87,15 +87,10 @@ func (ch *checker) check(ctx context.Context) error {
 
 	ch.readOldEvents(ctx, startBlock)
 
-	for {
-		select {
-		case <-ctx.Done():
-			ch.log.Info("unsubscribe from events")
-			return nil
-		default:
-			time.Sleep(ch.pinger.Timeout)
-		}
-	}
+	<-ctx.Done()
+	ch.log.Info("unsubscribe from events")
+
+	return nil
 }
 
 func (ch *checker) readNewEvents(ctx context.Context, isSub bool) {
@@ -110,7 +105,7 @@ func (ch *checker) readNewEventsWithoutSub(ctx context.Context) {
 	client := ch.VotingV2Config.RPC
 	header, err := client.HeaderByNumber(ctx, nil)
 	if err != nil {
-		ch.log.WithField("Error", err).Error("failed to get latest block header")
+		ch.log.WithError(err).Error("failed to get latest block header")
 		return
 	}
 
@@ -130,16 +125,15 @@ func (ch *checker) readNewEventsWithoutSub(ctx context.Context) {
 
 		err := ch.checkFilter(block, toBlock)
 		if err != nil {
-			ch.log.WithFields(logan.F{
-				"from":  block,
-				"to":    toBlock,
-				"Error": err,
-			}).Info("failed check blocks")
+			ch.log.WithError(err).WithFields(logan.F{
+				"from": block,
+				"to":   toBlock,
+			}).Error("failed check blocks")
 			continue
 		}
 		header, err := client.HeaderByNumber(ctx, nil)
 		if err != nil {
-			ch.log.WithField("Error", err).Info("failed to get latest block header")
+			ch.log.WithError(err).Error("failed to get latest block header")
 			continue
 		}
 
@@ -151,9 +145,8 @@ func (ch *checker) readNewEventsWithoutSub(ctx context.Context) {
 func (ch *checker) readNewEventsSub(ctx context.Context) {
 	eventHashes, err := ch.getEventHashes()
 	if err != nil {
-		ch.log.WithFields(logan.F{
-			"Error": err,
-		}).Info("failed get event names hashes")
+		ch.log.WithError(err).Error("failed get event names hashes")
+		return
 	}
 
 	query := ethereum.FilterQuery{
@@ -164,7 +157,7 @@ func (ch *checker) readNewEventsSub(ctx context.Context) {
 	logs := make(chan types.Log)
 	sub, err := ch.VotingV2Config.RPC.SubscribeFilterLogs(context.Background(), query, logs)
 	if err != nil {
-		ch.log.WithFields(logan.F{"Error": err}).Error("failed subscribe event")
+		ch.log.WithError(err).Error("failed subscribe event")
 		return
 	}
 
@@ -174,26 +167,23 @@ func (ch *checker) readNewEventsSub(ctx context.Context) {
 			ch.log.Info("unsubscribe from events")
 			return
 		case err := <-sub.Err():
-			ch.log.WithFields(logan.F{
-				"Error": err,
-			}).Info("failed subscribe event")
-			time.Sleep(ch.pinger.Timeout)
+			ch.log.WithError(err).Error("failed subscribe event")
+			return
 		case vLog := <-logs:
 			eventName := eventHashIdToNames[vLog.Topics[0].Hex()]
 			err := ch.processLog(vLog, eventName)
 			if err != nil {
-				ch.log.WithFields(logan.F{
-					"Error":      err,
+				ch.log.WithError(err).WithFields(logan.F{
 					"log_index":  vLog.Index,
 					"hash_tx":    vLog.TxHash.Hex(),
 					"event_name": eventName}).
-					Warn("failed process log")
+					Error("failed process log")
 			}
 			ch.log.WithFields(logan.F{
 				"log_index":  vLog.Index,
 				"hash_tx":    vLog.TxHash.Hex(),
 				"event_name": eventName}).
-				Warn("new event")
+				Info("new event")
 		}
 	}
 }
@@ -204,7 +194,7 @@ func (ch *checker) readOldEvents(ctx context.Context, block uint64) {
 
 	header, err := client.HeaderByNumber(ctx, nil)
 	if err != nil {
-		ch.log.WithField("Error", err).Info("failed to get latest block header")
+		ch.log.WithError(err).Error("failed to get latest block header")
 		return
 	}
 
@@ -224,11 +214,10 @@ func (ch *checker) readFromToBlock(ctx context.Context, fromBlock uint64, toBloc
 
 		err := ch.checkFilter(fromBlock, toBlock)
 		if err != nil {
-			ch.log.WithFields(logan.F{
-				"from":  fromBlock,
-				"to":    toBlock,
-				"Error": err,
-			}).Info("failed check blocks")
+			ch.log.WithError(err).WithFields(logan.F{
+				"from": fromBlock,
+				"to":   toBlock,
+			}).Error("failed check blocks")
 			fromBlock = max(0, fromBlock-ch.pinger.BlocksDistance)
 		}
 	}
@@ -250,20 +239,18 @@ func (ch *checker) checkFilter(block, toBlock uint64) error {
 
 	logs, err := ch.VotingV2Config.RPC.FilterLogs(context.Background(), query)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "failed get filter logs")
 	}
 	events := 0
 	for _, vLog := range logs {
 		eventName := eventHashIdToNames[vLog.Topics[0].Hex()]
 		err := ch.processLog(vLog, eventName)
 		if err != nil {
-			ch.log.WithFields(logan.F{
-				"Error":     err,
+			ch.log.WithError(err).WithFields(logan.F{
 				"log_index": vLog.Index,
 				"hash_tx":   vLog.TxHash.Hex(),
 				"eventName": eventName,
-			}).
-				Warn("failed process log")
+			}).Error("failed process log")
 			continue
 		}
 		events += 1

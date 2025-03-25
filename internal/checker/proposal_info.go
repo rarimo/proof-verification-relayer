@@ -2,13 +2,15 @@ package checker
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"io"
 	"math/big"
+	"net/http"
 	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/data"
@@ -19,12 +21,8 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
-func decodeVotingConfig(encodedHex string) ([]data.VotingWhitelistDataBigInt, error) {
-	var whiteData []data.VotingWhitelistDataBigInt
-	dataBytes, err := hexutil.Decode(encodedHex)
-	if err != nil {
-		return whiteData, err
-	}
+func decodeVotingConfig(dataBytes []byte) (data.VotingWhitelistDataBigInt, error) {
+	var whiteData data.VotingWhitelistDataBigInt
 
 	rawABI := `[
 		{
@@ -43,7 +41,7 @@ func decodeVotingConfig(encodedHex string) ([]data.VotingWhitelistDataBigInt, er
 	  ]`
 	parsedABI, err := abi.JSON(strings.NewReader(rawABI))
 	if err != nil {
-		return whiteData, errors.Wrap(err, "ERROR parsed ABI")
+		return whiteData, errors.Wrap(err, "failed to parse ABI")
 	}
 
 	method, ok := parsedABI.Events["ProposalRules"]
@@ -56,21 +54,21 @@ func decodeVotingConfig(encodedHex string) ([]data.VotingWhitelistDataBigInt, er
 		return whiteData, fmt.Errorf("failed to unpack calldata: %v", err)
 	}
 
-	for _, decodedWhiteData := range decoded {
-		dc := decodedWhiteData.(struct {
-			CitizenshipWhitelist                []*big.Int `json:"citizenshipWhitelist"`
-			IdentityCreationTimestampUpperBound *big.Int   `json:"identityCreationTimestampUpperBound"`
-			IdentityCounterUpperBound           *big.Int   `json:"identityCounterUpperBound"`
-			BirthDateUpperbound                 *big.Int   `json:"birthDateUpperbound"`
-			ExpirationDateLowerBound            *big.Int   `json:"expirationDateLowerBound"`
-		})
-		whiteData = append(whiteData, data.VotingWhitelistDataBigInt{
-			CitizenshipWhitelist:                dc.CitizenshipWhitelist,
-			IdentityCreationTimestampUpperBound: dc.IdentityCreationTimestampUpperBound,
-			IdentityCounterUpperBound:           dc.IdentityCounterUpperBound,
-			BirthDateUpperbound:                 dc.BirthDateUpperbound,
-			ExpirationDateLowerBound:            dc.ExpirationDateLowerBound,
-		})
+	decodedWhiteData := decoded[0]
+	dc := decodedWhiteData.(struct {
+		CitizenshipWhitelist                []*big.Int `json:"citizenshipWhitelist"`
+		IdentityCreationTimestampUpperBound *big.Int   `json:"identityCreationTimestampUpperBound"`
+		IdentityCounterUpperBound           *big.Int   `json:"identityCounterUpperBound"`
+		BirthDateUpperbound                 *big.Int   `json:"birthDateUpperbound"`
+		ExpirationDateLowerBound            *big.Int   `json:"expirationDateLowerBound"`
+	})
+
+	whiteData = data.VotingWhitelistDataBigInt{
+		CitizenshipWhitelist:                dc.CitizenshipWhitelist,
+		IdentityCreationTimestampUpperBound: dc.IdentityCreationTimestampUpperBound,
+		IdentityCounterUpperBound:           dc.IdentityCounterUpperBound,
+		BirthDateUpperbound:                 dc.BirthDateUpperbound,
+		ExpirationDateLowerBound:            dc.ExpirationDateLowerBound,
 	}
 
 	return whiteData, nil
@@ -82,21 +80,21 @@ func GetMinAge(birthDateUpperbound string, expirationDateLowerBound string, log 
 	}
 	bytes, err := hex.DecodeString(birthDateUpperbound)
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "failed decode birthDateUpperbound")
 	}
 	birthDateUpperboundTime, err := time.Parse("060102", string(bytes))
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "failed parse birthDateUpperbound")
 	}
 
 	bytes, err = hex.DecodeString(expirationDateLowerBound)
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "failed decode expirationDateLowerBound")
 	}
 
 	expirationDateLowerBoundTime, err := time.Parse("060102", string(bytes))
 	if err != nil {
-		return 0, err
+		return 0, errors.Wrap(err, "failed parse expirationDateLowerBound")
 	}
 
 	delta := expirationDateLowerBoundTime.Sub(birthDateUpperboundTime)
@@ -109,9 +107,9 @@ func GetProposalList(cfg config.Config, req requests.ProposalInfoFilter) ([]*res
 	var result []*resources.VotingInfoAttributes
 	pgDB := pg.NewMaterDB(cfg.DB()).CheckerQ()
 
-	votingInfoList, err := pgDB.SelectVotes(req)
+	votingInfoList, err := pgDB.SelectVotingInfo(req)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to select voting info list")
 	}
 	for _, vote := range votingInfoList {
 		result = append(result, &vote.ProposalInfoWithConfig)
@@ -126,19 +124,19 @@ func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string)
 	ipfsUrl := cfg.VotingV2Config().IpfsUrl
 	caller, err := contracts.NewProposalsStateCaller(contractAddress, client)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed get new ProposalsStateCaller")
 	}
 
 	proposalInfo, err := caller.GetProposalInfo(nil, big.NewInt(proposalId))
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed get proposal info from contract")
 	}
 	startTimeStamp := proposalInfo.Config.StartTimestamp
 	endTimestamp := proposalInfo.Config.StartTimestamp + proposalInfo.Config.Duration
 
 	desc, err := getProposalDescFromIpfs(proposalInfo.Config.Description, ipfsUrl)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed get proposal info from ipfs")
 	}
 	votingConfig := proposalInfo.Config
 	var votingWhitelist []string
@@ -146,32 +144,27 @@ func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string)
 	for _, addr := range votingConfig.VotingWhitelist {
 		votingWhitelist = append(votingWhitelist, addr.Hex())
 	}
-	for _, addr := range votingConfig.VotingWhitelist {
-		votingWhitelist = append(votingWhitelist, addr.Hex())
-	}
+
+	var parsedVotingWhitelistData []resources.ParsedVotingWhiteData
 	var votingWhitelistData []string
 	for _, data := range votingConfig.VotingWhitelistData {
 		votingWhitelistData = append(votingWhitelistData, hex.EncodeToString(data))
-	}
-	votingWhitelistDataHex := fmt.Sprintf("0x%v", votingWhitelistData[0])
 
-	votingWhitelistDataBigInt, err := decodeVotingConfig(votingWhitelistDataHex)
-	if err != nil {
-		cfg.Log().WithFields(logan.F{
-			"error":       err,
-			"proposal_id": proposalId,
-		}).Debug("failed decoding voting white list data")
-	}
-	var parsedVotingWhitelistData []resources.ParsedVotingWhiteData
-	for _, whiteData := range votingWhitelistDataBigInt {
+		whiteData, err := decodeVotingConfig(data)
+		if err != nil {
+			cfg.Log().WithError(err).
+				WithField("proposal_id", proposalId).
+				Error("failed decoding voting white list data")
+			continue
+		}
+
 		var citizenshipWhitelist []string
 		for _, citizenship := range whiteData.CitizenshipWhitelist {
 			bytes, err := hex.DecodeString(citizenship.Text(16))
 			if err != nil {
-				cfg.Log().WithFields(logan.F{
-					"error":       err,
-					"proposal_id": proposalId,
-				}).Debug("failed decoding citizenship")
+				cfg.Log().WithError(err).
+					WithField("proposal_id", proposalId).
+					Error("failed decoding voting white list data")
 				continue
 			}
 			asciiString := string(bytes)
@@ -180,10 +173,9 @@ func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string)
 
 		minAge, err := GetMinAge(whiteData.BirthDateUpperbound.Text(16), whiteData.ExpirationDateLowerBound.Text(16), cfg.Log())
 		if err != nil {
-			cfg.Log().WithFields(logan.F{
-				"error":       err,
-				"proposal_id": proposalId,
-			}).Debug("failed get min age")
+			cfg.Log().WithError(err).
+				WithField("proposal_id", proposalId).
+				Error("failed decoding voting white list data")
 		}
 
 		parsedVotingWhitelistData = append(parsedVotingWhitelistData, resources.ParsedVotingWhiteData{
@@ -214,4 +206,26 @@ func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string)
 			},
 		},
 	}, nil
+}
+
+func getProposalDescFromIpfs(desId string, ipfsUrl string) (*resources.VotingInfoAttributesMetadata, error) {
+	requestURL := fmt.Sprintf("%s/%s", ipfsUrl, desId)
+	resp, err := http.Get(requestURL)
+	if err != nil {
+		return nil, fmt.Errorf("error making http request: %v", err)
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed read body response: %v", err)
+	}
+
+	var data resources.VotingInfoAttributesMetadata
+	if err := json.Unmarshal(body, &data); err != nil {
+		return nil, fmt.Errorf("failed parse JSON: %v", err)
+	}
+
+	return &data, nil
 }

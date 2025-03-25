@@ -40,7 +40,7 @@ type CheckerQ interface {
 	InsertVotingInfo(value *VotingInfo) error
 	GetVotingInfo(votingId int64) (*VotingInfo, error)
 	UpdateVotingInfo(value *VotingInfo) error
-	SelectVotes(req requests.ProposalInfoFilter) ([]*VotingInfo, error)
+	SelectVotingInfo(req requests.ProposalInfoFilter) ([]*VotingInfo, error)
 
 	InsertProcessedEvent(value ProcessedEvent) error
 	GetLastBlock() (uint64, error)
