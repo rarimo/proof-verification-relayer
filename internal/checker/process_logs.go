@@ -49,7 +49,7 @@ func (ch *checker) processLog(vLog types.Log, eventName string) error {
 		votingInfo.ProposalInfoWithConfig = *proposalInfoWithConfig
 	}
 
-	err = ch.checkerQ.UpdateVotingInfo(votingInfo)
+	err = ch.votingQ.UpdateVotingInfo(votingInfo)
 	if err != nil {
 		return errors.Wrap(err, "failed update voting balance", logan.F{"Voting ID": votingId})
 	}
@@ -130,7 +130,7 @@ func (ch *checker) getSender(txHash common.Hash) (string, error) {
 }
 
 func (ch *checker) insertProcessedEventLog(processedEvent data.ProcessedEvent) error {
-	isExist, err := ch.checkerQ.CheckProcessedEventExist(processedEvent)
+	isExist, err := ch.processedEventQ.CheckProcessedEventExist(processedEvent)
 	if isExist {
 		return errors.New("Duplicate event in db")
 	}
@@ -138,7 +138,7 @@ func (ch *checker) insertProcessedEventLog(processedEvent data.ProcessedEvent) e
 		return errors.Wrap(err, "failed to check processed event exist in db")
 	}
 
-	err = ch.checkerQ.InsertProcessedEvent(processedEvent)
+	err = ch.processedEventQ.InsertProcessedEvent(processedEvent)
 	if err != nil {
 		return errors.Wrap(err, "failed to insert processed event")
 	}
@@ -146,7 +146,7 @@ func (ch *checker) insertProcessedEventLog(processedEvent data.ProcessedEvent) e
 }
 
 func (ch *checker) checkVotingAndGetBalance(votingId int64, sender string) (*data.VotingInfo, error) {
-	votingInfo, err := ch.checkerQ.GetVotingInfo(votingId)
+	votingInfo, err := ch.votingQ.GetVotingInfo(votingId)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get voting info")
 	}
@@ -161,7 +161,7 @@ func (ch *checker) checkVotingAndGetBalance(votingId int64, sender string) (*dat
 		CreatorAddress: sender,
 	}
 
-	err = ch.checkerQ.InsertVotingInfo(votingInfo)
+	err = ch.votingQ.InsertVotingInfo(votingInfo)
 	if err != nil {
 		return votingInfo, errors.Wrap(err, "failed insert new voting info")
 	}
@@ -170,7 +170,7 @@ func (ch *checker) checkVotingAndGetBalance(votingId int64, sender string) (*dat
 }
 
 func (ch *checker) getStartBlockNumber() (uint64, error) {
-	block, err := ch.checkerQ.GetLastBlock()
+	block, err := ch.processedEventQ.GetLastBlock()
 	if err != nil {
 		if err != sql.ErrNoRows {
 			return 0, errors.Wrap(err, "failed get block from db")

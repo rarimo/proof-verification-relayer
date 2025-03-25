@@ -105,7 +105,7 @@ func GetMinAge(birthDateUpperbound string, expirationDateLowerBound string, log 
 
 func GetProposalList(cfg config.Config, req requests.ProposalInfoFilter) ([]*resources.VotingInfoAttributes, error) {
 	var result []*resources.VotingInfoAttributes
-	pgDB := pg.NewMaterDB(cfg.DB()).CheckerQ()
+	pgDB := pg.NewVotingQ(cfg.DB())
 
 	votingInfoList, err := pgDB.SelectVotingInfo(req)
 	if err != nil {

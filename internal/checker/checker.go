@@ -18,12 +18,13 @@ import (
 )
 
 type checker struct {
-	log            *logan.Entry
-	client         *ethclient.Client
-	checkerQ       data.CheckerQ
-	VotingV2Config config.VotingV2Config
-	pinger         config.Pinger
-	cfg            config.Config
+	log             *logan.Entry
+	client          *ethclient.Client
+	votingQ         data.VotingQ
+	processedEventQ data.ProcessedEventQ
+	VotingV2Config  config.VotingV2Config
+	pinger          config.Pinger
+	cfg             config.Config
 }
 
 var eventNames = []string{"ProposalCreated", "ProposalFunded", "ProposalConfigChanged"}
@@ -49,11 +50,12 @@ func NewChecker(
 			"service": "checker",
 			"address": cfg.VotingV2Config().Address.Hex(),
 		}),
-		client:         cfg.VotingV2Config().RPC,
-		checkerQ:       pg.NewMaterDB(cfg.DB()).CheckerQ(),
-		VotingV2Config: *cfg.VotingV2Config(),
-		pinger:         cfg.Pinger(),
-		cfg:            cfg,
+		client:          cfg.VotingV2Config().RPC,
+		votingQ:         pg.NewVotingQ(cfg.DB().Clone()),
+		VotingV2Config:  *cfg.VotingV2Config(),
+		pinger:          cfg.Pinger(),
+		cfg:             cfg,
+		processedEventQ: pg.NewProcessedEventsQ(cfg.DB().Clone()),
 	}
 }
 

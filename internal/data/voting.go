@@ -2,7 +2,6 @@ package data
 
 import (
 	"math/big"
-	"time"
 
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"github.com/rarimo/proof-verification-relayer/resources"
@@ -24,25 +23,12 @@ type VotingInfo struct {
 	ProposalInfoWithConfig resources.VotingInfoAttributes `db:"proposal_info_with_config"`
 }
 
-type ProcessedEvent struct {
-	TransactionHash []byte    `db:"transaction_hash"`
-	LogIndex        int64     `db:"log_index"`
-	CreatedAt       time.Time `db:"created_at"`
-	BlockNumber     int64     `db:"block_number"`
-}
+type VotingQ interface {
+	New() VotingQ
 
-type CheckerDB interface {
-	New() CheckerDB
-	CheckerQ() CheckerQ
-}
-
-type CheckerQ interface {
 	InsertVotingInfo(value *VotingInfo) error
-	GetVotingInfo(votingId int64) (*VotingInfo, error)
 	UpdateVotingInfo(value *VotingInfo) error
-	SelectVotingInfo(req requests.ProposalInfoFilter) ([]*VotingInfo, error)
 
-	InsertProcessedEvent(value ProcessedEvent) error
-	GetLastBlock() (uint64, error)
-	CheckProcessedEventExist(value ProcessedEvent) (bool, error)
+	GetVotingInfo(votingId int64) (*VotingInfo, error)
+	SelectVotingInfo(req requests.ProposalInfoFilter) ([]*VotingInfo, error)
 }

@@ -20,13 +20,13 @@ func IsEnough(cfg config.Config, votingId int64) (bool, error) {
 }
 
 func GetCountTx(cfg config.Config, votingId int64) (uint64, error) {
-	pg := pg.NewMaterDB(cfg.DB())
+	vq := pg.NewVotingQ(cfg.DB())
 	txFee, err := getTxFee(cfg, votingId)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed get fee")
 	}
 
-	votingInfo, err := pg.CheckerQ().GetVotingInfo(votingId)
+	votingInfo, err := vq.GetVotingInfo(votingId)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to get voting info from db")
 	}
@@ -63,7 +63,7 @@ func getTxFee(cfg config.Config, votingId int64) (*big.Int, error) {
 		feeCap = big.NewInt(1)
 	}
 
-	votingInfo, err := pg.NewCheckerQ(cfg.DB()).GetVotingInfo(votingId)
+	votingInfo, err := pg.NewVotingQ(cfg.DB()).GetVotingInfo(votingId)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			return nil, errors.Wrap(err, "failed to get voting info from db")
@@ -80,9 +80,9 @@ func getTxFee(cfg config.Config, votingId int64) (*big.Int, error) {
 }
 
 func CheckUpdateGasLimit(value uint64, cfg config.Config, votingId int64) error {
-	pgDB := pg.NewMaterDB(cfg.DB())
+	pgDB := pg.NewVotingQ(cfg.DB())
 
-	votingInfo, err := pgDB.CheckerQ().GetVotingInfo(votingId)
+	votingInfo, err := pgDB.GetVotingInfo(votingId)
 	if err != nil {
 		return errors.Wrap(err, "failed to get voting info from db")
 	}
@@ -91,7 +91,7 @@ func CheckUpdateGasLimit(value uint64, cfg config.Config, votingId int64) error 
 	}
 
 	votingInfo.GasLimit = value
-	err = pgDB.CheckerQ().UpdateVotingInfo(votingInfo)
+	err = pgDB.UpdateVotingInfo(votingInfo)
 	if err != nil {
 		return errors.Wrap(err, "failed to update voting info from db")
 	}
@@ -110,7 +110,7 @@ func GetAmountForCountTx(cfg config.Config, votingId int64, countTx *big.Int) (*
 }
 
 func UpdateVotingBalance(cfg config.Config, gasPrice *big.Int, gas uint64, votingId int64) error {
-	pgDB := pg.NewMaterDB(cfg.DB()).CheckerQ()
+	pgDB := pg.NewVotingQ(cfg.DB())
 
 	votingInfo, err := pgDB.GetVotingInfo(votingId)
 	if err != nil {
