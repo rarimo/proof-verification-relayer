@@ -14,113 +14,9 @@ import (
 	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/data"
-	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
-	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"github.com/rarimo/proof-verification-relayer/resources"
-	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
-
-func decodeVotingConfig(dataBytes []byte) (data.VotingWhitelistDataBigInt, error) {
-	var whiteData data.VotingWhitelistDataBigInt
-
-	rawABI := `[
-		{
-		  "name": "ProposalRules",
-		  "type": "event",
-		  "inputs": [	
-		  {"name": "whiteData", "type":"tuple", "components": [
-		  {"name": "citizenshipWhitelist", "type": "uint256[]"},
-			{"name": "identityCreationTimestampUpperBound", "type": "uint256"},
-			{"name": "identityCounterUpperBound", "type": "uint256"},
-			{"name": "birthDateUpperbound", "type": "uint256"},
-			{"name": "expirationDateLowerBound", "type": "uint256"}
-		  ]}  
-		  ]
-		}
-	  ]`
-	parsedABI, err := abi.JSON(strings.NewReader(rawABI))
-	if err != nil {
-		return whiteData, errors.Wrap(err, "failed to parse ABI")
-	}
-
-	method, ok := parsedABI.Events["ProposalRules"]
-	if !ok {
-		return whiteData, fmt.Errorf("method ProposalRules not found in ABI")
-	}
-
-	decoded, err := method.Inputs.Unpack(dataBytes)
-	if err != nil {
-		return whiteData, fmt.Errorf("failed to unpack calldata: %v", err)
-	}
-
-	decodedWhiteData := decoded[0]
-	dc := decodedWhiteData.(struct {
-		CitizenshipWhitelist                []*big.Int `json:"citizenshipWhitelist"`
-		IdentityCreationTimestampUpperBound *big.Int   `json:"identityCreationTimestampUpperBound"`
-		IdentityCounterUpperBound           *big.Int   `json:"identityCounterUpperBound"`
-		BirthDateUpperbound                 *big.Int   `json:"birthDateUpperbound"`
-		ExpirationDateLowerBound            *big.Int   `json:"expirationDateLowerBound"`
-	})
-
-	whiteData = data.VotingWhitelistDataBigInt{
-		CitizenshipWhitelist:                dc.CitizenshipWhitelist,
-		IdentityCreationTimestampUpperBound: dc.IdentityCreationTimestampUpperBound,
-		IdentityCounterUpperBound:           dc.IdentityCounterUpperBound,
-		BirthDateUpperbound:                 dc.BirthDateUpperbound,
-		ExpirationDateLowerBound:            dc.ExpirationDateLowerBound,
-	}
-
-	return whiteData, nil
-}
-
-func GetMinAge(birthDateUpperbound string, expirationDateLowerBound string, log *logan.Entry) (int64, error) {
-	if birthDateUpperbound == "303030303030" {
-		return 0, nil
-	}
-	bytes, err := hex.DecodeString(birthDateUpperbound)
-	if err != nil {
-		return 0, errors.Wrap(err, "failed decode birthDateUpperbound")
-	}
-	birthDateUpperboundTime, err := time.Parse("060102", string(bytes))
-	if err != nil {
-		return 0, errors.Wrap(err, "failed parse birthDateUpperbound")
-	}
-
-	bytes, err = hex.DecodeString(expirationDateLowerBound)
-	if err != nil {
-		return 0, errors.Wrap(err, "failed decode expirationDateLowerBound")
-	}
-
-	expirationDateLowerBoundTime, err := time.Parse("060102", string(bytes))
-	if err != nil {
-		return 0, errors.Wrap(err, "failed parse expirationDateLowerBound")
-	}
-
-	delta := expirationDateLowerBoundTime.Sub(birthDateUpperboundTime)
-	years := int64(delta.Hours() / (24 * 365.25))
-
-	return years, nil
-}
-
-func GetProposalList(cfg config.Config, req requests.ProposalInfoFilter) ([]*resources.VotingInfoAttributes, error) {
-	var result []*resources.VotingInfoAttributes
-	pgDB := pg.NewVotingQ(cfg.DB().Clone()).
-		FilterByCitizenship(req.CitizenshipList...).
-		FilterByCreator(req.CreatorAddress...).
-		FilterByMinAge(req.MinAge...).
-		FilterByVotingId(req.ProposalId...)
-
-	votingInfoList, err := pgDB.SelectVotingInfo()
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to select voting info list")
-	}
-	for _, vote := range votingInfoList {
-		result = append(result, &vote.ProposalInfoWithConfig)
-	}
-
-	return result, nil
-}
 
 func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string) (*resources.VotingInfoAttributes, error) {
 	contractAddress := cfg.VotingV2Config().Address
@@ -175,7 +71,7 @@ func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string)
 			citizenshipWhitelist = append(citizenshipWhitelist, asciiString)
 		}
 
-		minAge, err := GetMinAge(whiteData.BirthDateUpperbound.Text(16), whiteData.ExpirationDateLowerBound.Text(16), cfg.Log())
+		minAge, err := getMinAge(whiteData.BirthDateUpperbound.Text(16), whiteData.ExpirationDateLowerBound.Text(16))
 		if err != nil {
 			cfg.Log().WithError(err).
 				WithField("proposal_id", proposalId).
@@ -219,6 +115,92 @@ func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string)
 			},
 		},
 	}, nil
+}
+
+func decodeVotingConfig(dataBytes []byte) (data.VotingWhitelistDataBigInt, error) {
+	var whiteData data.VotingWhitelistDataBigInt
+
+	rawABI := `[
+		{
+		  "name": "ProposalRules",
+		  "type": "event",
+		  "inputs": [	
+		  {"name": "whiteData", "type":"tuple", "components": [
+		  {"name": "citizenshipWhitelist", "type": "uint256[]"},
+			{"name": "identityCreationTimestampUpperBound", "type": "uint256"},
+			{"name": "identityCounterUpperBound", "type": "uint256"},
+			{"name": "birthDateUpperbound", "type": "uint256"},
+			{"name": "expirationDateLowerBound", "type": "uint256"}
+		  ]}  
+		  ]
+		}
+	  ]`
+	parsedABI, err := abi.JSON(strings.NewReader(rawABI))
+	if err != nil {
+		return whiteData, errors.Wrap(err, "failed to parse ABI")
+	}
+
+	method, ok := parsedABI.Events["ProposalRules"]
+	if !ok {
+		return whiteData, fmt.Errorf("method ProposalRules not found in ABI")
+	}
+
+	decoded, err := method.Inputs.Unpack(dataBytes)
+	if err != nil {
+		return whiteData, fmt.Errorf("failed to unpack calldata: %v", err)
+	}
+
+	decodedWhiteData := decoded[0]
+	dc := decodedWhiteData.(struct {
+		CitizenshipWhitelist                []*big.Int `json:"citizenshipWhitelist"`
+		IdentityCreationTimestampUpperBound *big.Int   `json:"identityCreationTimestampUpperBound"`
+		IdentityCounterUpperBound           *big.Int   `json:"identityCounterUpperBound"`
+		BirthDateUpperbound                 *big.Int   `json:"birthDateUpperbound"`
+		ExpirationDateLowerBound            *big.Int   `json:"expirationDateLowerBound"`
+	})
+
+	whiteData = data.VotingWhitelistDataBigInt{
+		CitizenshipWhitelist:                dc.CitizenshipWhitelist,
+		IdentityCreationTimestampUpperBound: dc.IdentityCreationTimestampUpperBound,
+		IdentityCounterUpperBound:           dc.IdentityCounterUpperBound,
+		BirthDateUpperbound:                 dc.BirthDateUpperbound,
+		ExpirationDateLowerBound:            dc.ExpirationDateLowerBound,
+	}
+
+	return whiteData, nil
+}
+
+func getMinAge(birthDateUpperbound string, expirationDateLowerBound string) (int64, error) {
+	if birthDateUpperbound == "303030303030" {
+		return 0, nil
+	}
+	bytes, err := hex.DecodeString(birthDateUpperbound)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed decode birthDateUpperbound")
+	}
+	birthDateUpperboundTime, err := time.Parse("060102", string(bytes))
+	if err != nil {
+		return 0, errors.Wrap(err, "failed parse birthDateUpperbound")
+	}
+
+	bytes, err = hex.DecodeString(expirationDateLowerBound)
+	if err != nil {
+		return 0, errors.Wrap(err, "failed decode expirationDateLowerBound")
+	}
+
+	expirationDateLowerBoundTime, err := time.Parse("060102", string(bytes))
+	if err != nil {
+		return 0, errors.Wrap(err, "failed parse expirationDateLowerBound")
+	}
+
+	years := expirationDateLowerBoundTime.Year() - birthDateUpperboundTime.Year()
+	birthDateWithSubYears := birthDateUpperboundTime.AddDate(years, 0, 0)
+
+	if expirationDateLowerBoundTime.Before(birthDateWithSubYears) {
+		years--
+	}
+
+	return int64(years), nil
 }
 
 func getProposalDescFromIpfs(desId string, ipfsUrl string) (*resources.VotingInfoAttributesMetadata, error) {

@@ -4,11 +4,13 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/rarimo/proof-verification-relayer/internal/checker"
+	"github.com/rarimo/proof-verification-relayer/internal/config"
+	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/ape"
 	"gitlab.com/distributed_lab/ape/problems"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 func GetVotingInfo(w http.ResponseWriter, r *http.Request) {
@@ -21,7 +23,7 @@ func GetVotingInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	voteList, err := checker.GetProposalList(cfg, req)
+	voteList, err := GetProposalList(cfg, req)
 	if err != nil {
 		Log(r).Errorf("failed get voting info list: %v", err)
 		ape.RenderErr(w, problems.InternalError())
@@ -45,4 +47,23 @@ func GetVotingInfo(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 	ape.Render(w, resp)
+}
+
+func GetProposalList(cfg config.Config, req requests.ProposalInfoFilter) ([]*resources.VotingInfoAttributes, error) {
+	var result []*resources.VotingInfoAttributes
+	pgDB := pg.NewVotingQ(cfg.DB().Clone()).
+		FilterByCitizenship(req.CitizenshipList...).
+		FilterByCreator(req.CreatorAddress...).
+		FilterByMinAge(req.MinAge...).
+		FilterByVotingId(req.ProposalId...)
+
+	votingInfoList, err := pgDB.SelectVotingInfo()
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to select voting info list")
+	}
+	for _, vote := range votingInfoList {
+		result = append(result, &vote.ProposalInfoWithConfig)
+	}
+
+	return result, nil
 }

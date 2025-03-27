@@ -6,10 +6,11 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi"
-	"github.com/rarimo/proof-verification-relayer/internal/checker"
+	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/ape"
 	"gitlab.com/distributed_lab/ape/problems"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 func IsEnoughHandler(w http.ResponseWriter, r *http.Request) {
@@ -20,7 +21,8 @@ func IsEnoughHandler(w http.ResponseWriter, r *http.Request) {
 		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
 	}
-	isEnough, err := checker.IsEnough(Config(r), votingId)
+
+	isEnough, err := isEnough(Config(r), votingId)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			Log(r).WithField("voting_id", votingId).Errorf("Failed check is enough balance: %v", err)
@@ -42,4 +44,15 @@ func IsEnoughHandler(w http.ResponseWriter, r *http.Request) {
 			},
 		},
 	})
+}
+
+func isEnough(cfg config.Config, votingId int64) (bool, error) {
+	countTx, err := getCountTx(cfg, votingId)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return false, err
+		}
+		return false, errors.Wrap(err, "failed to get the available number of tx for voting")
+	}
+	return countTx != 0, nil
 }

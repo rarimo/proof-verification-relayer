@@ -25,9 +25,12 @@ type VotingInfo struct {
 type VotingQ interface {
 	New() VotingQ
 
+	Update(fields map[string]any) error
 	InsertVotingInfo(value *VotingInfo) error
 	UpdateVotingInfo(value *VotingInfo) error
 
+	Get(column string, dest interface{}) error
+	GetVotingBalance() (*big.Int, error)
 	GetVotingInfo(votingId int64) (*VotingInfo, error)
 	SelectVotingInfo() ([]*VotingInfo, error)
 

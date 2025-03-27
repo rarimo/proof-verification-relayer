@@ -31,6 +31,7 @@ type votingQ struct {
 	db       *pgdb.DB
 	sql      sq.StatementBuilderType
 	selector sq.SelectBuilder
+	updater  sq.UpdateBuilder
 }
 
 func (q votingQ) New() data.VotingQ {
@@ -42,7 +43,39 @@ func NewVotingQ(db *pgdb.DB) data.VotingQ {
 		db:       db,
 		sql:      sq.StatementBuilder,
 		selector: sq.Select("*").From(votingTableName),
+		updater:  sq.Update(votingTableName),
 	}
+}
+
+func (q votingQ) Get(column string, dest interface{}) error {
+	query := q.selector.RemoveColumns().Column(column)
+
+	if err := q.db.Get(dest, query); err != nil {
+		if err != sql.ErrNoRows {
+			return errors.Wrap(err, "failed to get voting info from db")
+		}
+		return err
+	}
+	return nil
+}
+
+func (q votingQ) GetVotingBalance() (*big.Int, error) {
+	var balanceStr string
+
+	query := q.selector.RemoveColumns().Column("residual_balance")
+	if err := q.db.Get(&balanceStr, query); err != nil {
+		if err != sql.ErrNoRows {
+			return nil, errors.Wrap(err, "failed to get voting info from db")
+		}
+		return nil, nil
+	}
+
+	balance, success := new(big.Int).SetString(balanceStr, 10)
+	if !success {
+		return nil, errors.New("error converting string balance to big.Int")
+	}
+
+	return balance, nil
 }
 
 func (q votingQ) GetVotingInfo(votingId int64) (*data.VotingInfo, error) {
@@ -153,6 +186,14 @@ func (q votingQ) UpdateVotingInfo(value *data.VotingInfo) error {
 	return nil
 }
 
+func (q votingQ) Update(fields map[string]any) error {
+	if err := q.db.Exec(q.updater.SetMap(fields)); err != nil {
+		return fmt.Errorf("failed to update voting info: %w", err)
+	}
+
+	return nil
+}
+
 func (q votingQ) FilterByVotingId(votingIds ...int64) data.VotingQ {
 	if len(votingIds) == 0 {
 		return q
@@ -171,8 +212,13 @@ func (q votingQ) FilterByMinAge(minAgeList ...int64) data.VotingQ {
 	if len(minAgeList) == 0 {
 		return q
 	}
-	return q.withFilters(sq.Eq{
-		"proposal_info_with_config #> '{contract, config, parsed_voting_whitelist_data, 0, min_age}'": minAgeList})
+
+	var stmt []string
+	for _, minAge := range minAgeList {
+		stmt = append(stmt, fmt.Sprintf("proposal_info_with_config @> '{\"contract\": {\"config\": {\"parsed_voting_whitelist_data\": [{\"min_age\": %d}]}}}'", minAge))
+	}
+
+	return q.withFilters(fmt.Sprintf("(%v)", strings.Join(stmt, " OR ")))
 }
 
 func (q votingQ) FilterByCitizenship(сitizenshipList ...string) data.VotingQ {
@@ -181,7 +227,7 @@ func (q votingQ) FilterByCitizenship(сitizenshipList ...string) data.VotingQ {
 	}
 	var stmt []string
 	for _, citizenship := range сitizenshipList {
-		stmt = append(stmt, fmt.Sprintf("proposal_info_with_config #> '{contract, config, parsed_voting_whitelist_data, 0, citizenship_whitelist}' @> '[\"%v\"]'", citizenship))
+		stmt = append(stmt, fmt.Sprintf("proposal_info_with_config @> '{\"contract\": {\"config\": {\"parsed_voting_whitelist_data\": [{\"citizenship_whitelist\": [\"%v\"]}]}}}'", citizenship))
 	}
 
 	return q.withFilters(fmt.Sprintf("(%v)", strings.Join(stmt, " OR ")))
@@ -189,6 +235,7 @@ func (q votingQ) FilterByCitizenship(сitizenshipList ...string) data.VotingQ {
 
 func (q votingQ) withFilters(stmt interface{}) data.VotingQ {
 	q.selector = q.selector.Where(stmt)
+	q.updater = q.updater.Where(stmt)
 
 	return q
 }
