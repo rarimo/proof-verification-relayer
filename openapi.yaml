@@ -362,6 +362,40 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/InternalError'
+  /integrations/proof-verification-relayer/v2/voting-info:
+    get:
+      tags:
+        - Voting Info
+      summary: Get voting info
+      description: 'This endpoint returns details about the voting, including its current status, configuration, voting options, and results.'
+      operationId: votingInfo
+      parameters:
+        - $ref: '#/components/parameters/proposalCreatorParam'
+        - $ref: '#/components/parameters/citizenshipParam'
+        - $ref: '#/components/parameters/ageParam'
+        - $ref: '#/components/parameters/proposalIDParam'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/vnd.api+json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/VotingInfo'
+        '404':
+          description: Not Found Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundError'
+        '500':
+          description: Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalError'
 components:
   schemas:
     BadRequestError:
@@ -613,6 +647,176 @@ components:
           type: string
           enum:
             - is_enough
+    Options:
+      type: object
+      required:
+        - title
+        - variants
+      properties:
+        title:
+          type: string
+        variants:
+          type: array
+          items:
+            type: string
+    ParsedVotingWhiteData:
+      type: object
+      required:
+        - birth_date_upper_bound
+        - citizenship_whitelist
+        - expiration_date_lower_bound
+        - identity_counter_upper_bound
+        - identity_creation_timestamp_upper_bound
+        - min_age
+      properties:
+        birth_date_upper_bound:
+          type: string
+          description: birth_date_upper_bound in hex format without first 0x
+        expiration_date_lower_bound:
+          type: string
+          description: expiration_date_lower_bound in hex format without first 0x
+        identity_counter_upper_bound:
+          type: string
+          description: uniqueness 0 | 1
+        identity_creation_timestamp_upper_bound:
+          type: string
+        citizenship_whitelist:
+          type: array
+          items:
+            type: string
+            description: Citizenship string like "UKR".
+          example:
+            - UKR
+            - TWN
+          description: Citizenship whitelist for the voting
+        min_age:
+          type: integer
+          format: int64
+    VotingInfo:
+      allOf:
+        - $ref: '#/components/schemas/VotingInfoKey'
+        - type: object
+          required:
+            - attributes
+          properties:
+            attributes:
+              $ref: '#/components/schemas/VotingInfoAttributes'
+    VotingInfoAttributes:
+      type: object
+      required:
+        - contract
+        - author
+        - metadata
+      properties:
+        contract:
+          $ref: '#/components/schemas/VotingInfoContractInfo'
+        author:
+          type: string
+          description: Address creator of the proposal
+        metadata:
+          $ref: '#/components/schemas/VotingInfoAttributesMetadata'
+    VotingInfoAttributesMetadata:
+      type: object
+      description: Additional proposal data stored on IPFS
+      required:
+        - title
+        - description
+        - acceptedOptions
+      properties:
+        title:
+          type: string
+          description: Title of the proposal
+        description:
+          type: string
+          description: Detailed description of the proposal
+        acceptedOptions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Options'
+    VotingInfoConfig:
+      type: object
+      description: Proposal info
+      required:
+        - start_timestamp
+        - end_timestamp
+        - proposal_id
+        - description
+        - multichoice
+        - voting_whitelist
+        - voting_whitelist_data
+        - parsed_voting_whitelist_data
+      properties:
+        start_timestamp:
+          type: integer
+          format: int64
+          description: Start time of the proposal
+        end_timestamp:
+          type: integer
+          format: int64
+          description: End time of the proposal
+        proposal_id:
+          type: integer
+          format: int64
+          description: Unique identifier of the proposal
+        description:
+          type: string
+          description: Ipfs CID
+        multichoice:
+          type: integer
+          format: int64
+          description: Multichoice option for voting
+        voting_whitelist:
+          type: array
+          items:
+            type: string
+            description: Address in the voting whitelist
+          description: List of addresses allowed to vote
+        voting_whitelist_data:
+          type: array
+          items:
+            type: string
+            format: byte
+            description: Additional data for whitelisted voters
+          description: Additional whitelist data in bytes
+        parsed_voting_whitelist_data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ParsedVotingWhiteData'
+    VotingInfoContractInfo:
+      type: object
+      required:
+        - proposalSMT
+        - status
+        - config
+        - voting_results
+      properties:
+        proposalSMT:
+          type: string
+          description: Address of the proposal SMT
+        status:
+          type: integer
+          format: uint8
+          description: Status of the proposal
+        config:
+          $ref: '#/components/schemas/VotingInfoConfig'
+        voting_results:
+          type: array
+          items:
+            type: array
+            items:
+              type: integer
+              format: int64
+            minItems: 8
+            maxItems: 8
+    VotingInfoKey:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - voting_info
     VotingPredict:
       allOf:
         - $ref: '#/components/schemas/VotingPredictKey'
@@ -688,6 +892,21 @@ components:
             - vote_predict_count_tx
           description: The type of response corresponds to the type of request
   parameters:
+    ageParam:
+      in: query
+      name: 'filter[age]'
+      required: false
+      schema:
+        type: integer
+        format: int64
+        description: Minimal age for proposal.
+    citizenshipParam:
+      in: query
+      name: 'filter[citizenship]'
+      required: false
+      schema:
+        type: string
+        description: Citizenship string like "UKR".
     pageLimitParam:
       in: query
       name: 'page[limit]'
@@ -705,6 +924,21 @@ components:
       schema:
         type: integer
       description: The number of a page to return.
+    proposalCreatorParam:
+      in: query
+      name: 'filter[creator]'
+      required: false
+      schema:
+        type: string
+        description: Creator address.
+    proposalIDParam:
+      name: 'filter[voting_id]'
+      in: query
+      required: false
+      schema:
+        type: integer
+        format: int64
+      description: Id for proposal
     sortingParam:
       in: query
       name: 'page[order]'
