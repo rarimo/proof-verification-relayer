@@ -45,7 +45,7 @@ type VerifierHelperProofPoints struct {
 
 // BioPassportVotingMetaData contains all meta data concerning the BioPassportVoting contract.
 var BioPassportVotingMetaData = &bind.MetaData{
-	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"previousAdmin\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newAdmin\",\"type\":\"address\"}],\"name\":\"AdminChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"beacon\",\"type\":\"address\"}],\"name\":\"BeaconUpgraded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"version\",\"type\":\"uint8\"}],\"name\":\"Initialized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"Upgraded\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"IDENTITY_LIMIT\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"MAGIC_ID\",\"outputs\":[{\"internalType\":\"uint8\",\"name\":\"\",\"type\":\"uint8\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"P\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"PROOF_SIGNALS_COUNT\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"SELECTOR\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"ZERO_DATE\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"signer_\",\"type\":\"address\"},{\"internalType\":\"string\",\"name\":\"chainName_\",\"type\":\"string\"},{\"internalType\":\"address\",\"name\":\"registrationSMT_\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"proposalsState_\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"votingVerifier_\",\"type\":\"address\"}],\"name\":\"__BioPassportVoting_init\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"chainName\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"newSignerPubKey_\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"signature_\",\"type\":\"bytes\"}],\"name\":\"changeSigner\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint8\",\"name\":\"methodId_\",\"type\":\"uint8\"}],\"name\":\"getNonce\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"implementation\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"proposalsState\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"proxiableUUID\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"registrationSMT\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"signer\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"}],\"name\":\"upgradeTo\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"upgradeToAndCall\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation_\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"proof_\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"data_\",\"type\":\"bytes\"}],\"name\":\"upgradeToAndCallWithProof\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation_\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"proof_\",\"type\":\"bytes\"}],\"name\":\"upgradeToWithProof\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"registrationRoot_\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"currentDate_\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"proposalId_\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"vote_\",\"type\":\"uint256[]\"},{\"components\":[{\"internalType\":\"uint256\",\"name\":\"nullifier\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"citizenship\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"identityCreationTimestamp\",\"type\":\"uint256\"}],\"internalType\":\"structBaseVoting.UserData\",\"name\":\"userData_\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"uint256[2]\",\"name\":\"a\",\"type\":\"uint256[2]\"},{\"internalType\":\"uint256[2][2]\",\"name\":\"b\",\"type\":\"uint256[2][2]\"},{\"internalType\":\"uint256[2]\",\"name\":\"c\",\"type\":\"uint256[2]\"}],\"internalType\":\"structVerifierHelper.ProofPoints\",\"name\":\"zkPoints_\",\"type\":\"tuple\"}],\"name\":\"vote\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"votingVerifier\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
+	ABI: "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"previousAdmin\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newAdmin\",\"type\":\"address\"}],\"name\":\"AdminChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"beacon\",\"type\":\"address\"}],\"name\":\"BeaconUpgraded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"version\",\"type\":\"uint8\"}],\"name\":\"Initialized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"Upgraded\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"IDENTITY_LIMIT\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"PROOF_SIGNALS_COUNT\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"SELECTOR\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"ZERO_DATE\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"registrationSMT_\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"proposalsState_\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"votingVerifier_\",\"type\":\"address\"}],\"name\":\"__BioPassportVoting_init\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"implementation\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"proposalsState\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"proxiableUUID\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"registrationSMT\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"}],\"name\":\"upgradeTo\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"upgradeToAndCall\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"registrationRoot_\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"currentDate_\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"proposalId_\",\"type\":\"uint256\"},{\"internalType\":\"uint256[]\",\"name\":\"vote_\",\"type\":\"uint256[]\"},{\"components\":[{\"internalType\":\"uint256\",\"name\":\"nullifier\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"citizenship\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"identityCreationTimestamp\",\"type\":\"uint256\"}],\"internalType\":\"structBaseVoting.UserData\",\"name\":\"userData_\",\"type\":\"tuple\"},{\"components\":[{\"internalType\":\"uint256[2]\",\"name\":\"a\",\"type\":\"uint256[2]\"},{\"internalType\":\"uint256[2][2]\",\"name\":\"b\",\"type\":\"uint256[2][2]\"},{\"internalType\":\"uint256[2]\",\"name\":\"c\",\"type\":\"uint256[2]\"}],\"internalType\":\"structVerifierHelper.ProofPoints\",\"name\":\"zkPoints_\",\"type\":\"tuple\"}],\"name\":\"vote\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"votingVerifier\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}]",
 }
 
 // BioPassportVotingABI is the input ABI used to generate the binding from.
@@ -225,68 +225,6 @@ func (_BioPassportVoting *BioPassportVotingCallerSession) IDENTITYLIMIT() (*big.
 	return _BioPassportVoting.Contract.IDENTITYLIMIT(&_BioPassportVoting.CallOpts)
 }
 
-// MAGICID is a free data retrieval call binding the contract method 0xdf95574a.
-//
-// Solidity: function MAGIC_ID() view returns(uint8)
-func (_BioPassportVoting *BioPassportVotingCaller) MAGICID(opts *bind.CallOpts) (uint8, error) {
-	var out []interface{}
-	err := _BioPassportVoting.contract.Call(opts, &out, "MAGIC_ID")
-
-	if err != nil {
-		return *new(uint8), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(uint8)).(*uint8)
-
-	return out0, err
-
-}
-
-// MAGICID is a free data retrieval call binding the contract method 0xdf95574a.
-//
-// Solidity: function MAGIC_ID() view returns(uint8)
-func (_BioPassportVoting *BioPassportVotingSession) MAGICID() (uint8, error) {
-	return _BioPassportVoting.Contract.MAGICID(&_BioPassportVoting.CallOpts)
-}
-
-// MAGICID is a free data retrieval call binding the contract method 0xdf95574a.
-//
-// Solidity: function MAGIC_ID() view returns(uint8)
-func (_BioPassportVoting *BioPassportVotingCallerSession) MAGICID() (uint8, error) {
-	return _BioPassportVoting.Contract.MAGICID(&_BioPassportVoting.CallOpts)
-}
-
-// P is a free data retrieval call binding the contract method 0x8b8fbd92.
-//
-// Solidity: function P() view returns(uint256)
-func (_BioPassportVoting *BioPassportVotingCaller) P(opts *bind.CallOpts) (*big.Int, error) {
-	var out []interface{}
-	err := _BioPassportVoting.contract.Call(opts, &out, "P")
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// P is a free data retrieval call binding the contract method 0x8b8fbd92.
-//
-// Solidity: function P() view returns(uint256)
-func (_BioPassportVoting *BioPassportVotingSession) P() (*big.Int, error) {
-	return _BioPassportVoting.Contract.P(&_BioPassportVoting.CallOpts)
-}
-
-// P is a free data retrieval call binding the contract method 0x8b8fbd92.
-//
-// Solidity: function P() view returns(uint256)
-func (_BioPassportVoting *BioPassportVotingCallerSession) P() (*big.Int, error) {
-	return _BioPassportVoting.Contract.P(&_BioPassportVoting.CallOpts)
-}
-
 // PROOFSIGNALSCOUNT is a free data retrieval call binding the contract method 0xbdb4017f.
 //
 // Solidity: function PROOF_SIGNALS_COUNT() view returns(uint256)
@@ -378,68 +316,6 @@ func (_BioPassportVoting *BioPassportVotingSession) ZERODATE() (*big.Int, error)
 // Solidity: function ZERO_DATE() view returns(uint256)
 func (_BioPassportVoting *BioPassportVotingCallerSession) ZERODATE() (*big.Int, error) {
 	return _BioPassportVoting.Contract.ZERODATE(&_BioPassportVoting.CallOpts)
-}
-
-// ChainName is a free data retrieval call binding the contract method 0x1c93b03a.
-//
-// Solidity: function chainName() view returns(string)
-func (_BioPassportVoting *BioPassportVotingCaller) ChainName(opts *bind.CallOpts) (string, error) {
-	var out []interface{}
-	err := _BioPassportVoting.contract.Call(opts, &out, "chainName")
-
-	if err != nil {
-		return *new(string), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(string)).(*string)
-
-	return out0, err
-
-}
-
-// ChainName is a free data retrieval call binding the contract method 0x1c93b03a.
-//
-// Solidity: function chainName() view returns(string)
-func (_BioPassportVoting *BioPassportVotingSession) ChainName() (string, error) {
-	return _BioPassportVoting.Contract.ChainName(&_BioPassportVoting.CallOpts)
-}
-
-// ChainName is a free data retrieval call binding the contract method 0x1c93b03a.
-//
-// Solidity: function chainName() view returns(string)
-func (_BioPassportVoting *BioPassportVotingCallerSession) ChainName() (string, error) {
-	return _BioPassportVoting.Contract.ChainName(&_BioPassportVoting.CallOpts)
-}
-
-// GetNonce is a free data retrieval call binding the contract method 0xf4fc6341.
-//
-// Solidity: function getNonce(uint8 methodId_) view returns(uint256)
-func (_BioPassportVoting *BioPassportVotingCaller) GetNonce(opts *bind.CallOpts, methodId_ uint8) (*big.Int, error) {
-	var out []interface{}
-	err := _BioPassportVoting.contract.Call(opts, &out, "getNonce", methodId_)
-
-	if err != nil {
-		return *new(*big.Int), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(*big.Int)).(**big.Int)
-
-	return out0, err
-
-}
-
-// GetNonce is a free data retrieval call binding the contract method 0xf4fc6341.
-//
-// Solidity: function getNonce(uint8 methodId_) view returns(uint256)
-func (_BioPassportVoting *BioPassportVotingSession) GetNonce(methodId_ uint8) (*big.Int, error) {
-	return _BioPassportVoting.Contract.GetNonce(&_BioPassportVoting.CallOpts, methodId_)
-}
-
-// GetNonce is a free data retrieval call binding the contract method 0xf4fc6341.
-//
-// Solidity: function getNonce(uint8 methodId_) view returns(uint256)
-func (_BioPassportVoting *BioPassportVotingCallerSession) GetNonce(methodId_ uint8) (*big.Int, error) {
-	return _BioPassportVoting.Contract.GetNonce(&_BioPassportVoting.CallOpts, methodId_)
 }
 
 // Implementation is a free data retrieval call binding the contract method 0x5c60da1b.
@@ -597,37 +473,6 @@ func (_BioPassportVoting *BioPassportVotingCallerSession) RegistrationSMT() (com
 	return _BioPassportVoting.Contract.RegistrationSMT(&_BioPassportVoting.CallOpts)
 }
 
-// Signer is a free data retrieval call binding the contract method 0x238ac933.
-//
-// Solidity: function signer() view returns(address)
-func (_BioPassportVoting *BioPassportVotingCaller) Signer(opts *bind.CallOpts) (common.Address, error) {
-	var out []interface{}
-	err := _BioPassportVoting.contract.Call(opts, &out, "signer")
-
-	if err != nil {
-		return *new(common.Address), err
-	}
-
-	out0 := *abi.ConvertType(out[0], new(common.Address)).(*common.Address)
-
-	return out0, err
-
-}
-
-// Signer is a free data retrieval call binding the contract method 0x238ac933.
-//
-// Solidity: function signer() view returns(address)
-func (_BioPassportVoting *BioPassportVotingSession) Signer() (common.Address, error) {
-	return _BioPassportVoting.Contract.Signer(&_BioPassportVoting.CallOpts)
-}
-
-// Signer is a free data retrieval call binding the contract method 0x238ac933.
-//
-// Solidity: function signer() view returns(address)
-func (_BioPassportVoting *BioPassportVotingCallerSession) Signer() (common.Address, error) {
-	return _BioPassportVoting.Contract.Signer(&_BioPassportVoting.CallOpts)
-}
-
 // VotingVerifier is a free data retrieval call binding the contract method 0x1f2c317f.
 //
 // Solidity: function votingVerifier() view returns(address)
@@ -659,46 +504,25 @@ func (_BioPassportVoting *BioPassportVotingCallerSession) VotingVerifier() (comm
 	return _BioPassportVoting.Contract.VotingVerifier(&_BioPassportVoting.CallOpts)
 }
 
-// BioPassportVotingInit is a paid mutator transaction binding the contract method 0x28986015.
+// BioPassportVotingInit is a paid mutator transaction binding the contract method 0xb6b8038c.
 //
-// Solidity: function __BioPassportVoting_init(address signer_, string chainName_, address registrationSMT_, address proposalsState_, address votingVerifier_) returns()
-func (_BioPassportVoting *BioPassportVotingTransactor) BioPassportVotingInit(opts *bind.TransactOpts, signer_ common.Address, chainName_ string, registrationSMT_ common.Address, proposalsState_ common.Address, votingVerifier_ common.Address) (*types.Transaction, error) {
-	return _BioPassportVoting.contract.Transact(opts, "__BioPassportVoting_init", signer_, chainName_, registrationSMT_, proposalsState_, votingVerifier_)
+// Solidity: function __BioPassportVoting_init(address registrationSMT_, address proposalsState_, address votingVerifier_) returns()
+func (_BioPassportVoting *BioPassportVotingTransactor) BioPassportVotingInit(opts *bind.TransactOpts, registrationSMT_ common.Address, proposalsState_ common.Address, votingVerifier_ common.Address) (*types.Transaction, error) {
+	return _BioPassportVoting.contract.Transact(opts, "__BioPassportVoting_init", registrationSMT_, proposalsState_, votingVerifier_)
 }
 
-// BioPassportVotingInit is a paid mutator transaction binding the contract method 0x28986015.
+// BioPassportVotingInit is a paid mutator transaction binding the contract method 0xb6b8038c.
 //
-// Solidity: function __BioPassportVoting_init(address signer_, string chainName_, address registrationSMT_, address proposalsState_, address votingVerifier_) returns()
-func (_BioPassportVoting *BioPassportVotingSession) BioPassportVotingInit(signer_ common.Address, chainName_ string, registrationSMT_ common.Address, proposalsState_ common.Address, votingVerifier_ common.Address) (*types.Transaction, error) {
-	return _BioPassportVoting.Contract.BioPassportVotingInit(&_BioPassportVoting.TransactOpts, signer_, chainName_, registrationSMT_, proposalsState_, votingVerifier_)
+// Solidity: function __BioPassportVoting_init(address registrationSMT_, address proposalsState_, address votingVerifier_) returns()
+func (_BioPassportVoting *BioPassportVotingSession) BioPassportVotingInit(registrationSMT_ common.Address, proposalsState_ common.Address, votingVerifier_ common.Address) (*types.Transaction, error) {
+	return _BioPassportVoting.Contract.BioPassportVotingInit(&_BioPassportVoting.TransactOpts, registrationSMT_, proposalsState_, votingVerifier_)
 }
 
-// BioPassportVotingInit is a paid mutator transaction binding the contract method 0x28986015.
+// BioPassportVotingInit is a paid mutator transaction binding the contract method 0xb6b8038c.
 //
-// Solidity: function __BioPassportVoting_init(address signer_, string chainName_, address registrationSMT_, address proposalsState_, address votingVerifier_) returns()
-func (_BioPassportVoting *BioPassportVotingTransactorSession) BioPassportVotingInit(signer_ common.Address, chainName_ string, registrationSMT_ common.Address, proposalsState_ common.Address, votingVerifier_ common.Address) (*types.Transaction, error) {
-	return _BioPassportVoting.Contract.BioPassportVotingInit(&_BioPassportVoting.TransactOpts, signer_, chainName_, registrationSMT_, proposalsState_, votingVerifier_)
-}
-
-// ChangeSigner is a paid mutator transaction binding the contract method 0x497f6959.
-//
-// Solidity: function changeSigner(bytes newSignerPubKey_, bytes signature_) returns()
-func (_BioPassportVoting *BioPassportVotingTransactor) ChangeSigner(opts *bind.TransactOpts, newSignerPubKey_ []byte, signature_ []byte) (*types.Transaction, error) {
-	return _BioPassportVoting.contract.Transact(opts, "changeSigner", newSignerPubKey_, signature_)
-}
-
-// ChangeSigner is a paid mutator transaction binding the contract method 0x497f6959.
-//
-// Solidity: function changeSigner(bytes newSignerPubKey_, bytes signature_) returns()
-func (_BioPassportVoting *BioPassportVotingSession) ChangeSigner(newSignerPubKey_ []byte, signature_ []byte) (*types.Transaction, error) {
-	return _BioPassportVoting.Contract.ChangeSigner(&_BioPassportVoting.TransactOpts, newSignerPubKey_, signature_)
-}
-
-// ChangeSigner is a paid mutator transaction binding the contract method 0x497f6959.
-//
-// Solidity: function changeSigner(bytes newSignerPubKey_, bytes signature_) returns()
-func (_BioPassportVoting *BioPassportVotingTransactorSession) ChangeSigner(newSignerPubKey_ []byte, signature_ []byte) (*types.Transaction, error) {
-	return _BioPassportVoting.Contract.ChangeSigner(&_BioPassportVoting.TransactOpts, newSignerPubKey_, signature_)
+// Solidity: function __BioPassportVoting_init(address registrationSMT_, address proposalsState_, address votingVerifier_) returns()
+func (_BioPassportVoting *BioPassportVotingTransactorSession) BioPassportVotingInit(registrationSMT_ common.Address, proposalsState_ common.Address, votingVerifier_ common.Address) (*types.Transaction, error) {
+	return _BioPassportVoting.Contract.BioPassportVotingInit(&_BioPassportVoting.TransactOpts, registrationSMT_, proposalsState_, votingVerifier_)
 }
 
 // RenounceOwnership is a paid mutator transaction binding the contract method 0x715018a6.
@@ -783,48 +607,6 @@ func (_BioPassportVoting *BioPassportVotingSession) UpgradeToAndCall(newImplemen
 // Solidity: function upgradeToAndCall(address newImplementation, bytes data) payable returns()
 func (_BioPassportVoting *BioPassportVotingTransactorSession) UpgradeToAndCall(newImplementation common.Address, data []byte) (*types.Transaction, error) {
 	return _BioPassportVoting.Contract.UpgradeToAndCall(&_BioPassportVoting.TransactOpts, newImplementation, data)
-}
-
-// UpgradeToAndCallWithProof is a paid mutator transaction binding the contract method 0xbf2c6db7.
-//
-// Solidity: function upgradeToAndCallWithProof(address newImplementation_, bytes proof_, bytes data_) returns()
-func (_BioPassportVoting *BioPassportVotingTransactor) UpgradeToAndCallWithProof(opts *bind.TransactOpts, newImplementation_ common.Address, proof_ []byte, data_ []byte) (*types.Transaction, error) {
-	return _BioPassportVoting.contract.Transact(opts, "upgradeToAndCallWithProof", newImplementation_, proof_, data_)
-}
-
-// UpgradeToAndCallWithProof is a paid mutator transaction binding the contract method 0xbf2c6db7.
-//
-// Solidity: function upgradeToAndCallWithProof(address newImplementation_, bytes proof_, bytes data_) returns()
-func (_BioPassportVoting *BioPassportVotingSession) UpgradeToAndCallWithProof(newImplementation_ common.Address, proof_ []byte, data_ []byte) (*types.Transaction, error) {
-	return _BioPassportVoting.Contract.UpgradeToAndCallWithProof(&_BioPassportVoting.TransactOpts, newImplementation_, proof_, data_)
-}
-
-// UpgradeToAndCallWithProof is a paid mutator transaction binding the contract method 0xbf2c6db7.
-//
-// Solidity: function upgradeToAndCallWithProof(address newImplementation_, bytes proof_, bytes data_) returns()
-func (_BioPassportVoting *BioPassportVotingTransactorSession) UpgradeToAndCallWithProof(newImplementation_ common.Address, proof_ []byte, data_ []byte) (*types.Transaction, error) {
-	return _BioPassportVoting.Contract.UpgradeToAndCallWithProof(&_BioPassportVoting.TransactOpts, newImplementation_, proof_, data_)
-}
-
-// UpgradeToWithProof is a paid mutator transaction binding the contract method 0x628543ab.
-//
-// Solidity: function upgradeToWithProof(address newImplementation_, bytes proof_) returns()
-func (_BioPassportVoting *BioPassportVotingTransactor) UpgradeToWithProof(opts *bind.TransactOpts, newImplementation_ common.Address, proof_ []byte) (*types.Transaction, error) {
-	return _BioPassportVoting.contract.Transact(opts, "upgradeToWithProof", newImplementation_, proof_)
-}
-
-// UpgradeToWithProof is a paid mutator transaction binding the contract method 0x628543ab.
-//
-// Solidity: function upgradeToWithProof(address newImplementation_, bytes proof_) returns()
-func (_BioPassportVoting *BioPassportVotingSession) UpgradeToWithProof(newImplementation_ common.Address, proof_ []byte) (*types.Transaction, error) {
-	return _BioPassportVoting.Contract.UpgradeToWithProof(&_BioPassportVoting.TransactOpts, newImplementation_, proof_)
-}
-
-// UpgradeToWithProof is a paid mutator transaction binding the contract method 0x628543ab.
-//
-// Solidity: function upgradeToWithProof(address newImplementation_, bytes proof_) returns()
-func (_BioPassportVoting *BioPassportVotingTransactorSession) UpgradeToWithProof(newImplementation_ common.Address, proof_ []byte) (*types.Transaction, error) {
-	return _BioPassportVoting.Contract.UpgradeToWithProof(&_BioPassportVoting.TransactOpts, newImplementation_, proof_)
 }
 
 // Vote is a paid mutator transaction binding the contract method 0x11181976.

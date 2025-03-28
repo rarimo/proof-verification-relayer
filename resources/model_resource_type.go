@@ -13,6 +13,7 @@ const (
 	TXS                   ResourceType = "txs"
 	VOTE_COUNT            ResourceType = "vote_count"
 	IS_ENOUGH             ResourceType = "is_enough"
+	VOTING_INFO           ResourceType = "voting_info"
 	VOTE_PREDICT_AMOUNT   ResourceType = "vote_predict_amount"
 	VOTE_PREDICT_COUNT_TX ResourceType = "vote_predict_count_tx"
 )

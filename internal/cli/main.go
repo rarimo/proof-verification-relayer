@@ -8,9 +8,9 @@ import (
 	"syscall"
 
 	"github.com/alecthomas/kingpin"
-	"github.com/rarimo/proof-verification-relayer/internal/checker"
 	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api"
+	"github.com/rarimo/proof-verification-relayer/internal/service/checker"
 	"github.com/rarimo/proof-verification-relayer/internal/service/listener"
 	"gitlab.com/distributed_lab/kit/kv"
 	"gitlab.com/distributed_lab/logan/v3"

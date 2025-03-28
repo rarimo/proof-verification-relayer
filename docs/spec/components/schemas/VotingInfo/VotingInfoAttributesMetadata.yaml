@@ -1,0 +1,17 @@
+type: object
+description: Additional proposal data stored on IPFS
+required:
+  - title
+  - description
+  - acceptedOptions
+properties:
+  title:
+    type: string
+    description: Title of the proposal
+  description:
+    type: string
+    description: Detailed description of the proposal
+  acceptedOptions:
+    type: array
+    items:
+      $ref: '#/components/schemas/Options'

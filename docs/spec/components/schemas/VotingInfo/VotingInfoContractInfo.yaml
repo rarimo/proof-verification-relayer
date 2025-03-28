@@ -1,0 +1,26 @@
+type: object
+required:
+  - proposalSMT
+  - status
+  - config
+  - voting_results
+properties:
+  proposalSMT:
+    type: string
+    description: "Address of the proposal SMT"
+  status:
+    type: integer
+    format: uint8
+    description: "Status of the proposal"
+  config:
+    $ref: '#/components/schemas/VotingInfoConfig'
+  voting_results:
+    type: array
+    items:
+      type: array
+      items:
+        type: integer
+        format: int64
+      minItems: 8
+      maxItems: 8
+

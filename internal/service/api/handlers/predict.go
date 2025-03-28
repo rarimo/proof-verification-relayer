@@ -6,20 +6,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/rarimo/proof-verification-relayer/internal/checker"
 	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/ape"
 	"gitlab.com/distributed_lab/ape/problems"
+	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
 func PredictHandlers(w http.ResponseWriter, r *http.Request) {
-	сheckByType := map[string]func(cfg config.Config, votingId int64, countTx *big.Int) (*big.Int, error){
-		string(resources.VOTE_PREDICT_AMOUNT):   checker.GetAmountForCountTx,
-		string(resources.VOTE_PREDICT_COUNT_TX): checker.GetCountTxForAmount,
-	}
-
 	req, value, err := requests.NewVotingPredictRequest(r, Log(r))
 	if err != nil {
 		Log(r).WithError(err).Error("failed to get request")
@@ -28,19 +23,30 @@ func PredictHandlers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	reqArgument, _ := new(big.Int).SetString(*value, 10)
-	resultAns, err := сheckByType[string(req.Data.Type)](Config(r), *req.Data.Attributes.VotingId, reqArgument)
-	if err != nil {
-		Log(r).Warnf("Failed check is predict: %v", err)
-		ape.RenderErr(w, problems.InternalError())
-		return
-	}
-	timestamp := time.Now().UTC().Format(time.RFC3339)
-	resultAnsStr := fmt.Sprintf("%d", resultAns)
+
+	var resultAns *big.Int
 	var attribute resources.VotingPredictRespAttributes
+	timestamp := time.Now().UTC().Format(time.RFC3339)
+
 	switch req.Data.Type {
 	case resources.VOTE_PREDICT_AMOUNT:
+		resultAns, err = predictAmountOrCountTx(Config(r), *req.Data.Attributes.VotingId, reqArgument, nil)
+		if err != nil {
+			Log(r).Warnf("Failed check is predict: %v", err)
+			ape.RenderErr(w, problems.InternalError())
+			return
+		}
+		resultAnsStr := fmt.Sprintf("%d", resultAns)
 		attribute.AmountPredict = &resultAnsStr
 	case resources.VOTE_PREDICT_COUNT_TX:
+		resultAns, err = predictAmountOrCountTx(Config(r), *req.Data.Attributes.VotingId, nil, reqArgument)
+		if err != nil {
+			Log(r).Warnf("Failed check is predict: %v", err)
+			ape.RenderErr(w, problems.InternalError())
+			return
+		}
+
+		resultAnsStr := fmt.Sprintf("%d", resultAns)
 		attribute.CountTxPredict = &resultAnsStr
 	}
 
@@ -53,4 +59,20 @@ func PredictHandlers(w http.ResponseWriter, r *http.Request) {
 			Attributes: attribute,
 		},
 	})
+}
+
+func predictAmountOrCountTx(cfg config.Config, votingId int64, countTx *big.Int, amount *big.Int) (*big.Int, error) {
+	txFee, err := getTxFee(cfg, votingId)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed get fee")
+	}
+	if txFee.Int64() == 0 {
+		big.NewInt(int64(cfg.VotingV2Config().GasLimit))
+	}
+
+	if countTx != nil {
+		return new(big.Int).Mul(countTx, txFee), nil
+	}
+
+	return new(big.Int).Div(amount, txFee), nil
 }

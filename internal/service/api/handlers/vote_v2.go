@@ -16,9 +16,10 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/rarimo/proof-verification-relayer/internal/checker"
+	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	biopassportvoting "github.com/rarimo/proof-verification-relayer/internal/contracts/bio_passport_voting"
+	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/ape"
@@ -83,22 +84,6 @@ func VoteV2(w http.ResponseWriter, r *http.Request) {
 	})
 	log.Debug("voting request")
 
-	checkIsEnough, err := checker.IsEnough(Config(r), proposalID)
-	if err != nil {
-		if err != sql.ErrNoRows {
-			log.WithError(err).Warn("Insufficient balance check failed")
-			ape.RenderErr(w, problems.InternalError())
-			return
-		}
-		ape.RenderErr(w, problems.NotFound())
-		return
-	}
-	if !checkIsEnough {
-		log.Info("Insufficient funds in the voting account")
-		ape.RenderErr(w, problems.Forbidden())
-		return
-	}
-
 	// destination is valid hex address because of request validation
 	votingAddress := common.HexToAddress(destination)
 
@@ -146,14 +131,30 @@ func VoteV2(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = checker.CheckUpdateGasLimit(txd.gas, Config(r), proposalBigID.Int64())
+	err = checkUpdateGasLimit(txd.gas, Config(r), proposalBigID.Int64())
 	if err != nil {
 		log.WithError(err).Error("failed to check and update gas limit")
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
 
-	err = checker.UpdateVotingBalance(Config(r), txd.gasPrice, txd.gas, proposalID)
+	checkIsEnough, err := isEnough(Config(r), proposalID)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			log.WithError(err).Warn("Insufficient balance check failed")
+			ape.RenderErr(w, problems.InternalError())
+			return
+		}
+		ape.RenderErr(w, problems.NotFound())
+		return
+	}
+	if !checkIsEnough {
+		log.Info("Insufficient funds in the voting account")
+		ape.RenderErr(w, problems.Forbidden())
+		return
+	}
+
+	err = updateVotingBalance(Config(r), txd.gasPrice, txd.gas, proposalID)
 	if err != nil {
 		log.WithError(err).Error("failed update voting balance")
 		ape.RenderErr(w, problems.InternalError())
@@ -311,4 +312,45 @@ func parseCallData(data []byte) (VoteCalldata, error) {
 	}
 
 	return config, nil
+}
+
+func updateVotingBalance(cfg config.Config, gasPrice *big.Int, gas uint64, votingId int64) error {
+	pgDB := pg.NewVotingQ(cfg.DB().Clone()).FilterByVotingId(votingId)
+
+	balance, err := pgDB.GetVotingBalance()
+	if err != nil {
+		return fmt.Errorf("failed get voting info from db: %w", err)
+	}
+	if balance == nil {
+		return errors.New("Voting Not Found")
+	}
+
+	if gasPrice.Int64() == 0 {
+		gasPrice = big.NewInt(1)
+	}
+
+	err = pgDB.Update(map[string]any{"residual_balance": new(big.Int).
+		Sub(balance, new(big.Int).Mul(big.NewInt(int64(gas)), gasPrice)).String()})
+	if err != nil {
+		return fmt.Errorf("failed update voting balance: %w", err)
+	}
+
+	return nil
+}
+
+func checkUpdateGasLimit(value uint64, cfg config.Config, votingId int64) error {
+	pgDB := pg.NewVotingQ(cfg.DB().Clone()).FilterByVotingId(votingId)
+
+	var one int
+	if err := pgDB.Get("1", &one); err != nil {
+		if err != sql.ErrNoRows {
+			return errors.Wrap(err, "failed to get voting info from db")
+		}
+		return errors.New("voting Not Found")
+	}
+
+	if err := pgDB.Update(map[string]any{"gas_limit": value}); err != nil {
+		return errors.Wrap(err, "failed to update voting gas limit from db")
+	}
+	return nil
 }
