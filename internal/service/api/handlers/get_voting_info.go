@@ -29,12 +29,9 @@ func GetVotingInfo(w http.ResponseWriter, r *http.Request) {
 		ape.RenderErr(w, problems.InternalError())
 		return
 	}
-	if len(voteList) == 0 {
-		ape.RenderErr(w, problems.NotFound())
-		return
-	}
 
 	var resp resources.VotingInfoListResponse
+	resp.Data = make([]resources.VotingInfo, 0, len(voteList))
 	for _, vote := range voteList {
 		id := strconv.FormatInt(vote.Contract.Config.ProposalId, 10)
 
