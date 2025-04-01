@@ -31,7 +31,7 @@ func GetVotingInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var resp resources.VotingInfoListResponse
-	resp.Data = make([]resources.VotingInfo, 0)
+	resp.Data = make([]resources.VotingInfo, 0, len(voteList))
 	for _, vote := range voteList {
 		id := strconv.FormatInt(vote.Contract.Config.ProposalId, 10)
 
