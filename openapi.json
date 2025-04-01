@@ -590,7 +590,7 @@
         "tags": [
           "Voting Info"
         ],
-        "summary": "Get voting info",
+        "summary": "Get voting info array",
         "description": "This endpoint returns details about the voting, including its current status, configuration, voting options, and results.",
         "operationId": "votingInfo",
         "parameters": [
@@ -616,19 +616,12 @@
                   "type": "object",
                   "properties": {
                     "data": {
-                      "$ref": "#/components/schemas/VotingInfo"
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/VotingInfo"
+                      }
                     }
                   }
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotFoundError"
                 }
               }
             }
