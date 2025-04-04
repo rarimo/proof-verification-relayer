@@ -17,7 +17,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
-// Based on the event name and filtered log, it parses and returns the relevant information
+// Based on the event name and filtered log, it parses and update the relevant information
 func (ch *checker) processLog(vLog types.Log, eventName string) error {
 	var processedEvent data.ProcessedEvent
 
@@ -54,7 +54,7 @@ func (ch *checker) processLog(vLog types.Log, eventName string) error {
 // Based on the decompressed data, voting information is created or updated
 func (ch *checker) getEventData(eventName string, vLog types.Log, sender string) (votingInfo *data.VotingInfo, err error) {
 	if len(vLog.Topics) < 2 {
-		return nil, nil
+		return nil, errors.New("the topic must contain at least two elements")
 	}
 
 	// Since the parameter is indexed, it is found in the topics and not in vLog.Data,
