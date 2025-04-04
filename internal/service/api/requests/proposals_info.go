@@ -16,7 +16,7 @@ type ProposalInfoFilter struct {
 	CitizenshipList []string `filter:"citizenship"`
 	MinAge          []int64  `filter:"min_age"`
 	MaxAge          []int64  `filter:"max_age"`
-	ProposalId      []int64  `filter:"voting_id"`
+	ProposalId      []int64  `filter:"proposal_id"`
 	VotingStatus    []string `filter:"status"`
 	SexFilter       []string `filter:"sex"`
 
