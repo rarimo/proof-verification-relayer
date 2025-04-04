@@ -326,8 +326,6 @@ func (q votingQ) FilterByCitizenship(сitizenshipList ...string) data.VotingQ {
 
 func (q votingQ) Page(page *pgdb.OffsetPageParams) data.VotingQ {
 	q.selector = applyPage(page, q.selector)
-
-	fmt.Println(q.selector.ToSql())
 	return q
 }
 
@@ -338,7 +336,11 @@ func (q votingQ) FilterBySex(sexList ...string) data.VotingQ {
 
 	var stmt []string
 	for _, sex := range sexList {
-		stmt = append(stmt, fmt.Sprintf("parsed_whitelist_data_with_metadata @> '{\"parsed_voting_whitelist_data\": [{\"sex\": \"%s\"}]}'", hex.EncodeToString([]byte(sex))))
+		queryParam := sex
+		if sex != "0" {
+			queryParam = hex.EncodeToString([]byte(sex))
+		}
+		stmt = append(stmt, fmt.Sprintf("parsed_whitelist_data_with_metadata @> '{\"parsed_voting_whitelist_data\": [{\"sex\": \"%s\"}]}'", queryParam))
 	}
 
 	return q.withFilters(fmt.Sprintf("(%v)", strings.Join(stmt, " OR ")))

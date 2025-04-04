@@ -10,6 +10,7 @@ get:
     - $ref: '#/components/parameters/MaxAgeParam'
     - $ref: '#/components/parameters/MinAgeParam'
     - $ref: '#/components/parameters/proposalIDParam'
+    - $ref: '#/components/parameters/sexParam'
     - $ref: '#/components/parameters/votingStatus'
     - $ref: '#/components/parameters/pageLimitParam'
     - $ref: '#/components/parameters/sortingParam'
