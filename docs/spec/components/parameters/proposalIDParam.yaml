@@ -1,4 +1,4 @@
-name: 'filter[voting_id]'
+name: 'filter[proposal_id]'
 in: query
 required: false
 schema:
