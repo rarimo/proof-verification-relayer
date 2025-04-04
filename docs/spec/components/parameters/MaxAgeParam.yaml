@@ -1,7 +1,7 @@
-name: 'filter[proposal_id]'
 in: query
+name: 'filter[max_age]'
 required: false
 schema:
   type: integer
   format: int64
-description: Id for proposal
+  description: maximum age for proposal.

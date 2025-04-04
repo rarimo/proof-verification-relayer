@@ -1,0 +1,45 @@
+type: object
+required:
+  - status
+  - owner
+  - metadata
+  - total_balance
+  - remaining_balance
+  - start_timestamp
+  - end_timestamp
+  - votes_count
+  - remaining_votes_count
+properties:
+  status:
+    type: string
+    enum: 
+      - "waiting" 
+      - "started"
+      - "ended"
+  owner:
+    type: string
+    description: Address creator of the proposal
+  metadata:
+    $ref: '#/components/schemas/ProposalInfoAttributesMetadata'
+  total_balance:
+    type: string
+    description: Balance what is the starting balance with deposits
+  remaining_balance:
+    type: string
+    description: Remaining balance
+  start_timestamp:
+    type: integer
+    format: int64
+    description: Start time of the proposal
+  end_timestamp:
+    type: integer
+    format: int64
+    description: End time of the proposal
+  votes_count:
+    type: integer
+    format: int64
+    description: Total number of votes already cast for this proposal
+  remaining_votes_count:
+    type: integer
+    format: int64
+    description: Total number of available votes for this proposal

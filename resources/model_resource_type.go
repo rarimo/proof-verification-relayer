@@ -8,6 +8,7 @@ type ResourceType string
 
 // List of ResourceType
 const (
+	PROPOSALS             ResourceType = "proposals"
 	SEND_TRANSACTION      ResourceType = "send_transaction"
 	STATE                 ResourceType = "state"
 	TXS                   ResourceType = "txs"

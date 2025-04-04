@@ -154,7 +154,7 @@ func VoteV2(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = updateVotingBalance(Config(r), txd.gasPrice, txd.gas, proposalID)
+	err = updateVotingBalanceAndVotesCount(Config(r), txd.gasPrice, txd.gas, proposalID)
 	if err != nil {
 		log.WithError(err).Error("failed update voting balance")
 		ape.RenderErr(w, problems.InternalError())
@@ -314,10 +314,10 @@ func parseCallData(data []byte) (VoteCalldata, error) {
 	return config, nil
 }
 
-func updateVotingBalance(cfg config.Config, gasPrice *big.Int, gas uint64, votingId int64) error {
+func updateVotingBalanceAndVotesCount(cfg config.Config, gasPrice *big.Int, gas uint64, votingId int64) error {
 	pgDB := pg.NewVotingQ(cfg.DB().Clone()).FilterByVotingId(votingId)
 
-	balance, err := pgDB.GetVotingBalance()
+	balance, _, err := pgDB.GetVotingBalance()
 	if err != nil {
 		return fmt.Errorf("failed get voting info from db: %w", err)
 	}
@@ -329,8 +329,18 @@ func updateVotingBalance(cfg config.Config, gasPrice *big.Int, gas uint64, votin
 		gasPrice = big.NewInt(1)
 	}
 
-	err = pgDB.Update(map[string]any{"residual_balance": new(big.Int).
-		Sub(balance, new(big.Int).Mul(big.NewInt(int64(gas)), gasPrice)).String()})
+	var votes_count int64
+	if err := pgDB.Get("votes_count", &votes_count); err != nil {
+		if err != sql.ErrNoRows {
+			return errors.Wrap(err, "failed to get voting info from db")
+		}
+		return errors.New("voting Not Found")
+	}
+
+	err = pgDB.Update(map[string]any{
+		"residual_balance": new(big.Int).Sub(balance, new(big.Int).Mul(big.NewInt(int64(gas)), gasPrice)).String(),
+		"votes_count":      votes_count + 1,
+	})
 	if err != nil {
 		return fmt.Errorf("failed update voting balance: %w", err)
 	}

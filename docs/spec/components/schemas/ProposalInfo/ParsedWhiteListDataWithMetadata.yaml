@@ -1,0 +1,11 @@
+type: object
+required:
+  - metadata
+  - parsed_voting_whitelist_data
+properties:
+  metadata:
+    $ref: '#/components/schemas/ProposalInfoAttributesMetadata'
+  parsed_voting_whitelist_data:
+    type: array
+    items:
+      $ref: '#/components/schemas/ParsedVotingWhiteData'

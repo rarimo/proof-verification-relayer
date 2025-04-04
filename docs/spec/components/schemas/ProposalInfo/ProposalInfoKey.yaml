@@ -1,0 +1,13 @@
+type: object
+required:
+  - id
+  - type
+properties:
+  type:
+    type: string
+    enum: 
+      - "proposals"
+  id:
+    type: string
+    description: Proposal ID
+    

@@ -1,5 +1,5 @@
 in: query
-name: 'filter[age]'
+name: 'filter[min_age]'
 required: false
 schema:
   type: integer

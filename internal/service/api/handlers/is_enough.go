@@ -25,7 +25,7 @@ func IsEnoughHandler(w http.ResponseWriter, r *http.Request) {
 	isEnough, err := isEnough(Config(r), votingId)
 	if err != nil {
 		if err != sql.ErrNoRows {
-			Log(r).WithField("voting_id", votingId).Errorf("Failed check is enough balance: %v", err)
+			Log(r).WithError(err).WithField("voting_id", votingId).Error("failed check is enough balance")
 			ape.RenderErr(w, problems.InternalError())
 			return
 		}

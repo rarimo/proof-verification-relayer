@@ -3,13 +3,16 @@ package checker
 import (
 	"context"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/rarimo/proof-verification-relayer/internal/config"
+	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/data"
 	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
 	"gitlab.com/distributed_lab/logan/v3"
@@ -25,8 +28,13 @@ type checker struct {
 	VotingV2Config  config.VotingV2Config
 	pinger          config.Pinger
 	cfg             config.Config
+	eventHashes     []common.Hash
+	parsedABI       abi.ABI
 }
 
+// event ProposalConfigChanged(uint256 indexed proposalId);
+// event ProposalFunded(uint256 indexed proposalId, uint256 fundAmount);
+// event ProposalCreated(uint256 indexed proposalId, address proposalSMT, uint256 fundAmount)
 var eventNames = []string{"ProposalCreated", "ProposalFunded", "ProposalConfigChanged"}
 var eventHashIdToNames = map[string]string{
 	"0x3417b456fad6209c73445d5efd446d686e75e4560f0f50c13b5a5cde976447b4": "ProposalCreated",
@@ -64,6 +72,18 @@ func (ch *checker) Start(ctx context.Context) {
 		ch.log.WithField("Enable checker", ch.VotingV2Config.Enable).Info("stop reading events")
 		return
 	}
+	eventHashes, err := ch.getEventHashes()
+	if err != nil {
+		// If there is no list of events, scanning is pointless
+		ch.log.WithError(err).Error("failed to get event hash list")
+		return
+	}
+	ch.eventHashes = eventHashes
+	ch.parsedABI, err = abi.JSON(strings.NewReader(contracts.ProposalsStateABI))
+	if err != nil {
+		ch.log.WithError(err).Error(err, "failed to parse contract ABI")
+		return
+	}
 	running.WithBackOff(
 		ctx, ch.log, "checker", ch.check,
 		ch.pinger.NormalPeriod, ch.pinger.MinAbnormalPeriod, ch.pinger.MinAbnormalPeriod,
@@ -95,6 +115,7 @@ func (ch *checker) check(ctx context.Context) error {
 	return nil
 }
 
+// Starts scanning for new events
 func (ch *checker) readNewEvents(ctx context.Context, isSub bool) {
 	if isSub {
 		go ch.readNewEventsSub(ctx)
@@ -103,6 +124,7 @@ func (ch *checker) readNewEvents(ctx context.Context, isSub bool) {
 	go ch.readNewEventsWithoutSub(ctx)
 }
 
+// // Check events without a subscription, for example, if the network does not support web sockets
 func (ch *checker) readNewEventsWithoutSub(ctx context.Context) {
 	client := ch.VotingV2Config.RPC
 	header, err := client.HeaderByNumber(ctx, nil)
@@ -145,14 +167,8 @@ func (ch *checker) readNewEventsWithoutSub(ctx context.Context) {
 }
 
 func (ch *checker) readNewEventsSub(ctx context.Context) {
-	eventHashes, err := ch.getEventHashes()
-	if err != nil {
-		ch.log.WithError(err).Error("failed get event names hashes")
-		return
-	}
-
 	query := ethereum.FilterQuery{
-		Topics:    [][]common.Hash{eventHashes},
+		Topics:    [][]common.Hash{ch.eventHashes},
 		Addresses: []common.Address{ch.VotingV2Config.Address},
 	}
 
@@ -190,6 +206,7 @@ func (ch *checker) readNewEventsSub(ctx context.Context) {
 	}
 }
 
+// Search and process old events starting from a specific block
 func (ch *checker) readOldEvents(ctx context.Context, block uint64) {
 	client := ch.VotingV2Config.RPC
 	ch.log.WithField("from", block).Info("start reading old events")
@@ -204,6 +221,7 @@ func (ch *checker) readOldEvents(ctx context.Context, block uint64) {
 	ch.log.WithField("to", toBlock).Info("finish reading old events")
 }
 
+// Sequential block gap check. It is necessary to check gaps that are larger than the network limits.
 func (ch *checker) readFromToBlock(ctx context.Context, fromBlock uint64, toBlock uint64) uint64 {
 	for ; fromBlock < toBlock; fromBlock = min(toBlock, fromBlock+ch.pinger.BlocksDistance) {
 		select {
@@ -226,16 +244,12 @@ func (ch *checker) readFromToBlock(ctx context.Context, fromBlock uint64, toBloc
 	return toBlock
 }
 
+// Filters logs with the required events
 func (ch *checker) checkFilter(block, toBlock uint64) error {
-	eventHashes, err := ch.getEventHashes()
-	if err != nil {
-		return errors.Wrap(err, "failed get event names hashes")
-	}
-
 	query := ethereum.FilterQuery{
 		FromBlock: big.NewInt(int64(block)),
 		ToBlock:   big.NewInt(int64(toBlock)),
-		Topics:    [][]common.Hash{eventHashes},
+		Topics:    [][]common.Hash{ch.eventHashes},
 		Addresses: []common.Address{ch.VotingV2Config.Address},
 	}
 
@@ -255,6 +269,11 @@ func (ch *checker) checkFilter(block, toBlock uint64) error {
 			}).Error("failed process log")
 			continue
 		}
+		ch.log.WithFields(logan.F{
+			"log_index":  vLog.Index,
+			"hash_tx":    vLog.TxHash.Hex(),
+			"event_name": eventName}).
+			Info("new event")
 		events += 1
 	}
 
