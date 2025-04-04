@@ -1,12 +1,25 @@
 type: object
 required:
+  - selector
+  - birth_date_lowerbound
   - birth_date_upper_bound
   - citizenship_whitelist
   - expiration_date_lower_bound
   - identity_counter_upper_bound
   - identity_creation_timestamp_upper_bound
   - min_age
+  - max_age
+  - sex
 properties:
+  selector:
+    type: string
+    description: Proposal selector without first 0x
+  sex:
+    type: string
+    description: toHex('M') // male, toHex('F') // female, 0 // any
+  birth_date_lowerbound:
+    type: string
+    description: birth_date_lowerbound in hex format without first 0x
   birth_date_upper_bound:
     type: string
     description: birth_date_upper_bound in hex format without first 0x
@@ -26,5 +39,8 @@ properties:
     example: ["UKR", "TWN"]
     description: Citizenship whitelist for the voting
   min_age:
+    type: integer
+    format: int64
+  max_age:
     type: integer
     format: int64

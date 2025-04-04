@@ -27,7 +27,7 @@ func VoteCountHandlers(w http.ResponseWriter, r *http.Request) {
 	countTx, err := getCountTx(Config(r), votingId)
 	if err != nil {
 		if err != sql.ErrNoRows {
-			Log(r).WithField("voting_id", votingId).Errorf("Failed get count tx for vote: %v", err)
+			Log(r).WithError(err).WithField("voting_id", votingId).Error("failed get count tx for vote")
 			ape.RenderErr(w, problems.InternalError())
 			return
 		}
@@ -54,7 +54,7 @@ func getCountTx(cfg config.Config, votingId int64) (uint64, error) {
 		return 0, errors.Wrap(err, "failed get fee")
 	}
 
-	balance, err := vq.GetVotingBalance()
+	balance, _, err := vq.GetVotingBalance()
 	if err != nil {
 		return 0, errors.Wrap(err, "failed to get voting balance from db")
 	}

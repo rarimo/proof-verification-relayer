@@ -18,7 +18,20 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
-func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string) (*resources.VotingInfoAttributes, error) {
+type ProposalInfoFromContract struct {
+	// Timespamp when the voting ends
+	EndTimestamp int64
+	// Timespamp when voting starts
+	StartTimestamp int64
+	// Proposal data received from IPFS according to the CID received from the contract
+	Metadata resources.ProposalInfoAttributesMetadata
+	// Rules for the proposal
+	ParsedVotingWhitelistData []resources.ParsedVotingWhiteData
+}
+
+// Gets information from the contract for the corresponding proposal_id.
+// Parses the received information and generates it in the required format.
+func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string) (*ProposalInfoFromContract, error) {
 	contractAddress := cfg.VotingV2Config().Address
 	client := cfg.VotingV2Config().RPC
 	ipfsUrl := cfg.VotingV2Config().IpfsUrl
@@ -31,26 +44,26 @@ func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed get proposal info from contract")
 	}
+
 	startTimeStamp := proposalInfo.Config.StartTimestamp
 	endTimestamp := proposalInfo.Config.StartTimestamp + proposalInfo.Config.Duration
 
+	// Description in proposalInfo.Config contains the CID for the resource that corresponds to this proposal in the IPFS repository
 	desc, err := getProposalDescFromIpfs(proposalInfo.Config.Description, ipfsUrl)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed get proposal info from ipfs")
 	}
 	votingConfig := proposalInfo.Config
-	var votingWhitelist []string
 
-	for _, addr := range votingConfig.VotingWhitelist {
-		votingWhitelist = append(votingWhitelist, addr.Hex())
-	}
-
+	// proposalInfo.Config.VotingWhitelistData is a list of rules for this proposal according to the VotingWhitelist,
+	// which is a list of Voting contracts that are allowed for this proposal.
+	//
+	// For more information, see ProposalsState.sol:
+	// https://github.com/rarimo/passport-voting-contracts
 	var parsedVotingWhitelistData []resources.ParsedVotingWhiteData
-	var votingWhitelistData []string
 	for _, data := range votingConfig.VotingWhitelistData {
-		votingWhitelistData = append(votingWhitelistData, hex.EncodeToString(data))
 
-		whiteData, err := decodeVotingConfig(data)
+		whiteData, err := decodeWhitelistData(data)
 		if err != nil {
 			cfg.Log().WithError(err).
 				WithField("proposal_id", proposalId).
@@ -58,66 +71,60 @@ func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string)
 			continue
 		}
 
+		// Convert citizenship whitelist to understandable ASCII format
 		var citizenshipWhitelist []string
 		for _, citizenship := range whiteData.CitizenshipWhitelist {
 			bytes, err := hex.DecodeString(citizenship.Text(16))
 			if err != nil {
 				cfg.Log().WithError(err).
 					WithField("proposal_id", proposalId).
-					Error("failed decoding voting white list data")
+					Error("failed decoding voting citizenship list")
 				continue
 			}
 			asciiString := string(bytes)
 			citizenshipWhitelist = append(citizenshipWhitelist, asciiString)
 		}
 
-		minAge, err := getMinAge(whiteData.BirthDateUpperbound.Text(16), whiteData.ExpirationDateLowerBound.Text(16))
+		minAge, err := getAge(whiteData.BirthDateUpperbound.Text(16), whiteData.ExpirationDateLowerBound.Text(16))
 		if err != nil {
 			cfg.Log().WithError(err).
 				WithField("proposal_id", proposalId).
-				Error("failed decoding voting white list data")
+				Error("failed decoding voting min age")
+		}
+
+		maxAge, err := getAge(whiteData.BirthDateLowerbound.Text(16), whiteData.ExpirationDateLowerBound.Text(16))
+		if err != nil {
+			cfg.Log().WithError(err).
+				WithField("proposal_id", proposalId).
+				Error("failed decoding voting max age")
 		}
 
 		parsedVotingWhitelistData = append(parsedVotingWhitelistData, resources.ParsedVotingWhiteData{
+			Selector:                            whiteData.Selector.Text(16),
+			BirthDateLowerbound:                 whiteData.BirthDateLowerbound.Text(16),
 			CitizenshipWhitelist:                citizenshipWhitelist,
 			IdentityCreationTimestampUpperBound: whiteData.IdentityCreationTimestampUpperBound.String(),
 			IdentityCounterUpperBound:           whiteData.IdentityCounterUpperBound.String(),
 			BirthDateUpperBound:                 whiteData.BirthDateUpperbound.Text(16),
 			ExpirationDateLowerBound:            whiteData.ExpirationDateLowerBound.Text(16),
 			MinAge:                              minAge,
+			MaxAge:                              maxAge,
+			Sex:                                 whiteData.Sex.Text(16),
 		})
 	}
-	votingResults := make([][]int64, len(proposalInfo.Config.AcceptedOptions))
 
-	for indx, optionResult := range proposalInfo.VotingResults {
-		votingResults[indx] = make([]int64, 8)
-		for varIndx := 0; varIndx < 8; varIndx += 1 {
-			votingResults[indx][varIndx] = optionResult[varIndx].Int64()
-		}
-	}
-
-	return &resources.VotingInfoAttributes{
-		Author:   creatorAddress,
-		Metadata: *desc,
-		Contract: resources.VotingInfoContractInfo{
-			ProposalSMT:   proposalInfo.ProposalSMT.Hex(),
-			Status:        proposalInfo.Status,
-			VotingResults: votingResults,
-			Config: resources.VotingInfoConfig{
-				Description:               votingConfig.Description,
-				StartTimestamp:            int64(startTimeStamp),
-				EndTimestamp:              int64(endTimestamp),
-				Multichoice:               votingConfig.Multichoice.Int64(),
-				ProposalId:                proposalId,
-				VotingWhitelist:           votingWhitelist,
-				VotingWhitelistData:       votingWhitelistData,
-				ParsedVotingWhitelistData: parsedVotingWhitelistData,
-			},
-		},
+	return &ProposalInfoFromContract{
+		StartTimestamp:            int64(startTimeStamp),
+		EndTimestamp:              int64(endTimestamp),
+		Metadata:                  *desc,
+		ParsedVotingWhitelistData: parsedVotingWhitelistData,
 	}, nil
 }
 
-func decodeVotingConfig(dataBytes []byte) (data.VotingWhitelistDataBigInt, error) {
+// Decodes WhitelistData to generate proposal rules according to the ProposalRules structure in the BaseVoting contract.
+// Read more about contracts:
+// https://github.com/rarimo/passport-voting-contracts
+func decodeWhitelistData(dataBytes []byte) (data.VotingWhitelistDataBigInt, error) {
 	var whiteData data.VotingWhitelistDataBigInt
 
 	rawABI := `[
@@ -126,9 +133,12 @@ func decodeVotingConfig(dataBytes []byte) (data.VotingWhitelistDataBigInt, error
 		  "type": "event",
 		  "inputs": [	
 		  {"name": "whiteData", "type":"tuple", "components": [
-		  {"name": "citizenshipWhitelist", "type": "uint256[]"},
+			{"name": "selector", "type": "uint256"},
+		    {"name": "citizenshipWhitelist", "type": "uint256[]"},
 			{"name": "identityCreationTimestampUpperBound", "type": "uint256"},
 			{"name": "identityCounterUpperBound", "type": "uint256"},
+			{"name": "sex", "type": "uint256"},
+			{"name": "birthDateLowerbound", "type": "uint256"},
 			{"name": "birthDateUpperbound", "type": "uint256"},
 			{"name": "expirationDateLowerBound", "type": "uint256"}
 		  ]}  
@@ -150,19 +160,26 @@ func decodeVotingConfig(dataBytes []byte) (data.VotingWhitelistDataBigInt, error
 		return whiteData, fmt.Errorf("failed to unpack calldata: %v", err)
 	}
 
+	// gets the first element because it is a tuple
 	decodedWhiteData := decoded[0]
 	dc := decodedWhiteData.(struct {
+		Selector                            *big.Int   `json:"selector"`
 		CitizenshipWhitelist                []*big.Int `json:"citizenshipWhitelist"`
 		IdentityCreationTimestampUpperBound *big.Int   `json:"identityCreationTimestampUpperBound"`
 		IdentityCounterUpperBound           *big.Int   `json:"identityCounterUpperBound"`
+		Sex                                 *big.Int   `json:"sex"`
+		BirthDateLowerbound                 *big.Int   `json:"birthDateLowerbound"`
 		BirthDateUpperbound                 *big.Int   `json:"birthDateUpperbound"`
 		ExpirationDateLowerBound            *big.Int   `json:"expirationDateLowerBound"`
 	})
 
 	whiteData = data.VotingWhitelistDataBigInt{
+		Selector:                            dc.Selector,
 		CitizenshipWhitelist:                dc.CitizenshipWhitelist,
 		IdentityCreationTimestampUpperBound: dc.IdentityCreationTimestampUpperBound,
 		IdentityCounterUpperBound:           dc.IdentityCounterUpperBound,
+		Sex:                                 dc.Sex,
+		BirthDateLowerbound:                 dc.BirthDateLowerbound,
 		BirthDateUpperbound:                 dc.BirthDateUpperbound,
 		ExpirationDateLowerBound:            dc.ExpirationDateLowerBound,
 	}
@@ -170,15 +187,17 @@ func decodeVotingConfig(dataBytes []byte) (data.VotingWhitelistDataBigInt, error
 	return whiteData, nil
 }
 
-func getMinAge(birthDateUpperbound string, expirationDateLowerBound string) (int64, error) {
-	if birthDateUpperbound == "303030303030" {
+// Counts the exact number of years from birthDate to expirationDateLowerBound
+func getAge(birthDate string, expirationDateLowerBound string) (int64, error) {
+	// ZERO_DATE 00000 в hex форматі
+	if birthDate == "303030303030" {
 		return 0, nil
 	}
-	bytes, err := hex.DecodeString(birthDateUpperbound)
+	bytes, err := hex.DecodeString(birthDate)
 	if err != nil {
 		return 0, errors.Wrap(err, "failed decode birthDateUpperbound")
 	}
-	birthDateUpperboundTime, err := time.Parse("060102", string(bytes))
+	birthDateTime, err := time.Parse("060102", string(bytes))
 	if err != nil {
 		return 0, errors.Wrap(err, "failed parse birthDateUpperbound")
 	}
@@ -193,9 +212,13 @@ func getMinAge(birthDateUpperbound string, expirationDateLowerBound string) (int
 		return 0, errors.Wrap(err, "failed parse expirationDateLowerBound")
 	}
 
-	years := expirationDateLowerBoundTime.Year() - birthDateUpperboundTime.Year()
-	birthDateWithSubYears := birthDateUpperboundTime.AddDate(years, 0, 0)
+	years := expirationDateLowerBoundTime.Year() - birthDateTime.Year()
 
+	// Check if the birthday has already occurred in the year expirationDate.
+	// If not, subtract 1 year to accurately calculate the full age.
+	// For example:
+	// birthDate = 02.01.2000, expirationDate = 01.01.2023 → age = 22 (not 23)
+	birthDateWithSubYears := birthDateTime.AddDate(years, 0, 0)
 	if expirationDateLowerBoundTime.Before(birthDateWithSubYears) {
 		years--
 	}
@@ -203,7 +226,8 @@ func getMinAge(birthDateUpperbound string, expirationDateLowerBound string) (int
 	return int64(years), nil
 }
 
-func getProposalDescFromIpfs(desId string, ipfsUrl string) (*resources.VotingInfoAttributesMetadata, error) {
+// Requests and returns proposal information from ipfs by CID
+func getProposalDescFromIpfs(desId string, ipfsUrl string) (*resources.ProposalInfoAttributesMetadata, error) {
 	requestURL := fmt.Sprintf("%s/%s", ipfsUrl, desId)
 	resp, err := http.Get(requestURL)
 	if err != nil {
@@ -217,7 +241,7 @@ func getProposalDescFromIpfs(desId string, ipfsUrl string) (*resources.VotingInf
 		return nil, fmt.Errorf("failed read body response: %v", err)
 	}
 
-	var data resources.VotingInfoAttributesMetadata
+	var data resources.ProposalInfoAttributesMetadata
 	if err := json.Unmarshal(body, &data); err != nil {
 		return nil, fmt.Errorf("failed parse JSON: %v", err)
 	}

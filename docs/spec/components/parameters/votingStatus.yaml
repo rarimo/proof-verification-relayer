@@ -1,0 +1,7 @@
+in: query
+name: 'filter[status]'
+required: false
+schema:
+  type: string
+  description: Filter by voting status.
+  

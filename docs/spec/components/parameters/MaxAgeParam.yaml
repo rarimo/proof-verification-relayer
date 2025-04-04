@@ -1,0 +1,7 @@
+in: query
+name: 'filter[max_age]'
+required: false
+schema:
+  type: integer
+  format: int64
+  description: maximum age for proposal.
