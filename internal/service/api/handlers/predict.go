@@ -32,7 +32,7 @@ func PredictHandlers(w http.ResponseWriter, r *http.Request) {
 	case resources.VOTE_PREDICT_AMOUNT:
 		resultAns, err = predictAmountOrCountTx(Config(r), *req.Data.Attributes.VotingId, reqArgument, nil)
 		if err != nil {
-			Log(r).Warnf("Failed check is predict: %v", err)
+			Log(r).WithError(err).Error("failed check is predict")
 			ape.RenderErr(w, problems.InternalError())
 			return
 		}
@@ -41,7 +41,7 @@ func PredictHandlers(w http.ResponseWriter, r *http.Request) {
 	case resources.VOTE_PREDICT_COUNT_TX:
 		resultAns, err = predictAmountOrCountTx(Config(r), *req.Data.Attributes.VotingId, nil, reqArgument)
 		if err != nil {
-			Log(r).Warnf("Failed check is predict: %v", err)
+			Log(r).WithError(err).Error("failed check is predict")
 			ape.RenderErr(w, problems.InternalError())
 			return
 		}

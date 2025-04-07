@@ -17,6 +17,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
+// Based on the event name and filtered log, it parses and update the relevant information
 func (ch *checker) processLog(vLog types.Log, eventName string) error {
 	var processedEvent data.ProcessedEvent
 
@@ -32,89 +33,104 @@ func (ch *checker) processLog(vLog types.Log, eventName string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed get processed event creator")
 	}
-	votingId, value, proposalInfoWithConfig, err := ch.getEventData(eventName, vLog, sender)
+	votingInfo, err := ch.getEventData(eventName, vLog, sender)
 	if err != nil {
 		return errors.Wrap(err, "failed get event data")
 	}
-
-	votingInfo, err := ch.checkVotingAndGetBalance(votingId, sender)
-	if err != nil {
-		return errors.Wrap(err, "failed get voting info", logan.F{"Voting ID": votingId})
-	}
-
-	if value != nil {
-		votingInfo.Balance = new(big.Int).Add(votingInfo.Balance, value)
-	}
-	if proposalInfoWithConfig != nil {
-		votingInfo.ProposalInfoWithConfig = *proposalInfoWithConfig
-	}
-
-	err = ch.votingQ.UpdateVotingInfo(votingInfo)
-	if err != nil {
-		return errors.Wrap(err, "failed update voting balance", logan.F{"Voting ID": votingId})
+	if err = ch.votingQ.UpdateVotingInfo(votingInfo); err != nil {
+		return errors.Wrap(err, "failed update voting balance", logan.F{"Voting ID": votingInfo.VotingId})
 	}
 	return nil
 }
 
-func (ch *checker) getEventData(eventName string, vLog types.Log, sender string) (
-	votingId int64,
-	value *big.Int,
-	proposalInfoWithConfig *resources.VotingInfoAttributes,
-	err error) {
-	parsedABI, err := abi.JSON(strings.NewReader(contracts.ProposalsStateABI))
+// event ProposalConfigChanged(uint256 indexed proposalId);
+// event ProposalFunded(uint256 indexed proposalId, uint256 fundAmount);
+// event ProposalCreated(uint256 indexed proposalId, address proposalSMT, uint256 fundAmount)
+//
+// According to the event name, the log is unpacked using the ABI contract.
+// Based on the decompressed data, voting information is created or updated
+func (ch *checker) getEventData(eventName string, vLog types.Log, sender string) (votingInfo *data.VotingInfo, err error) {
+	if len(vLog.Topics) < 2 {
+		return nil, errors.New("the topic must contain at least two elements")
+	}
+
+	// Since the parameter is indexed, it is found in the topics and not in vLog.Data,
+	// so it was not passed to the corresponding transferEvent parameter when unpacking
+	votingId := new(big.Int).SetBytes(vLog.Topics[1].Bytes()).Int64()
+
+	votingInfo, err = ch.checkVotingAndGetInfo(votingId, sender)
 	if err != nil {
-		return 0, nil, nil, errors.Wrap(err, "failed to parse contract ABI")
+		return nil, errors.Wrap(err, "failed get voting info", logan.F{"Voting ID": votingId})
 	}
 
 	switch eventName {
 	case "ProposalCreated":
 		var transferEvent contracts.ProposalsStateProposalCreated
-		err = parsedABI.UnpackIntoInterface(&transferEvent, eventName, vLog.Data)
+		err = ch.parsedABI.UnpackIntoInterface(&transferEvent, eventName, vLog.Data)
 		if err != nil {
-			return 0, nil, nil, errors.Wrap(err, "failed to unpack log data")
+			return nil, errors.Wrap(err, "failed to unpack log data")
 		}
 
-		transferEvent.ProposalId = new(big.Int).SetBytes(vLog.Topics[1].Bytes())
-		transferEvent.Raw = vLog
+		votingInfo.Balance = new(big.Int).Add(votingInfo.Balance, transferEvent.FundAmount)
+		votingInfo.TotalBalance = new(big.Int).Add(votingInfo.TotalBalance, transferEvent.FundAmount)
 
-		proposalInfoWithConfig, err = GetProposalInfo(transferEvent.ProposalId.Int64(), ch.cfg, sender)
+		proposalInfoFromContract, err := GetProposalInfo(votingId, ch.cfg, sender)
 		if err != nil {
-			return 0, nil, nil, errors.Wrap(err, "failed get proposal info")
+			return nil, errors.Wrap(err, "failed get proposal info")
 		}
 
-		return transferEvent.ProposalId.Int64(), transferEvent.FundAmount, proposalInfoWithConfig, nil
+		votingInfo = unpackInfoFromContractToStruct(proposalInfoFromContract, votingInfo)
+
+		return votingInfo, nil
 	case "ProposalFunded":
 		var transferEvent contracts.ProposalsStateProposalFunded
-		err = parsedABI.UnpackIntoInterface(&transferEvent, eventName, vLog.Data)
+		err = ch.parsedABI.UnpackIntoInterface(&transferEvent, eventName, vLog.Data)
 		if err != nil {
-			return 0, nil, nil, errors.Wrap(err, "failed to unpack log data")
+			return nil, errors.Wrap(err, "failed to unpack log data")
 		}
 
-		transferEvent.ProposalId = new(big.Int).SetBytes(vLog.Topics[1].Bytes())
-		transferEvent.Raw = vLog
+		votingInfo.Balance = new(big.Int).Add(votingInfo.Balance, transferEvent.FundAmount)
+		votingInfo.TotalBalance = new(big.Int).Add(votingInfo.TotalBalance, transferEvent.FundAmount)
 
-		return transferEvent.ProposalId.Int64(), transferEvent.FundAmount, nil, nil
+		return votingInfo, nil
 	case "ProposalConfigChanged":
 		var transferEvent contracts.ProposalsStateProposalConfigChanged
-		err = parsedABI.UnpackIntoInterface(&transferEvent, eventName, vLog.Data)
+		err = ch.parsedABI.UnpackIntoInterface(&transferEvent, eventName, vLog.Data)
 		if err != nil {
-			return 0, nil, nil, errors.Wrap(err, "failed to unpack log data")
+			return nil, errors.Wrap(err, "failed to unpack log data")
 		}
 
-		transferEvent.ProposalId = new(big.Int).SetBytes(vLog.Topics[1].Bytes())
-		transferEvent.Raw = vLog
-
-		proposalInfoWithConfig, err = GetProposalInfo(transferEvent.ProposalId.Int64(), ch.cfg, sender)
+		proposalInfoFromContract, err := GetProposalInfo(votingId, ch.cfg, sender)
 		if err != nil {
-			return 0, nil, nil, errors.Wrap(err, "failed get proposal info")
+			return nil, errors.Wrap(err, "failed get proposal info")
 		}
 
-		return transferEvent.ProposalId.Int64(), nil, proposalInfoWithConfig, nil
+		votingInfo = unpackInfoFromContractToStruct(proposalInfoFromContract, votingInfo)
+
+		return votingInfo, nil
 	default:
-		return 0, nil, nil, errors.New(fmt.Sprintf("unknown event: %v", eventName))
+		return nil, fmt.Errorf("unknown event: %v", eventName)
 	}
 }
 
+// Simply unpack the ProposalInfoFromContract into the required VotingInfo fields
+func unpackInfoFromContractToStruct(proposalInfoFromContract *ProposalInfoFromContract, votingInfo *data.VotingInfo) *data.VotingInfo {
+	if len(proposalInfoFromContract.ParsedVotingWhitelistData) > 0 {
+		votingInfo.MaxAge = proposalInfoFromContract.ParsedVotingWhitelistData[0].MaxAge
+		votingInfo.MinAge = proposalInfoFromContract.ParsedVotingWhitelistData[0].MinAge
+	}
+
+	votingInfo.StartTimestamp = proposalInfoFromContract.StartTimestamp
+	votingInfo.EndTimestamp = proposalInfoFromContract.EndTimestamp
+	votingInfo.ParsedWhiteListDataWithMetadata = resources.ParsedWhiteListDataWithMetadata{
+		Metadata:                  proposalInfoFromContract.Metadata,
+		ParsedVotingWhitelistData: proposalInfoFromContract.ParsedVotingWhitelistData,
+	}
+
+	return votingInfo
+}
+
+// Finds and returns the address of the transaction sender
 func (ch *checker) getSender(txHash common.Hash) (string, error) {
 	tx, _, err := ch.client.TransactionByHash(context.Background(), txHash)
 	if err != nil {
@@ -129,6 +145,7 @@ func (ch *checker) getSender(txHash common.Hash) (string, error) {
 	return sender.Hex(), nil
 }
 
+// Checks for the presence of an event in the database and adds information about a new event if it is not there
 func (ch *checker) insertProcessedEventLog(processedEvent data.ProcessedEvent) error {
 	isExist, err := ch.processedEventQ.CheckProcessedEventExist(processedEvent)
 	if isExist {
@@ -145,7 +162,11 @@ func (ch *checker) insertProcessedEventLog(processedEvent data.ProcessedEvent) e
 	return nil
 }
 
-func (ch *checker) checkVotingAndGetBalance(votingId int64, sender string) (*data.VotingInfo, error) {
+// checkVotingAndGetInfo checks if there is a voting with this ID in the database.
+// If there is, it returns information about it in the form of data.VotingInfo,
+// otherwise it creates it with the default value, adds it to the database,
+// and returns the created object
+func (ch *checker) checkVotingAndGetInfo(votingId int64, sender string) (*data.VotingInfo, error) {
 	votingInfo, err := ch.votingQ.GetVotingInfo(votingId)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get voting info")
@@ -157,6 +178,7 @@ func (ch *checker) checkVotingAndGetBalance(votingId int64, sender string) (*dat
 	votingInfo = &data.VotingInfo{
 		VotingId:       votingId,
 		Balance:        big.NewInt(0),
+		TotalBalance:   big.NewInt(0),
 		GasLimit:       ch.VotingV2Config.GasLimit,
 		CreatorAddress: sender,
 	}
@@ -169,6 +191,9 @@ func (ch *checker) checkVotingAndGetBalance(votingId int64, sender string) (*dat
 	return votingInfo, nil
 }
 
+// Returns the last processed block number from the database.
+// If no records are found, uses the default value from config.
+// This block number is used as a starting point for scanning events.
 func (ch *checker) getStartBlockNumber() (uint64, error) {
 	block, err := ch.processedEventQ.GetLastBlock()
 	if err != nil {
@@ -181,6 +206,7 @@ func (ch *checker) getStartBlockNumber() (uint64, error) {
 	return block, nil
 }
 
+// Search and extract event hashes from ABI to filter logs
 func (ch *checker) getEventHashes() (eventHashes []common.Hash, err error) {
 	parsedABI, err := abi.JSON(strings.NewReader(contracts.ProposalsStateABI))
 	if err != nil {

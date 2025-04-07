@@ -1,0 +1,6 @@
+in: query
+name: 'filter[sex]'
+required: false
+schema:
+  type: string
+  description: "Use 'M' for male, 'F' for female, or '0' for any"
