@@ -511,6 +511,78 @@
         }
       }
     },
+    "/integrations/proof-verification-relayer/v2/proposals": {
+      "get": {
+        "tags": [
+          "Voting Info"
+        ],
+        "summary": "Get proposal info array",
+        "description": "This endpoint returns details about the proposals, including its current status, configuration, options.",
+        "operationId": "proposalInfo",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/proposalCreatorParam"
+          },
+          {
+            "$ref": "#/components/parameters/citizenshipParam"
+          },
+          {
+            "$ref": "#/components/parameters/MaxAgeParam"
+          },
+          {
+            "$ref": "#/components/parameters/MinAgeParam"
+          },
+          {
+            "$ref": "#/components/parameters/proposalIDParam"
+          },
+          {
+            "$ref": "#/components/parameters/sexParam"
+          },
+          {
+            "$ref": "#/components/parameters/votingStatus"
+          },
+          {
+            "$ref": "#/components/parameters/pageLimitParam"
+          },
+          {
+            "$ref": "#/components/parameters/sortingParam"
+          },
+          {
+            "$ref": "#/components/parameters/pageNumberParam"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/vnd.api+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ProposalInfo"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/integrations/proof-verification-relayer/v2/vote": {
       "post": {
         "tags": [
@@ -568,60 +640,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ForbiddenError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InternalError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/integrations/proof-verification-relayer/v2/voting-info": {
-      "get": {
-        "tags": [
-          "Voting Info"
-        ],
-        "summary": "Get voting info array",
-        "description": "This endpoint returns details about the voting, including its current status, configuration, voting options, and results.",
-        "operationId": "votingInfo",
-        "parameters": [
-          {
-            "$ref": "#/components/parameters/proposalCreatorParam"
-          },
-          {
-            "$ref": "#/components/parameters/citizenshipParam"
-          },
-          {
-            "$ref": "#/components/parameters/ageParam"
-          },
-          {
-            "$ref": "#/components/parameters/proposalIDParam"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success",
-            "content": {
-              "application/vnd.api+json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/VotingInfo"
-                      }
-                    }
-                  }
                 }
               }
             }
@@ -761,6 +779,150 @@
             "enum": [
               "404"
             ]
+          }
+        }
+      },
+      "ParsedWhiteListDataWithMetadata": {
+        "type": "object",
+        "required": [
+          "metadata",
+          "parsed_voting_whitelist_data"
+        ],
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/ProposalInfoAttributesMetadata"
+          },
+          "parsed_voting_whitelist_data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ParsedVotingWhiteData"
+            }
+          }
+        }
+      },
+      "ProposalInfo": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ProposalInfoKey"
+          },
+          {
+            "type": "object",
+            "required": [
+              "attributes"
+            ],
+            "properties": {
+              "attributes": {
+                "$ref": "#/components/schemas/ProposalInfoAttributes"
+              }
+            }
+          }
+        ]
+      },
+      "ProposalInfoAttributes": {
+        "type": "object",
+        "required": [
+          "status",
+          "owner",
+          "metadata",
+          "total_balance",
+          "remaining_balance",
+          "start_timestamp",
+          "end_timestamp",
+          "votes_count",
+          "remaining_votes_count"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "started",
+              "ended"
+            ]
+          },
+          "owner": {
+            "type": "string",
+            "description": "Address creator of the proposal"
+          },
+          "metadata": {
+            "$ref": "#/components/schemas/ProposalInfoAttributesMetadata"
+          },
+          "total_balance": {
+            "type": "string",
+            "description": "Balance what is the starting balance with deposits"
+          },
+          "remaining_balance": {
+            "type": "string",
+            "description": "Remaining balance"
+          },
+          "start_timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Start time of the proposal"
+          },
+          "end_timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "End time of the proposal"
+          },
+          "votes_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total number of votes already cast for this proposal"
+          },
+          "remaining_votes_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Total number of available votes for this proposal"
+          }
+        }
+      },
+      "ProposalInfoAttributesMetadata": {
+        "type": "object",
+        "description": "Additional proposal data stored on IPFS",
+        "required": [
+          "title",
+          "description",
+          "acceptedOptions",
+          "imageCID"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Title of the proposal"
+          },
+          "description": {
+            "type": "string",
+            "description": "Detailed description of the proposal"
+          },
+          "acceptedOptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Options"
+            }
+          },
+          "imageCID": {
+            "type": "string",
+            "description": "Proposal image CID"
+          }
+        }
+      },
+      "ProposalInfoKey": {
+        "type": "object",
+        "required": [
+          "id",
+          "type"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "proposals"
+            ]
+          },
+          "id": {
+            "type": "string",
+            "description": "Proposal ID"
           }
         }
       },
@@ -1041,14 +1203,30 @@
       "ParsedVotingWhiteData": {
         "type": "object",
         "required": [
+          "selector",
+          "birth_date_lowerbound",
           "birth_date_upper_bound",
           "citizenship_whitelist",
           "expiration_date_lower_bound",
           "identity_counter_upper_bound",
           "identity_creation_timestamp_upper_bound",
-          "min_age"
+          "min_age",
+          "max_age",
+          "sex"
         ],
         "properties": {
+          "selector": {
+            "type": "string",
+            "description": "Proposal selector without first 0x"
+          },
+          "sex": {
+            "type": "string",
+            "description": "toHex('M') // male, toHex('F') // female, 0 // any"
+          },
+          "birth_date_lowerbound": {
+            "type": "string",
+            "description": "birth_date_lowerbound in hex format without first 0x"
+          },
           "birth_date_upper_bound": {
             "type": "string",
             "description": "birth_date_upper_bound in hex format without first 0x"
@@ -1077,6 +1255,10 @@
             "description": "Citizenship whitelist for the voting"
           },
           "min_age": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "max_age": {
             "type": "integer",
             "format": "int64"
           }
@@ -1371,16 +1553,6 @@
       }
     },
     "parameters": {
-      "ageParam": {
-        "in": "query",
-        "name": "filter[age]",
-        "required": false,
-        "schema": {
-          "type": "integer",
-          "format": "int64",
-          "description": "Minimal age for proposal."
-        }
-      },
       "citizenshipParam": {
         "in": "query",
         "name": "filter[citizenship]",
@@ -1390,14 +1562,32 @@
           "description": "Citizenship string like \"UKR\"."
         }
       },
+      "MaxAgeParam": {
+        "in": "query",
+        "name": "filter[max_age]",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "description": "maximum age for proposal."
+        }
+      },
+      "MinAgeParam": {
+        "in": "query",
+        "name": "filter[min_age]",
+        "required": false,
+        "schema": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Minimal age for proposal."
+        }
+      },
       "pageLimitParam": {
         "in": "query",
         "name": "page[limit]",
         "required": false,
         "schema": {
           "type": "integer",
-          "minimum": 1,
-          "maximum": 100,
           "default": 15,
           "description": "Numbers of items per page to return."
         }
@@ -1421,7 +1611,7 @@
         }
       },
       "proposalIDParam": {
-        "name": "filter[voting_id]",
+        "name": "filter[proposal_id]",
         "in": "query",
         "required": false,
         "schema": {
@@ -1429,6 +1619,15 @@
           "format": "int64"
         },
         "description": "Id for proposal"
+      },
+      "sexParam": {
+        "in": "query",
+        "name": "filter[sex]",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "Use 'M' for male, 'F' for female, or '0' for any"
+        }
       },
       "sortingParam": {
         "in": "query",
@@ -1453,6 +1652,20 @@
           "pattern": "^[0-9]+$"
         },
         "description": "Id for which voting predictions are made"
+      },
+      "votingStatus": {
+        "in": "query",
+        "name": "filter[status]",
+        "required": false,
+        "schema": {
+          "type": "string",
+          "description": "Filter by proposal status.",
+          "enum": [
+            "waiting",
+            "started",
+            "ended"
+          ]
+        }
       }
     }
   }
