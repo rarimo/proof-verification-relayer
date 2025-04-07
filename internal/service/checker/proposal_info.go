@@ -90,6 +90,7 @@ func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string)
 			cfg.Log().WithError(err).
 				WithField("proposal_id", proposalId).
 				Error("failed decoding voting min age")
+			continue
 		}
 
 		maxAge, err := getAge(whiteData.BirthDateLowerbound.Text(16), whiteData.ExpirationDateLowerBound.Text(16))
@@ -97,6 +98,7 @@ func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string)
 			cfg.Log().WithError(err).
 				WithField("proposal_id", proposalId).
 				Error("failed decoding voting max age")
+			continue
 		}
 
 		parsedVotingWhitelistData = append(parsedVotingWhitelistData, resources.ParsedVotingWhiteData{

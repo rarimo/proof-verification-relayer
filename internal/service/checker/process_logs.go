@@ -37,9 +37,6 @@ func (ch *checker) processLog(vLog types.Log, eventName string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed get event data")
 	}
-	if votingInfo == nil {
-		return nil
-	}
 	if err = ch.votingQ.UpdateVotingInfo(votingInfo); err != nil {
 		return errors.Wrap(err, "failed update voting balance", logan.F{"Voting ID": votingInfo.VotingId})
 	}
