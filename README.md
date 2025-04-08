@@ -3,7 +3,7 @@
 ## Description
 
 This service listens to `RootUpdated` events and saves it to database. 
-See [endpoint doc](https://rarimo.github.io/proof-verification-relayer/#tag/State/operation/GetState) to get signed state data.
+See [endpoint doc](https://rarimo.github.io/proof-verification-relayer/#tag/State/operation/GetStateV2) to get signed state data.
 Send signed state to [on-chain replicator](https://github.com/rarimo/passport-voting-contracts/blob/master/contracts/replication/RegistrationSMTReplicator.sol#L32).
 
 ## Install
