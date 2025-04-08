@@ -619,7 +619,7 @@ components:
         - title
         - description
         - acceptedOptions
-        - imageCID
+        - imageCid
       properties:
         title:
           type: string
@@ -631,7 +631,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Options'
-        imageCID:
+        imageCid:
           type: string
           description: Proposal image CID
     ProposalInfoKey:

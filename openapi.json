@@ -968,7 +968,7 @@
           "title",
           "description",
           "acceptedOptions",
-          "imageCID"
+          "imageCid"
         ],
         "properties": {
           "title": {
@@ -985,7 +985,7 @@
               "$ref": "#/components/schemas/Options"
             }
           },
-          "imageCID": {
+          "imageCid": {
             "type": "string",
             "description": "Proposal image CID"
           }
