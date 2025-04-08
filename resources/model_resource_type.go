@@ -11,6 +11,7 @@ const (
 	PROPOSALS             ResourceType = "proposals"
 	SEND_TRANSACTION      ResourceType = "send_transaction"
 	STATE                 ResourceType = "state"
+	STATE_V2              ResourceType = "state_v2"
 	TXS                   ResourceType = "txs"
 	VOTE_COUNT            ResourceType = "vote_count"
 	IS_ENOUGH             ResourceType = "is_enough"

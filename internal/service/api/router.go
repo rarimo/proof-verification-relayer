@@ -71,6 +71,7 @@ func (s *service) router() chi.Router {
 				r.Post("/vote", handlers.VoteV2)
 				r.Post("/predict", handlers.PredictHandlers)
 				r.Get("/proposals", handlers.ProposalsInfo)
+				r.Get("/state", handlers.GetSignedStateV2)
 			})
 		}
 	})
