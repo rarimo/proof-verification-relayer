@@ -1,0 +1,57 @@
+get:
+  tags:
+    - State
+  summary: Get signed root state V2
+  description: |
+    Endpoint to get transited root state.    
+    The service listens for the new `RootUpdated` event and fetches them. By request it might return any root by 
+    its block number or root hex string if none of them provided last signed root returned.   
+    Response contain signature of root signed by relayer private key, with the last byte of the signature set to 27/28.
+  operationId: GetStateV2
+  parameters:
+    - in: query
+      name: 'filter[block]'
+      required: false
+      description: "Block number to filter root by"
+      example: "666"
+      schema:
+        type: integer
+        format: int64
+    - in: query
+      name: 'filter[root]'
+      required: false
+      description: "Transited root in hex format stated to filter root by."
+      example: "0x234693c352a217d95c3a0e2e7ea17a340ac1b2290e9ab573ef97c2a86b1a5a6e"
+      schema:
+        type: string
+        pattern: '^0x([0-9a-fA-F]+)$'
+  responses:
+    200:
+      description: Success
+      content:
+        application/vnd.api+json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/StateV2'
+    '400':
+      description: Bad Request Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Errors'
+    '404':
+      description: Not Found Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Errors'
+    '500':
+      description: Internal Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Errors'

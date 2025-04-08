@@ -64,15 +64,18 @@ func (s *service) router() chi.Router {
 			r.Post("/transit-state", handlers.TransitState)
 			r.Get("/state", handlers.GetSignedState)
 		})
-		if s.cfg.VotingV2Config().Enable {
-			r.Route("/v2", func(r chi.Router) {
+		r.Route("/v2", func(r chi.Router) {
+			if s.cfg.VotingV2Config().Enable {
 				r.Get("/count-remaining-votes/{voting_id}", handlers.VoteCountHandlers)
 				r.Get("/is-enough/{voting_id}", handlers.IsEnoughHandler)
 				r.Post("/vote", handlers.VoteV2)
 				r.Post("/predict", handlers.PredictHandlers)
 				r.Get("/proposals", handlers.ProposalsInfo)
-			})
-		}
+			}
+
+			r.Get("/state", handlers.GetSignedStateV2)
+		})
+
 	})
 
 	return r
