@@ -4,7 +4,7 @@ required:
   - title
   - description
   - acceptedOptions
-  - imageCID
+  - imageCid
 properties:
   title:
     type: string
@@ -16,6 +16,6 @@ properties:
     type: array
     items:
       $ref: '#/components/schemas/Options'
-  imageCID:
+  imageCid:
     type: string
     description: Proposal image CID

@@ -10,7 +10,7 @@ type ProposalInfoAttributesMetadata struct {
 	// Detailed description of the proposal
 	Description string `json:"description"`
 	// Proposal image CID
-	ImageCID string `json:"imageCID"`
+	ImageCid string `json:"imageCid"`
 	// Title of the proposal
 	Title string `json:"title"`
 }
