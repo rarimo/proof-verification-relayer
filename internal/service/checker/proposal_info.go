@@ -191,7 +191,7 @@ func decodeWhitelistData(dataBytes []byte) (data.VotingWhitelistDataBigInt, erro
 
 // Counts the exact number of years from birthDate to expirationDateLowerBound
 func getAge(birthDate string, expirationDateLowerBound string) (int64, error) {
-	// ZERO_DATE 00000 в hex форматі
+	// ZERO_DATE 00000 in hex format
 	if birthDate == "303030303030" {
 		return 0, nil
 	}
