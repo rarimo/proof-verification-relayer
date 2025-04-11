@@ -214,6 +214,12 @@ func getAge(birthDate string, expirationDateLowerBound string) (int64, error) {
 		return 0, errors.Wrap(err, "failed parse expirationDateLowerBound")
 	}
 
+	// If the year of birth is mistakenly interpreted as future (due to the YYMMDD format),
+	// add 100 years to the boundary to keep the correct difference between the dates.
+	if birthDateTime.Year() > expirationDateLowerBoundTime.Year() {
+		expirationDateLowerBoundTime = expirationDateLowerBoundTime.AddDate(100, 0, 0)
+	}
+
 	years := expirationDateLowerBoundTime.Year() - birthDateTime.Year()
 
 	// Check if the birthday has already occurred in the year expirationDate.
