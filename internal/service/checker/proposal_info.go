@@ -29,7 +29,7 @@ type ProposalInfoFromContract struct {
 	ParsedVotingWhitelistData []resources.ParsedVotingWhiteData
 }
 
-// Gets information from the contract for the corresponding proposal_id.
+// GetProposalInfo gets information from the contract for the corresponding proposal_id.
 // Parses the received information and generates it in the required format.
 func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string) (*ProposalInfoFromContract, error) {
 	contractAddress := cfg.VotingV2Config().Address
@@ -85,7 +85,7 @@ func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string)
 			citizenshipWhitelist = append(citizenshipWhitelist, asciiString)
 		}
 
-		minAge, err := getAge(whiteData.BirthDateUpperbound.Text(16), whiteData.ExpirationDateLowerBound.Text(16))
+		minAge, err := getBoundaryInYears(whiteData.BirthDateUpperbound.Text(16), startTimeStamp)
 		if err != nil {
 			cfg.Log().WithError(err).
 				WithField("proposal_id", proposalId).
@@ -93,7 +93,7 @@ func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string)
 			continue
 		}
 
-		maxAge, err := getAge(whiteData.BirthDateLowerbound.Text(16), whiteData.ExpirationDateLowerBound.Text(16))
+		maxAge, err := getBoundaryInYears(whiteData.BirthDateLowerbound.Text(16), startTimeStamp)
 		if err != nil {
 			cfg.Log().WithError(err).
 				WithField("proposal_id", proposalId).
@@ -123,7 +123,7 @@ func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string)
 	}, nil
 }
 
-// Decodes WhitelistData to generate proposal rules according to the ProposalRules structure in the BaseVoting contract.
+// decodeWhitelistData decodes WhitelistData to generate proposal rules according to the ProposalRules structure in the BaseVoting contract.
 // Read more about contracts:
 // https://github.com/rarimo/passport-voting-contracts
 func decodeWhitelistData(dataBytes []byte) (data.VotingWhitelistDataBigInt, error) {
@@ -189,46 +189,44 @@ func decodeWhitelistData(dataBytes []byte) (data.VotingWhitelistDataBigInt, erro
 	return whiteData, nil
 }
 
-// Counts the exact number of years from birthDate to expirationDateLowerBound
-func getAge(birthDate string, expirationDateLowerBound string) (int64, error) {
-	// ZERO_DATE 00000 в hex форматі
-	if birthDate == "303030303030" {
+// getBoundaryInYears counts the exact number of years from boundaryDate to startTimeStamp
+func getBoundaryInYears(boundaryDateHex string, startTimeStamp uint64) (int64, error) {
+	// ZERO_DATE 00000 in hex format
+	if boundaryDateHex == "303030303030" {
 		return 0, nil
 	}
-	bytes, err := hex.DecodeString(birthDate)
+	bytes, err := hex.DecodeString(boundaryDateHex)
 	if err != nil {
-		return 0, errors.Wrap(err, "failed decode birthDateUpperbound")
+		return 0, errors.Wrap(err, "failed to decode boundary date")
 	}
-	birthDateTime, err := time.Parse("060102", string(bytes))
+	boundaryDate, err := time.Parse("060102", string(bytes))
 	if err != nil {
-		return 0, errors.Wrap(err, "failed parse birthDateUpperbound")
-	}
-
-	bytes, err = hex.DecodeString(expirationDateLowerBound)
-	if err != nil {
-		return 0, errors.Wrap(err, "failed decode expirationDateLowerBound")
+		return 0, errors.Wrap(err, "failed to parse boundary date")
 	}
 
-	expirationDateLowerBoundTime, err := time.Parse("060102", string(bytes))
-	if err != nil {
-		return 0, errors.Wrap(err, "failed parse expirationDateLowerBound")
+	startDate := time.Unix(int64(startTimeStamp), 0)
+
+	// If the year of birth is mistakenly interpreted as future (due to the YYMMDD format),
+	// add 100 years to the boundary to keep the correct difference between the dates.
+	if boundaryDate.Year() > startDate.Year() {
+		startDate = startDate.AddDate(100, 0, 0)
 	}
 
-	years := expirationDateLowerBoundTime.Year() - birthDateTime.Year()
+	years := startDate.Year() - boundaryDate.Year()
 
-	// Check if the birthday has already occurred in the year expirationDate.
+	// Check if the birthday has already occurred in the year startDate.
 	// If not, subtract 1 year to accurately calculate the full age.
 	// For example:
 	// birthDate = 02.01.2000, expirationDate = 01.01.2023 → age = 22 (not 23)
-	birthDateWithSubYears := birthDateTime.AddDate(years, 0, 0)
-	if expirationDateLowerBoundTime.Before(birthDateWithSubYears) {
+	birthDateWithSubYears := boundaryDate.AddDate(years, 0, 0)
+	if startDate.Before(birthDateWithSubYears) {
 		years--
 	}
 
 	return int64(years), nil
 }
 
-// Requests and returns proposal information from ipfs by CID
+// getProposalDescFromIpfs requests and returns proposal information from ipfs by CID
 func getProposalDescFromIpfs(desId string, ipfsUrl string) (*resources.ProposalInfoAttributesMetadata, error) {
 	requestURL := fmt.Sprintf("%s/%s", ipfsUrl, desId)
 	resp, err := http.Get(requestURL)

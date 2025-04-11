@@ -6,8 +6,8 @@ ALTER TABLE voting_contract_accounts
     ADD COLUMN total_balance NUMERIC(78,0) NOT NULL,
     ADD COLUMN min_age INT NOT NULL,
     ADD COLUMN max_age INT NOT NULL,
-    ADD COLUMN start_timestamp INT NOT NULL,
-    ADD COLUMN end_timestamp INT NOT NULL,
+    ADD COLUMN start_timestamp BIGINT NOT NULL,
+    ADD COLUMN end_timestamp BIGINT NOT NULL,
     ADD COLUMN votes_count INT NOT NULL;
 
 

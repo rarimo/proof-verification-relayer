@@ -17,7 +17,7 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
-// Based on the event name and filtered log, it parses and update the relevant information
+// processLog based on the event name and filtered log, it parses and update the relevant information
 func (ch *checker) processLog(vLog types.Log, eventName string) error {
 	var processedEvent data.ProcessedEvent
 
@@ -43,12 +43,12 @@ func (ch *checker) processLog(vLog types.Log, eventName string) error {
 	return nil
 }
 
+// getEventData According to the event name, the log is unpacked using the ABI contract.
+// Based on the decompressed data, voting information is created or updated
+//
 // event ProposalConfigChanged(uint256 indexed proposalId);
 // event ProposalFunded(uint256 indexed proposalId, uint256 fundAmount);
 // event ProposalCreated(uint256 indexed proposalId, address proposalSMT, uint256 fundAmount)
-//
-// According to the event name, the log is unpacked using the ABI contract.
-// Based on the decompressed data, voting information is created or updated
 func (ch *checker) getEventData(eventName string, vLog types.Log, sender string) (votingInfo *data.VotingInfo, err error) {
 	if len(vLog.Topics) < 2 {
 		return nil, errors.New("the topic must contain at least two elements")
@@ -113,7 +113,7 @@ func (ch *checker) getEventData(eventName string, vLog types.Log, sender string)
 	}
 }
 
-// Simply unpack the ProposalInfoFromContract into the required VotingInfo fields
+// unpackInfoFromContractToStruct simply unpack the ProposalInfoFromContract into the required VotingInfo fields
 func unpackInfoFromContractToStruct(proposalInfoFromContract *ProposalInfoFromContract, votingInfo *data.VotingInfo) *data.VotingInfo {
 	if len(proposalInfoFromContract.ParsedVotingWhitelistData) > 0 {
 		votingInfo.MaxAge = proposalInfoFromContract.ParsedVotingWhitelistData[0].MaxAge
@@ -130,7 +130,7 @@ func unpackInfoFromContractToStruct(proposalInfoFromContract *ProposalInfoFromCo
 	return votingInfo
 }
 
-// Finds and returns the address of the transaction sender
+// getSender finds and returns the address of the transaction sender
 func (ch *checker) getSender(txHash common.Hash) (string, error) {
 	tx, _, err := ch.client.TransactionByHash(context.Background(), txHash)
 	if err != nil {
@@ -145,7 +145,7 @@ func (ch *checker) getSender(txHash common.Hash) (string, error) {
 	return sender.Hex(), nil
 }
 
-// Checks for the presence of an event in the database and adds information about a new event if it is not there
+// insertProcessedEventLog checks for the presence of an event in the database and adds information about a new event if it is not there
 func (ch *checker) insertProcessedEventLog(processedEvent data.ProcessedEvent) error {
 	isExist, err := ch.processedEventQ.CheckProcessedEventExist(processedEvent)
 	if isExist {
@@ -191,7 +191,7 @@ func (ch *checker) checkVotingAndGetInfo(votingId int64, sender string) (*data.V
 	return votingInfo, nil
 }
 
-// Returns the last processed block number from the database.
+// getStartBlockNumber returns the last processed block number from the database.
 // If no records are found, uses the default value from config.
 // This block number is used as a starting point for scanning events.
 func (ch *checker) getStartBlockNumber() (uint64, error) {
@@ -206,7 +206,7 @@ func (ch *checker) getStartBlockNumber() (uint64, error) {
 	return block, nil
 }
 
-// Search and extract event hashes from ABI to filter logs
+// getEventHashes search and extract event hashes from ABI to filter logs
 func (ch *checker) getEventHashes() (eventHashes []common.Hash, err error) {
 	parsedABI, err := abi.JSON(strings.NewReader(contracts.ProposalsStateABI))
 	if err != nil {
