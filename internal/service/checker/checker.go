@@ -115,7 +115,7 @@ func (ch *checker) check(ctx context.Context) error {
 	return nil
 }
 
-// Starts scanning for new events
+// readNewEvents starts scanning for new events
 func (ch *checker) readNewEvents(ctx context.Context, isSub bool) {
 	if isSub {
 		go ch.readNewEventsSub(ctx)
@@ -124,7 +124,7 @@ func (ch *checker) readNewEvents(ctx context.Context, isSub bool) {
 	go ch.readNewEventsWithoutSub(ctx)
 }
 
-// // Check events without a subscription, for example, if the network does not support web sockets
+// readNewEventsWithoutSub check events without a subscription, for example, if the network does not support web sockets
 func (ch *checker) readNewEventsWithoutSub(ctx context.Context) {
 	client := ch.VotingV2Config.RPC
 	header, err := client.HeaderByNumber(ctx, nil)
@@ -221,7 +221,7 @@ func (ch *checker) readOldEvents(ctx context.Context, block uint64) {
 	ch.log.WithField("to", toBlock).Info("finish reading old events")
 }
 
-// Sequential block gap check. It is necessary to check gaps that are larger than the network limits.
+// readFromToBlock sequential block gap check. It is necessary to check gaps that are larger than the network limits.
 func (ch *checker) readFromToBlock(ctx context.Context, fromBlock uint64, toBlock uint64) uint64 {
 	for ; fromBlock < toBlock; fromBlock = min(toBlock, fromBlock+ch.pinger.BlocksDistance) {
 		select {
@@ -244,7 +244,7 @@ func (ch *checker) readFromToBlock(ctx context.Context, fromBlock uint64, toBloc
 	return toBlock
 }
 
-// Filters logs with the required events
+// checkFilter filters logs with the required events
 func (ch *checker) checkFilter(block, toBlock uint64) error {
 	query := ethereum.FilterQuery{
 		FromBlock: big.NewInt(int64(block)),
