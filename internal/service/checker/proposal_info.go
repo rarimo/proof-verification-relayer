@@ -15,6 +15,7 @@ import (
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	"github.com/rarimo/proof-verification-relayer/internal/data"
 	"github.com/rarimo/proof-verification-relayer/resources"
+	"gitlab.com/distributed_lab/logan/v3"
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
@@ -34,7 +35,6 @@ type ProposalInfoFromContract struct {
 func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string) (*ProposalInfoFromContract, error) {
 	contractAddress := cfg.VotingV2Config().Address
 	client := cfg.VotingV2Config().RPC
-	ipfsUrl := cfg.VotingV2Config().IpfsUrl
 	caller, err := contracts.NewProposalsStateCaller(contractAddress, client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed get new ProposalsStateCaller")
@@ -49,7 +49,7 @@ func GetProposalInfo(proposalId int64, cfg config.Config, creatorAddress string)
 	endTimestamp := proposalInfo.Config.StartTimestamp + proposalInfo.Config.Duration
 
 	// Description in proposalInfo.Config contains the CID for the resource that corresponds to this proposal in the IPFS repository
-	desc, err := getProposalDescFromIpfs(proposalInfo.Config.Description, ipfsUrl)
+	desc, err := getProposalDescFromIpfs(proposalInfo.Config.Description, cfg.Ipfs(), cfg.Log())
 	if err != nil {
 		return nil, errors.Wrap(err, "failed get proposal info from ipfs")
 	}
@@ -227,24 +227,50 @@ func getBoundaryInYears(boundaryDateHex string, startTimeStamp uint64) (int64, e
 }
 
 // getProposalDescFromIpfs requests and returns proposal information from ipfs by CID
-func getProposalDescFromIpfs(desId string, ipfsUrl string) (*resources.ProposalInfoAttributesMetadata, error) {
-	requestURL := fmt.Sprintf("%s/%s", ipfsUrl, desId)
-	resp, err := http.Get(requestURL)
-	if err != nil {
-		return nil, fmt.Errorf("error making http request: %v", err)
-	}
-
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed read body response: %v", err)
-	}
-
+func getProposalDescFromIpfs(desId string, ipfsCfg config.Ipfs, logger *logan.Entry) (*resources.ProposalInfoAttributesMetadata, error) {
 	var data resources.ProposalInfoAttributesMetadata
-	if err := json.Unmarshal(body, &data); err != nil {
-		return nil, fmt.Errorf("failed parse JSON: %v", err)
+	requestURL := fmt.Sprintf("%s/%s", ipfsCfg.Url, desId)
+
+	var lastErr error
+	errLogFunc := func(log *logan.Entry, err error) {
+		log.WithError(err).Error("failed to get proposal info from ipfs")
+		time.Sleep(ipfsCfg.RetryPeriod)
 	}
 
-	return &data, nil
+	for retries := uint64(0); retries < ipfsCfg.MaxRetries; retries++ {
+		log := logger.WithFields(logan.F{
+			"retries": retries,
+			"Cid":     desId,
+		})
+		resp, err := http.Get(requestURL)
+		if err != nil {
+			lastErr = fmt.Errorf("failed to make request: %v", err)
+			errLogFunc(log, lastErr)
+			continue
+		}
+
+		if resp.StatusCode != http.StatusOK {
+			lastErr = fmt.Errorf("non-200 response from ipfs: %d", resp.StatusCode)
+			errLogFunc(log, lastErr)
+			continue
+		}
+
+		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			lastErr = fmt.Errorf("failed to read body: %v", err)
+			errLogFunc(log, lastErr)
+			continue
+		}
+
+		if err := json.Unmarshal(body, &data); err != nil {
+			lastErr = fmt.Errorf("failed to parse JSON: %v", err)
+			errLogFunc(log, lastErr)
+			continue
+		}
+
+		return &data, nil
+	}
+
+	return nil, lastErr
 }

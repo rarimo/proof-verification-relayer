@@ -18,6 +18,7 @@ type Config interface {
 	VotingV2Configer
 	Pinger() Pinger
 	Replicator() Replicator
+	Ipfs() Ipfs
 }
 
 type config struct {
@@ -32,6 +33,7 @@ type config struct {
 
 	pinger     comfig.Once
 	replicator comfig.Once
+	ipfs       comfig.Once
 }
 
 func New(getter kv.Getter) Config {

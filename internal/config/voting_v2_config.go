@@ -44,7 +44,6 @@ type VotingV2Config struct {
 	Block      uint64
 	Enable     bool
 	WithSub    bool
-	IpfsUrl    string
 }
 
 func (e *ethereumVoting) VotingV2Config() *VotingV2Config {
@@ -78,7 +77,6 @@ func (e *ethereumVoting) VotingV2Config() *VotingV2Config {
 			GasLimit       uint64            `fig:"gas_limit"`
 			Enable         bool              `fig:"enable"`
 			WithSub        bool              `fig:"check_with_subscribe"`
-			IpfsUrl        string            `fig:"ipfs_url"`
 		}{}
 		err := figure.
 			Out(&networkConfig).
@@ -110,7 +108,6 @@ func (e *ethereumVoting) VotingV2Config() *VotingV2Config {
 		result.mut = &sync.Mutex{}
 		result.Block = networkConfig.Block
 		result.GasLimit = networkConfig.GasLimit
-		result.IpfsUrl = networkConfig.IpfsUrl
 		return &result
 	}).(*VotingV2Config)
 }
