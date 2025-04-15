@@ -29,7 +29,6 @@ import (
 )
 
 const (
-	OPERATION   resources.ResourceType = "operation"
 	TRANSACTION resources.ResourceType = "transaction"
 )
 
@@ -120,7 +119,7 @@ func VoteV2(w http.ResponseWriter, r *http.Request) {
 		log.WithError(err).Error("Failed to configure gas and gasPrice")
 		// `errors.Is` is not working for rpc errors, they passed as a string without additional wrapping
 		// because of this we operate with raw strings
-		if strings.Contains(err.Error(), vm.ErrExecutionReverted.Error()) {
+		if strings.Contains(strings.ToLower(err.Error()), strings.ToLower(vm.ErrExecutionReverted.Error())) {
 			errParts := strings.Split(err.Error(), ":")
 			contractName := strings.TrimSpace(errParts[len(errParts)-2])
 			errMsg := errors.New(strings.TrimSpace(errParts[len(errParts)-1]))
