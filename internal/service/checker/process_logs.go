@@ -17,6 +17,8 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
+var DuplicateEventErr = errors.New("Duplicate event in db")
+
 // processLog based on the event name and filtered log, it parses and update the relevant information
 func (ch *checker) processLog(vLog types.Log, eventName string) error {
 	var processedEvent data.ProcessedEvent
@@ -27,6 +29,13 @@ func (ch *checker) processLog(vLog types.Log, eventName string) error {
 	processedEvent.TransactionHash = vLog.TxHash[:]
 	err := ch.insertProcessedEventLog(processedEvent)
 	if err != nil {
+		if err == DuplicateEventErr {
+			ch.log.WithFields(logan.F{
+				"hash_tx":   vLog.TxHash.Hex(),
+				"log_index": processedEvent.LogIndex,
+			}).Debug("event already processed and stored")
+			return nil
+		}
 		return errors.Wrap(err, "failed insert processed event")
 	}
 	sender, err := ch.getSender(vLog.TxHash)
@@ -149,7 +158,7 @@ func (ch *checker) getSender(txHash common.Hash) (string, error) {
 func (ch *checker) insertProcessedEventLog(processedEvent data.ProcessedEvent) error {
 	isExist, err := ch.processedEventQ.CheckProcessedEventExist(processedEvent)
 	if isExist {
-		return errors.New("Duplicate event in db")
+		return DuplicateEventErr
 	}
 	if err != nil {
 		return errors.Wrap(err, "failed to check processed event exist in db")
