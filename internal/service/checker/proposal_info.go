@@ -226,21 +226,57 @@ func getBoundaryInYears(boundaryDateHex string, startTimeStamp uint64) (int64, e
 	return int64(years), nil
 }
 
+type incrementalTimer struct {
+	initialPeriod time.Duration
+	maxPeriod     time.Duration
+	multiplier    time.Duration
+
+	currentPeriod time.Duration
+	iteration     int
+}
+
+func newIncrementalTimer(initialPeriod, maxPeriod time.Duration, multiplier int) *incrementalTimer {
+	return &incrementalTimer{
+		initialPeriod: initialPeriod,
+		maxPeriod:     maxPeriod,
+		multiplier:    time.Duration(multiplier),
+
+		currentPeriod: initialPeriod,
+		iteration:     0,
+	}
+}
+
+func (t *incrementalTimer) next() <-chan time.Time {
+	result := time.After(t.currentPeriod)
+
+	t.currentPeriod = t.currentPeriod * t.multiplier
+
+	if t.currentPeriod > t.maxPeriod {
+		t.currentPeriod = t.maxPeriod
+	}
+
+	t.iteration += 1
+
+	return result
+}
+
 // getProposalDescFromIpfs requests and returns proposal information from ipfs by CID
 func getProposalDescFromIpfs(desId string, ipfsCfg config.Ipfs, logger *logan.Entry) (*resources.ProposalInfoAttributesMetadata, error) {
 	var data resources.ProposalInfoAttributesMetadata
 	requestURL := fmt.Sprintf("%s/%s", ipfsCfg.Url, desId)
 
 	var lastErr error
+	timer := newIncrementalTimer(ipfsCfg.MinAbnormalPeriod, ipfsCfg.MaxAbnormalPeriod, 2)
+
 	errLogFunc := func(log *logan.Entry, err error) {
 		log.WithError(err).Error("failed to get proposal info from ipfs")
-		time.Sleep(ipfsCfg.RetryPeriod)
+		<-timer.next()
 	}
 
-	for retries := uint64(0); retries < ipfsCfg.MaxRetries; retries++ {
+	for uint64(timer.iteration) < ipfsCfg.MaxRetries {
 		log := logger.WithFields(logan.F{
-			"retries": retries,
-			"Cid":     desId,
+			"iteration": timer.iteration,
+			"Cid":       desId,
 		})
 		resp, err := http.Get(requestURL)
 		if err != nil {

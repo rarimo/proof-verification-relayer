@@ -43,8 +43,9 @@ voting_v2:
 
 ipfs:
   url: "https://ipfs.rarimo.com/ipfs"
-  retry_period: 2s
   max_retries: 3
+  min_abnormal_period: 2s
+  max_abnormal_period: 8s
 
 replicator:
   address: 0x10f370A6d8782E0e0E85ba948be6DA2465Aab4E2

@@ -14,14 +14,20 @@ const (
 )
 
 type Ipfs struct {
-	Url         string        `fig:"url"`
-	RetryPeriod time.Duration `fig:"retry_period"`
-	MaxRetries  uint64        `fig:"max_retries"`
+	Url               string        `fig:"url"`
+	MaxRetries        uint64        `fig:"max_retries"`
+	MinAbnormalPeriod time.Duration `fig:"min_abnormal_period"`
+	MaxAbnormalPeriod time.Duration `fig:"max_abnormal_period"`
 }
 
 func (c *config) Ipfs() Ipfs {
 	return c.ipfs.Do(func() interface{} {
-		var result Ipfs
+		result := Ipfs{
+			Url:               "https://ipfs.rarimo.com/ipfs",
+			MaxRetries:        5,
+			MinAbnormalPeriod: 30 * time.Second,
+			MaxAbnormalPeriod: 30 * time.Second,
+		}
 
 		err := figure.
 			Out(&result).
