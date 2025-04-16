@@ -8,10 +8,8 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
-
 	"github.com/ethereum/go-ethereum/ethclient"
-	vaultapi "github.com/hashicorp/vault/api"
-	"gitlab.com/distributed_lab/dig"
+	"github.com/rarimo/proof-verification-relayer/internal/pkg/vault"
 	"gitlab.com/distributed_lab/figure/v3"
 	"gitlab.com/distributed_lab/kit/comfig"
 	"gitlab.com/distributed_lab/kit/kv"
@@ -31,6 +29,11 @@ func NewVotingV2Configer(getter kv.Getter) VotingV2Configer {
 type ethereumVoting struct {
 	once   comfig.Once
 	getter kv.Getter
+	vault  vault.Vault
+}
+
+func (e *ethereumVoting) SetVault(v vault.Vault) {
+	e.vault = v
 }
 
 type VotingV2Config struct {
@@ -68,15 +71,13 @@ func (e *ethereumVoting) VotingV2Config() *VotingV2Config {
 		var result VotingV2Config
 
 		networkConfig := struct {
-			RPC            *ethclient.Client `fig:"rpc,required"`
-			PrivateKey     *ecdsa.PrivateKey `fig:"private_key"`
-			VaultAddress   string            `fig:"vault_address"`
-			VaultMountPath string            `fig:"vault_mount_path"`
-			Address        common.Address    `fig:"proposal_state_address,required"`
-			Block          uint64            `fig:"block"`
-			GasLimit       uint64            `fig:"gas_limit"`
-			Enable         bool              `fig:"enable"`
-			WithSub        bool              `fig:"check_with_subscribe"`
+			RPC        *ethclient.Client `fig:"rpc,required"`
+			PrivateKey *ecdsa.PrivateKey `fig:"private_key"`
+			Address    common.Address    `fig:"proposal_state_address,required"`
+			Block      uint64            `fig:"block"`
+			GasLimit   uint64            `fig:"gas_limit"`
+			Enable     bool              `fig:"enable"`
+			WithSub    bool              `fig:"check_with_subscribe"`
 		}{}
 		err := figure.
 			Out(&networkConfig).
@@ -96,14 +97,23 @@ func (e *ethereumVoting) VotingV2Config() *VotingV2Config {
 		}
 
 		result.PrivateKey = networkConfig.PrivateKey
-		if result.PrivateKey == nil {
-			result.PrivateKey = extractPrivateKey(networkConfig.VaultAddress, networkConfig.VaultMountPath)
-		}
+		if result.PrivateKey == nil && e.vault != nil {
+			var relayerSecret struct {
+				PrivateKey *ecdsa.PrivateKey `fig:"private_key,required"`
+			}
 
-		result.nonce, err = result.RPC.NonceAt(context.Background(), crypto.PubkeyToAddress(result.PrivateKey.PublicKey), nil)
+			err := e.vault.FigureOutSecret(relayerSecretName, &relayerSecret, true)
+			if err != nil {
+				panic(errors.Wrap(err, "failed to figure out relayer secret"))
+			}
+
+			result.PrivateKey = relayerSecret.PrivateKey
+		}
+		nonce, err := result.RPC.NonceAt(context.Background(), crypto.PubkeyToAddress(result.PrivateKey.PublicKey), nil)
 		if err != nil {
 			panic(errors.Wrap(err, "failed to get nonce"))
 		}
+		result.nonce = nonce
 		result.Address = networkConfig.Address
 		result.mut = &sync.Mutex{}
 		result.Block = networkConfig.Block
@@ -136,44 +146,4 @@ func (n *VotingV2Config) ResetNonce(client *ethclient.Client) error {
 	}
 	n.nonce = nonce
 	return nil
-}
-
-func extractPrivateKey(vaultAddress, vaultMountPath string) *ecdsa.PrivateKey {
-	conf := vaultapi.DefaultConfig()
-	conf.Address = vaultAddress
-
-	vaultClient, err := vaultapi.NewClient(conf)
-	if err != nil {
-		panic(errors.Wrap(err, "failed to initialize new client"))
-	}
-
-	token := struct {
-		Token string `dig:"VAULT_TOKEN,clear"`
-	}{}
-
-	err = dig.Out(&token).Now()
-	if err != nil {
-		panic(errors.Wrap(err, "failed to dig out token"))
-	}
-
-	vaultClient.SetToken(token.Token)
-
-	secret, err := vaultClient.KVv2(vaultMountPath).Get(context.Background(), "relayer")
-	if err != nil {
-		panic(errors.Wrap(err, "failed to get secret"))
-	}
-
-	vaultRelayerConf := struct {
-		PrivateKey *ecdsa.PrivateKey `fig:"private_key,required"`
-	}{}
-
-	if err := figure.
-		Out(&vaultRelayerConf).
-		With(figure.EthereumHooks).
-		From(secret.Data).
-		Please(); err != nil {
-		panic(errors.Wrap(err, "failed to figure out"))
-	}
-
-	return vaultRelayerConf.PrivateKey
 }

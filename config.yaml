@@ -1,7 +1,12 @@
+vault:
+  disabled: false
+  addr: "http://127.0.0.1:8200"
+  mount_path: "secret_data"
+  secrets:
+    relayer: "relayer"
+
 network:
   rpc: "https://rpc.evm.mainnet.rarimo.com/"
-  vault_address: "http://127.0.0.1:8200"
-  vault_mount_path: "secret_data"
   gas_multiplier: 1.23
   private_key: without '0x' # For security purposes this key may be omitted and flow with Vault would be used
 
@@ -33,8 +38,6 @@ pinger:
 voting_v2:
   rpc: ""
   private_key: ""
-  vault_address: "https://127.0.0.1:8200"
-  vault_mount_path: "secret_data"
   proposal_state_address: ""
   block: 0
   gas_limit: 800000
