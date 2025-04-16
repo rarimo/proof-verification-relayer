@@ -3,15 +3,15 @@ package config
 import (
 	"context"
 	"crypto/ecdsa"
+	"fmt"
 	"math/big"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/rarimo/proof-verification-relayer/internal/pkg/vault"
 
 	"github.com/ethereum/go-ethereum/ethclient"
-	vaultapi "github.com/hashicorp/vault/api"
-	"gitlab.com/distributed_lab/dig"
 	"gitlab.com/distributed_lab/figure/v3"
 	"gitlab.com/distributed_lab/kit/comfig"
 	"gitlab.com/distributed_lab/kit/kv"
@@ -97,7 +97,15 @@ func (e *ethereumVoting) VotingV2Config() *VotingV2Config {
 
 		result.PrivateKey = networkConfig.PrivateKey
 		if result.PrivateKey == nil {
-			result.PrivateKey = extractPrivateKey(networkConfig.VaultAddress, networkConfig.VaultMountPath)
+			pk := struct {
+				PrivateKey *ecdsa.PrivateKey `fig:"private_key,required"`
+			}{}
+
+			err := vault.ExtractSecret(networkConfig.VaultAddress, networkConfig.VaultMountPath, "relayer", &pk)
+			if err != nil {
+				panic(fmt.Errorf("failed to get private key from vault: %w", err))
+			}
+			networkConfig.PrivateKey = pk.PrivateKey
 		}
 
 		result.nonce, err = result.RPC.NonceAt(context.Background(), crypto.PubkeyToAddress(result.PrivateKey.PublicKey), nil)
@@ -136,44 +144,4 @@ func (n *VotingV2Config) ResetNonce(client *ethclient.Client) error {
 	}
 	n.nonce = nonce
 	return nil
-}
-
-func extractPrivateKey(vaultAddress, vaultMountPath string) *ecdsa.PrivateKey {
-	conf := vaultapi.DefaultConfig()
-	conf.Address = vaultAddress
-
-	vaultClient, err := vaultapi.NewClient(conf)
-	if err != nil {
-		panic(errors.Wrap(err, "failed to initialize new client"))
-	}
-
-	token := struct {
-		Token string `dig:"VAULT_TOKEN,clear"`
-	}{}
-
-	err = dig.Out(&token).Now()
-	if err != nil {
-		panic(errors.Wrap(err, "failed to dig out token"))
-	}
-
-	vaultClient.SetToken(token.Token)
-
-	secret, err := vaultClient.KVv2(vaultMountPath).Get(context.Background(), "relayer")
-	if err != nil {
-		panic(errors.Wrap(err, "failed to get secret"))
-	}
-
-	vaultRelayerConf := struct {
-		PrivateKey *ecdsa.PrivateKey `fig:"private_key,required"`
-	}{}
-
-	if err := figure.
-		Out(&vaultRelayerConf).
-		With(figure.EthereumHooks).
-		From(secret.Data).
-		Please(); err != nil {
-		panic(errors.Wrap(err, "failed to figure out"))
-	}
-
-	return vaultRelayerConf.PrivateKey
 }
