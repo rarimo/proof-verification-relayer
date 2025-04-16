@@ -8,8 +8,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	vaultapi "github.com/hashicorp/vault/api"
-	"gitlab.com/distributed_lab/dig"
+	"github.com/rarimo/proof-verification-relayer/internal/pkg/vault"
 	"gitlab.com/distributed_lab/figure/v3"
 	"gitlab.com/distributed_lab/kit/comfig"
 	"gitlab.com/distributed_lab/kit/kv"
@@ -66,10 +65,15 @@ func (e *ethereum) NetworkConfig() *NetworkConfig {
 		result.ChainID = chainID
 
 		if result.PrivateKey == nil {
-			result.PrivateKey, err = retrieveVaultPrivateKey(result)
+			pk := struct {
+				PrivateKey *ecdsa.PrivateKey `fig:"private_key,required"`
+			}{}
+			err := vault.ExtractSecret(result.Address, result.Address, "relayer", &pk)
 			if err != nil {
 				panic(errors.Wrap(err, "failed to retrieve vault private key"))
 			}
+
+			result.PrivateKey = pk.PrivateKey
 		}
 
 		nonce, err := result.Client.NonceAt(context.Background(), crypto.PubkeyToAddress(result.PrivateKey.PublicKey), nil)
@@ -83,46 +87,6 @@ func (e *ethereum) NetworkConfig() *NetworkConfig {
 
 		return &result
 	}).(*NetworkConfig)
-}
-
-func retrieveVaultPrivateKey(result NetworkConfig) (*ecdsa.PrivateKey, error) {
-	vaultCfg := struct {
-		Token string `dig:"VAULT_TOKEN,clear"`
-	}{}
-
-	if err := dig.Out(&vaultCfg).Now(); err != nil {
-		panic(err)
-	}
-	result.Token = vaultCfg.Token
-
-	conf := vaultapi.DefaultConfig()
-	conf.Address = result.Address
-
-	vaultClient, err := vaultapi.NewClient(conf)
-	if err != nil {
-		panic(errors.Wrap(err, "failed to initialize new client"))
-	}
-
-	vaultClient.SetToken(result.Token)
-
-	secret, err := vaultClient.KVv2(result.MountPath).Get(context.Background(), "relayer")
-	if err != nil {
-		panic(errors.Wrap(err, "failed to get secret"))
-	}
-
-	vaultRelayerConf := struct {
-		PrivateKey *ecdsa.PrivateKey `fig:"private_key,required"`
-	}{}
-
-	if err := figure.
-		Out(&vaultRelayerConf).
-		With(figure.BaseHooks, figure.EthereumHooks).
-		From(secret.Data).
-		Please(); err != nil {
-		panic(errors.Wrap(err, "failed to figure out"))
-	}
-
-	return vaultRelayerConf.PrivateKey, nil
 }
 
 func (n *NetworkConfig) LockNonce() {
