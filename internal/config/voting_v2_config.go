@@ -102,7 +102,7 @@ func (e *ethereumVoting) VotingV2Config() *VotingV2Config {
 				PrivateKey *ecdsa.PrivateKey `fig:"private_key,required"`
 			}
 
-			err := e.vault.FigureOutSecret(relayerSecretName, &relayerSecret, true)
+			err := e.vault.FigureOutSecret(relayerSecretName, &relayerSecret, false)
 			if err != nil {
 				panic(errors.Wrap(err, "failed to figure out relayer secret"))
 			}
