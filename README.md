@@ -12,7 +12,7 @@ Send signed state to [on-chain replicator](https://github.com/rarimo/passport-vo
   git clone github.com/rarimo/proof-verification-relayer
   cd proof-verification-relayer
   go build main.go
-  export KV_VIPER_FILE=./config.yaml
+  export KV_VIPER_FILE=./config_transit_state.yaml
   ./main migrate up
   ./main run service
   ```
