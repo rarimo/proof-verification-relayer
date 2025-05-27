@@ -3,8 +3,8 @@ vault:
   addr: "http://127.0.0.1:8200"
   mount_path: "secret_data"
   secrets:
-    secret_data:
-      relayer: relayer
+    relayer:
+      private_key: without '0x'
 
 network:
   rpc: "https://l2.rarimo.com/"
