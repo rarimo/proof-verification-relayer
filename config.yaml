@@ -1,9 +1,10 @@
 vault:
-  disabled: false
+  disabled: true
   addr: "http://127.0.0.1:8200"
   mount_path: "secret_data"
   secrets:
-    relayer: "relayer"
+    secret_data:
+      relayer: relayer
 
 network:
   rpc: "https://rpc.evm.mainnet.rarimo.com/"
