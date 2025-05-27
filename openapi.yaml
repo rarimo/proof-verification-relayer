@@ -725,9 +725,15 @@ components:
             attributes:
               type: object
               required:
+                - root
                 - signature
                 - timestamp
               properties:
+                root:
+                  example: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
+                  type: string
+                  pattern: '^0x[0-9a-fA-F]{64}$'
+                  description: Root hash of the state tree
                 signature:
                   example: '0xd0bf2f6c2270874d8870a1081b67fcb0280b61db000778f159ba39c38fb2595639c2e1d81d085916ba6ec77f2bd4c4a2ae6dfbdbaf8703da7d9fe629b2e1218a00'
                   type: string
@@ -746,6 +752,7 @@ components:
       properties:
         id:
           type: string
+          description: Unique ID of the state record in db
         type:
           type: string
           enum:
