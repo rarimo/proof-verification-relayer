@@ -5,6 +5,7 @@ required:
 properties:
   id:
     type: string
+    description: Unique ID of the state record in db
   type:
     type: string
     enum:

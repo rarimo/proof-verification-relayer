@@ -59,6 +59,7 @@ func GetSignedStateV2(w http.ResponseWriter, r *http.Request) {
 				Type: resources.STATE_V2,
 			},
 			Attributes: resources.StateV2Attributes{
+				Root:      state.Root,
 				Signature: hex.EncodeToString(signature),
 				Timestamp: int64(state.Timestamp),
 			},
