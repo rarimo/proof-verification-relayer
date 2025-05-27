@@ -9,6 +9,7 @@ vault:
 network:
   rpc: "https://rpc.evm.mainnet.rarimo.com/"
   gas_multiplier: 1.23
+  private_key: without '0x' # For security purposes this key may be omitted and flow with Vault would be used
 
 contracts:
   proposer:
