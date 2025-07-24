@@ -1,25 +1,20 @@
 package handlers
 
 import (
-	"bytes"
 	"database/sql"
 	"fmt"
 	"math/big"
 	"net/http"
 	"strings"
 
-	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
-	"github.com/ethereum/go-ethereum/crypto"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/rarimo/proof-verification-relayer/internal/config"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
 	biopassportvoting "github.com/rarimo/proof-verification-relayer/internal/contracts/bio_passport_voting"
-	"github.com/rarimo/proof-verification-relayer/internal/data/pg"
+	noirvoting "github.com/rarimo/proof-verification-relayer/internal/contracts/noir_voting"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/ape"
@@ -28,27 +23,16 @@ import (
 	"gitlab.com/distributed_lab/logan/v3/errors"
 )
 
-const (
-	TRANSACTION resources.ResourceType = "transaction"
-)
-
-type txData struct {
-	dataBytes []byte
-	gasPrice  *big.Int
-	gas       uint64
+type NoirVoteCalldata struct {
+	RegistrationRoot [32]byte
+	CurrentDate      *big.Int
+	ProposalID       *big.Int
+	Vote             []*big.Int
+	UserData         biopassportvoting.BaseVotingUserData
+	ZkPoints         noirvoting.AQueryProofExecutorProofPoints
 }
 
-func isAddressInWhitelist(votingAddress common.Address, whitelist []common.Address) bool {
-	votingAddressBytes := votingAddress.Bytes()
-	for _, addr := range whitelist {
-		if bytes.Equal(votingAddressBytes, addr.Bytes()) {
-			return true
-		}
-	}
-	return false
-}
-
-func VoteV2(w http.ResponseWriter, r *http.Request) {
+func VoteV3(w http.ResponseWriter, r *http.Request) {
 	req, err := requests.NewVotingRequest(r)
 	if err != nil {
 		Log(r).WithError(err).Error("failed to get request")
@@ -60,6 +44,7 @@ func VoteV2(w http.ResponseWriter, r *http.Request) {
 		destination = req.Data.Attributes.Destination
 		calldata    = req.Data.Attributes.TxData
 	)
+
 	var txd txData
 	txd.dataBytes, err = hexutil.Decode(calldata)
 	if err != nil {
@@ -67,11 +52,12 @@ func VoteV2(w http.ResponseWriter, r *http.Request) {
 		ape.RenderErr(w, problems.BadRequest(err)...)
 		return
 	}
-	calldataInfo, err := parseCallData(txd.dataBytes)
+
+	calldataInfo, err := parseNoirCallData(txd.dataBytes)
 	if err != nil {
 		Log(r).WithError(err).Error("Failed parsed calldata")
 		ape.RenderErr(w, problems.BadRequest(validation.Errors{
-			"tx_data": errors.New("invalid transaction data format"),
+			"tx_data": errors.New("invalid noir transaction data format"),
 		}.Filter())...)
 		return
 	}
@@ -83,15 +69,12 @@ func VoteV2(w http.ResponseWriter, r *http.Request) {
 		"destination": destination,
 		"proposal_id": proposalID,
 	})
-	log.Debug("voting request")
+	log.Debug("noir voting request")
 
 	// destination is valid hex address because of request validation
 	votingAddress := common.HexToAddress(destination)
-
 	proposalBigID := big.NewInt(proposalID)
-
 	session, err := contracts.NewProposalsStateCaller(VotingV2Config(r).Address, VotingV2Config(r).RPC)
-
 	if err != nil {
 		log.WithError(err).Error("Failed to get proposal state caller")
 		ape.RenderErr(w, problems.InternalError())
@@ -99,7 +82,6 @@ func VoteV2(w http.ResponseWriter, r *http.Request) {
 	}
 
 	proposalConfig, err := session.GetProposalConfig(nil, proposalBigID)
-
 	if err != nil {
 		log.WithError(err).Error("Failed to get proposal config")
 		ape.RenderErr(w, problems.InternalError())
@@ -116,11 +98,8 @@ func VoteV2(w http.ResponseWriter, r *http.Request) {
 	VotingV2Config(r).LockNonce()
 
 	err = confGas(r, &txd, &votingAddress)
-
 	if err != nil {
 		log.WithError(err).Error("Failed to configure gas and gasPrice")
-		// `errors.Is` is not working for rpc errors, they passed as a string without additional wrapping
-		// because of this we operate with raw strings
 		if strings.Contains(strings.ToLower(err.Error()), strings.ToLower(vm.ErrExecutionReverted.Error())) {
 			errParts := strings.Split(err.Error(), ":")
 			contractName := strings.TrimSpace(errParts[len(errParts)-2])
@@ -179,96 +158,25 @@ func VoteV2(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func confGas(r *http.Request, txd *txData, receiver *common.Address) (err error) {
-	txd.gasPrice, err = VotingV2Config(r).RPC.SuggestGasPrice(r.Context())
-	if err != nil {
-		return fmt.Errorf("failed to suggest gas price: %w", err)
-	}
-
-	txd.gas, err = VotingV2Config(r).RPC.EstimateGas(r.Context(), ethereum.CallMsg{
-		From:     crypto.PubkeyToAddress(VotingV2Config(r).PrivateKey.PublicKey),
-		To:       receiver,
-		GasPrice: txd.gasPrice,
-		Data:     txd.dataBytes,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to estimate gas: %w", err)
-	}
-
-	return nil
-}
-
-func sendTx(r *http.Request, txd *txData, receiver *common.Address) (tx *types.Transaction, err error) {
-	tx, err = signTx(r, txd, receiver)
-	if err != nil {
-		return nil, fmt.Errorf("failed to sign new tx: %w", err)
-	}
-
-	if err = VotingV2Config(r).RPC.SendTransaction(r.Context(), tx); err != nil {
-		if strings.Contains(err.Error(), "nonce") {
-			if err = VotingV2Config(r).ResetNonce(VotingV2Config(r).RPC); err != nil {
-				return nil, fmt.Errorf("failed to reset nonce: %w", err)
-			}
-
-			tx, err = signTx(r, txd, receiver)
-			if err != nil {
-				return nil, fmt.Errorf("failed to sign new tx: %w", err)
-			}
-
-			if err := VotingV2Config(r).RPC.SendTransaction(r.Context(), tx); err != nil {
-				return nil, fmt.Errorf("failed to send transaction: %w", err)
-			}
-		} else {
-			return nil, fmt.Errorf("failed to send transaction: %w", err)
-		}
-	}
-
-	return tx, nil
-}
-
-func signTx(r *http.Request, txd *txData, receiver *common.Address) (tx *types.Transaction, err error) {
-	tx, err = types.SignNewTx(
-		VotingV2Config(r).PrivateKey,
-		types.NewCancunSigner(VotingV2Config(r).ChainID),
-		&types.LegacyTx{
-			Nonce:    VotingV2Config(r).Nonce(),
-			Gas:      txd.gas,
-			GasPrice: txd.gasPrice,
-			To:       receiver,
-			Data:     txd.dataBytes,
-		},
-	)
-	return tx, err
-}
-
-type VoteCalldata struct {
-	RegistrationRoot [32]byte
-	CurrentDate      *big.Int
-	ProposalID       *big.Int
-	Vote             []*big.Int
-	UserData         biopassportvoting.BaseVotingUserData
-	ZkPoints         biopassportvoting.VerifierHelperProofPoints
-}
-
-func parseCallData(data []byte) (VoteCalldata, error) {
-	var config VoteCalldata
+func parseNoirCallData(data []byte) (NoirVoteCalldata, error) {
+	var config NoirVoteCalldata
 	if len(data) < 4 {
 		return config, fmt.Errorf("calldata is too short")
 	}
 
-	parsedABI, err := abi.JSON(strings.NewReader(biopassportvoting.BioPassportVotingABI))
+	parsedABI, err := abi.JSON(strings.NewReader(noirvoting.NoirVotingABI))
 	if err != nil {
-		return config, fmt.Errorf("failed to parse ABI: %v", err)
+		return config, fmt.Errorf("failed to parse noir ABI: %v", err)
 	}
 
-	method, ok := parsedABI.Methods["vote"]
+	method, ok := parsedABI.Methods["executeNoir"]
 	if !ok {
-		return config, fmt.Errorf("method 'vote' not found in ABI")
+		return config, fmt.Errorf("method 'executeNoir' not found in noir ABI")
 	}
 
 	decoded, err := method.Inputs.Unpack(data[4:])
 	if err != nil {
-		return config, fmt.Errorf("failed to unpack calldata: %v", err)
+		return config, fmt.Errorf("failed to unpack noir calldata: %v", err)
 	}
 
 	if len(decoded) != 6 {
@@ -306,62 +214,11 @@ func parseCallData(data []byte) (VoteCalldata, error) {
 		return config, fmt.Errorf("failed to cast zkPoints_ to expected struct, got %T", zkPointsRaw)
 	}
 
-	config.ZkPoints = biopassportvoting.VerifierHelperProofPoints{
+	config.ZkPoints = noirvoting.AQueryProofExecutorProofPoints{
 		A: zkPointsStruct.A,
 		B: zkPointsStruct.B,
 		C: zkPointsStruct.C,
 	}
 
 	return config, nil
-}
-
-func updateVotingBalanceAndVotesCount(cfg config.Config, gasPrice *big.Int, gas uint64, votingId int64) error {
-	pgDB := pg.NewVotingQ(cfg.DB().Clone()).FilterByVotingId(votingId)
-
-	balance, _, err := pgDB.GetVotingBalance()
-	if err != nil {
-		return fmt.Errorf("failed get voting info from db: %w", err)
-	}
-	if balance == nil {
-		return errors.New("Voting Not Found")
-	}
-
-	if gasPrice.Int64() == 0 {
-		gasPrice = big.NewInt(1)
-	}
-
-	var votes_count int64
-	if err := pgDB.Get("votes_count", &votes_count); err != nil {
-		if err != sql.ErrNoRows {
-			return errors.Wrap(err, "failed to get voting info from db")
-		}
-		return errors.New("voting Not Found")
-	}
-
-	err = pgDB.Update(map[string]any{
-		"residual_balance": new(big.Int).Sub(balance, new(big.Int).Mul(big.NewInt(int64(gas)), gasPrice)).String(),
-		"votes_count":      votes_count + 1,
-	})
-	if err != nil {
-		return fmt.Errorf("failed update voting balance: %w", err)
-	}
-
-	return nil
-}
-
-func checkUpdateGasLimit(value uint64, cfg config.Config, votingId int64) error {
-	pgDB := pg.NewVotingQ(cfg.DB().Clone()).FilterByVotingId(votingId)
-
-	var one int
-	if err := pgDB.Get("1", &one); err != nil {
-		if err != sql.ErrNoRows {
-			return errors.Wrap(err, "failed to get voting info from db")
-		}
-		return errors.New("voting Not Found")
-	}
-
-	if err := pgDB.Update(map[string]any{"gas_limit": value}); err != nil {
-		return errors.Wrap(err, "failed to update voting gas limit from db")
-	}
-	return nil
 }

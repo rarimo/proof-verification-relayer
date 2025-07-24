@@ -76,6 +76,10 @@ func (s *service) router() chi.Router {
 			r.Get("/state", handlers.GetSignedStateV2)
 		})
 
+		r.Route("/v3", func(r chi.Router) {
+			r.Post("/vote", handlers.VoteV3)
+		})
+
 	})
 
 	return r

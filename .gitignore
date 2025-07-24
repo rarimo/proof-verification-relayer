@@ -9,3 +9,5 @@ vendor/
 public/
 internal/checker/usdc_abi/*
 internal/checker/usdc_abi
+docker-compose.yaml 
+main
