@@ -29,7 +29,7 @@ type NoirVoteCalldata struct {
 	ProposalID       *big.Int
 	Vote             []*big.Int
 	UserData         biopassportvoting.BaseVotingUserData
-	ZkPoints         noirvoting.AQueryProofExecutorProofPoints
+	ProofBytes       []byte
 }
 
 func VoteV3(w http.ResponseWriter, r *http.Request) {
@@ -179,45 +179,51 @@ func parseNoirCallData(data []byte) (NoirVoteCalldata, error) {
 		return config, fmt.Errorf("failed to unpack noir calldata: %v", err)
 	}
 
-	if len(decoded) != 6 {
-		return config, fmt.Errorf("unexpected argument count, expected 6 got %d", len(decoded))
+	if len(decoded) != 4 {
+		return config, fmt.Errorf("unexpected argument count, expected 4 got %d", len(decoded))
 	}
 
 	config.RegistrationRoot = decoded[0].([32]byte)
 	config.CurrentDate = decoded[1].(*big.Int)
-	config.ProposalID = decoded[2].(*big.Int)
-	config.Vote = decoded[3].([]*big.Int)
-	userDataRaw := decoded[4]
+	userDataEncoded := decoded[2].([]byte)
+	config.ProofBytes = decoded[3].([]byte)
 
-	userDataStruct, ok := userDataRaw.(struct {
-		Nullifier                 *big.Int `json:"nullifier"`
-		Citizenship               *big.Int `json:"citizenship"`
-		IdentityCreationTimestamp *big.Int `json:"identityCreationTimestamp"`
+	uint256Type, _ := abi.NewType("uint256", "", nil)
+	uint256ArrayType, _ := abi.NewType("uint256[]", "", nil)
+	tupleType, _ := abi.NewType("tuple", "", []abi.ArgumentMarshaling{
+		{Name: "nullifier", Type: "uint256"},
+		{Name: "citizenship", Type: "uint256"},
+		{Name: "timestampUpperbound", Type: "uint256"},
 	})
-	if !ok {
-		return config, fmt.Errorf("failed to cast userData_ to expected struct, got %T", userDataRaw)
+
+	userDataArguments := abi.Arguments{
+		{Type: uint256Type},
+		{Type: uint256ArrayType},
+		{Type: tupleType},
 	}
+
+	userDataDecoded, err := userDataArguments.Unpack(userDataEncoded)
+	if err != nil {
+		return config, fmt.Errorf("failed to unpack userDataEncoded: %v", err)
+	}
+
+	if len(userDataDecoded) != 3 {
+		return config, fmt.Errorf("invalid userDataEncoded structure")
+	}
+
+	config.ProposalID = userDataDecoded[0].(*big.Int)
+	config.Vote = userDataDecoded[1].([]*big.Int)
+
+	userDataTuple := userDataDecoded[2].(struct {
+		Nullifier           *big.Int `json:"nullifier"`
+		Citizenship         *big.Int `json:"citizenship"`
+		TimestampUpperbound *big.Int `json:"timestampUpperbound"`
+	})
 
 	config.UserData = biopassportvoting.BaseVotingUserData{
-		Nullifier:                 userDataStruct.Nullifier,
-		Citizenship:               userDataStruct.Citizenship,
-		IdentityCreationTimestamp: userDataStruct.IdentityCreationTimestamp,
-	}
-
-	zkPointsRaw := decoded[5]
-	zkPointsStruct, ok := zkPointsRaw.(struct {
-		A [2]*big.Int    `json:"a"`
-		B [2][2]*big.Int `json:"b"`
-		C [2]*big.Int    `json:"c"`
-	})
-	if !ok {
-		return config, fmt.Errorf("failed to cast zkPoints_ to expected struct, got %T", zkPointsRaw)
-	}
-
-	config.ZkPoints = noirvoting.AQueryProofExecutorProofPoints{
-		A: zkPointsStruct.A,
-		B: zkPointsStruct.B,
-		C: zkPointsStruct.C,
+		Nullifier:                 userDataTuple.Nullifier,
+		Citizenship:               userDataTuple.Citizenship,
+		IdentityCreationTimestamp: userDataTuple.TimestampUpperbound,
 	}
 
 	return config, nil
