@@ -187,44 +187,60 @@ func parseNoirCallData(data []byte) (NoirVoteCalldata, error) {
 	config.CurrentDate = decoded[1].(*big.Int)
 	userDataEncoded := decoded[2].([]byte)
 	config.ProofBytes = decoded[3].([]byte)
+	proposalID, vote, userData, err := decodeUserData(userDataEncoded)
+	if err != nil {
+		return config, fmt.Errorf("failed to decode user data: %v", err)
+	}
 
+	config.ProposalID = proposalID
+	config.Vote = vote
+	config.UserData = userData
+
+	return config, nil
+}
+
+func decodeUserData(data []byte) (*big.Int, []*big.Int, biopassportvoting.BaseVotingUserData, error) {
 	uint256Type, _ := abi.NewType("uint256", "", nil)
-	uint256ArrayType, _ := abi.NewType("uint256[]", "", nil)
+	uint256Array, _ := abi.NewType("uint256[]", "", nil)
 	tupleType, _ := abi.NewType("tuple", "", []abi.ArgumentMarshaling{
 		{Name: "nullifier", Type: "uint256"},
 		{Name: "citizenship", Type: "uint256"},
 		{Name: "timestampUpperbound", Type: "uint256"},
 	})
 
-	userDataArguments := abi.Arguments{
+	arguments := abi.Arguments{
 		{Type: uint256Type},
-		{Type: uint256ArrayType},
+		{Type: uint256Array},
 		{Type: tupleType},
 	}
 
-	userDataDecoded, err := userDataArguments.Unpack(userDataEncoded)
+	decoded, err := arguments.Unpack(data)
 	if err != nil {
-		return config, fmt.Errorf("failed to unpack userDataEncoded: %v", err)
+		return nil, nil, biopassportvoting.BaseVotingUserData{}, err
 	}
 
-	if len(userDataDecoded) != 3 {
-		return config, fmt.Errorf("invalid userDataEncoded structure")
+	if len(decoded) != 3 {
+		return nil, nil, biopassportvoting.BaseVotingUserData{}, fmt.Errorf("invalid userDataEncoded structure")
 	}
 
-	config.ProposalID = userDataDecoded[0].(*big.Int)
-	config.Vote = userDataDecoded[1].([]*big.Int)
+	proposalID := decoded[0].(*big.Int)
+	vote := decoded[1].([]*big.Int)
 
-	userDataTuple := userDataDecoded[2].(struct {
+	userDataRaw := decoded[2]
+	userDataStruct, ok := userDataRaw.(struct {
 		Nullifier           *big.Int `json:"nullifier"`
 		Citizenship         *big.Int `json:"citizenship"`
 		TimestampUpperbound *big.Int `json:"timestampUpperbound"`
 	})
-
-	config.UserData = biopassportvoting.BaseVotingUserData{
-		Nullifier:                 userDataTuple.Nullifier,
-		Citizenship:               userDataTuple.Citizenship,
-		IdentityCreationTimestamp: userDataTuple.TimestampUpperbound,
+	if !ok {
+		return nil, nil, biopassportvoting.BaseVotingUserData{}, fmt.Errorf("failed to cast userData to expected struct, got %T", userDataRaw)
 	}
 
-	return config, nil
+	userData := biopassportvoting.BaseVotingUserData{
+		Nullifier:                 userDataStruct.Nullifier,
+		Citizenship:               userDataStruct.Citizenship,
+		IdentityCreationTimestamp: userDataStruct.TimestampUpperbound,
+	}
+
+	return proposalID, vote, userData, nil
 }
