@@ -11,6 +11,8 @@ type ProposalInfoAttributesMetadata struct {
 	Description string `json:"description"`
 	// Proposal image CID
 	ImageCid string `json:"imageCid"`
+	// Indicates if the proposal is ranking based
+	RankingBased *bool `json:"rankingBased,omitempty"`
 	// Title of the proposal
 	Title string `json:"title"`
 }
