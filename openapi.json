@@ -988,6 +988,10 @@
           "imageCid": {
             "type": "string",
             "description": "Proposal image CID"
+          },
+          "rankingBased": {
+            "type": "boolean",
+            "description": "Indicates if the proposal is ranking based"
           }
         }
       },
