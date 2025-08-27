@@ -70,7 +70,9 @@ func VoteV2(w http.ResponseWriter, r *http.Request) {
 	calldataInfo, err := parseCallData(txd.dataBytes)
 	if err != nil {
 		Log(r).WithError(err).Error("Failed parsed calldata")
-		ape.RenderErr(w, problems.BadRequest(err)...)
+		ape.RenderErr(w, problems.BadRequest(validation.Errors{
+			"tx_data": errors.New("invalid transaction data format"),
+		}.Filter())...)
 		return
 	}
 
@@ -256,7 +258,7 @@ func parseCallData(data []byte) (VoteCalldata, error) {
 
 	parsedABI, err := abi.JSON(strings.NewReader(biopassportvoting.BioPassportVotingABI))
 	if err != nil {
-		return config, err
+		return config, fmt.Errorf("failed to parse ABI: %v", err)
 	}
 
 	method, ok := parsedABI.Methods["vote"]
