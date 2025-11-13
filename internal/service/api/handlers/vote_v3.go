@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"database/sql"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -13,8 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/rarimo/proof-verification-relayer/internal/contracts"
-	biopassportvoting "github.com/rarimo/proof-verification-relayer/internal/contracts/bio_passport_voting"
-	noirvoting "github.com/rarimo/proof-verification-relayer/internal/contracts/noir_voting"
+	idcardvoting "github.com/rarimo/proof-verification-relayer/internal/contracts/id_card_voting"
 	"github.com/rarimo/proof-verification-relayer/internal/service/api/requests"
 	"github.com/rarimo/proof-verification-relayer/resources"
 	"gitlab.com/distributed_lab/ape"
@@ -26,10 +26,14 @@ import (
 type NoirVoteCalldata struct {
 	RegistrationRoot [32]byte
 	CurrentDate      *big.Int
-	ProposalID       *big.Int
-	Vote             []*big.Int
-	UserData         biopassportvoting.BaseVotingUserData
+	UserPayload      []byte
 	ProofBytes       []byte
+}
+
+type UserPayload struct {
+	ProposalID *big.Int
+	Vote       []*big.Int
+	UserData   idcardvoting.BaseVotingUserData
 }
 
 func VoteV3(w http.ResponseWriter, r *http.Request) {
@@ -62,12 +66,13 @@ func VoteV3(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	proposalID := calldataInfo.ProposalID.Int64()
+	userPayload, err := parseUserPayload(calldataInfo.UserPayload)
+
+	proposalID := userPayload.ProposalID.Int64()
 	log := Log(r).WithFields(logan.F{
 		"user-agent":  r.Header.Get("User-Agent"),
 		"calldata":    calldata,
 		"destination": destination,
-		"proposal_id": proposalID,
 	})
 	log.Debug("noir voting request")
 
@@ -161,17 +166,17 @@ func VoteV3(w http.ResponseWriter, r *http.Request) {
 func parseNoirCallData(data []byte) (NoirVoteCalldata, error) {
 	var config NoirVoteCalldata
 	if len(data) < 4 {
-		return config, fmt.Errorf("calldata is too short")
+		return config, fmt.Errorf("calldata is too short") //maybe !=4 and "calldata isn`t correct"
 	}
 
-	parsedABI, err := abi.JSON(strings.NewReader(noirvoting.NoirVotingABI))
+	parsedABI, err := abi.JSON(strings.NewReader(idcardvoting.IDCardVotingABI))
 	if err != nil {
-		return config, fmt.Errorf("failed to parse noir ABI: %v", err)
+		return config, fmt.Errorf("failed to parse contract ABI: %v", err)
 	}
 
-	method, ok := parsedABI.Methods["executeNoir"]
+	method, ok := parsedABI.Methods["executeTD1Noir"]
 	if !ok {
-		return config, fmt.Errorf("method 'executeNoir' not found in noir ABI")
+		return config, fmt.Errorf("method 'executeTD1Noir' not found in noir ABI")
 	}
 
 	decoded, err := method.Inputs.Unpack(data[4:])
@@ -185,21 +190,14 @@ func parseNoirCallData(data []byte) (NoirVoteCalldata, error) {
 
 	config.RegistrationRoot = decoded[0].([32]byte)
 	config.CurrentDate = decoded[1].(*big.Int)
-	userDataEncoded := decoded[2].([]byte)
+	config.UserPayload = decoded[2].([]byte)
 	config.ProofBytes = decoded[3].([]byte)
-	proposalID, vote, userData, err := decodeUserData(userDataEncoded)
-	if err != nil {
-		return config, fmt.Errorf("failed to decode user data: %v", err)
-	}
-
-	config.ProposalID = proposalID
-	config.Vote = vote
-	config.UserData = userData
+	fmt.Println("proof bytes: ", len(config.ProofBytes))
 
 	return config, nil
 }
 
-func decodeUserData(data []byte) (*big.Int, []*big.Int, biopassportvoting.BaseVotingUserData, error) {
+func parseUserPayload(data []byte) (UserPayload, error) {
 	uint256Type, _ := abi.NewType("uint256", "", nil)
 	uint256Array, _ := abi.NewType("uint256[]", "", nil)
 	tupleType, _ := abi.NewType("tuple", "", []abi.ArgumentMarshaling{
@@ -208,6 +206,10 @@ func decodeUserData(data []byte) (*big.Int, []*big.Int, biopassportvoting.BaseVo
 		{Name: "timestampUpperbound", Type: "uint256"},
 	})
 
+	hexStr := hex.EncodeToString(data)
+	fmt.Println("hex:", hexStr)
+	fmt.Println("hexSTR len:", len(hexStr))
+
 	arguments := abi.Arguments{
 		{Type: uint256Type},
 		{Type: uint256Array},
@@ -215,32 +217,40 @@ func decodeUserData(data []byte) (*big.Int, []*big.Int, biopassportvoting.BaseVo
 	}
 
 	decoded, err := arguments.Unpack(data)
+	fmt.Println("decoded:", decoded)
 	if err != nil {
-		return nil, nil, biopassportvoting.BaseVotingUserData{}, err
+		return UserPayload{}, err
 	}
 
 	if len(decoded) != 3 {
-		return nil, nil, biopassportvoting.BaseVotingUserData{}, fmt.Errorf("invalid userDataEncoded structure")
+		return UserPayload{}, fmt.Errorf("invalid userDataEncoded structure")
 	}
 
 	proposalID := decoded[0].(*big.Int)
 	vote := decoded[1].([]*big.Int)
 
 	userDataRaw := decoded[2]
+
 	userDataStruct, ok := userDataRaw.(struct {
 		Nullifier           *big.Int `json:"nullifier"`
 		Citizenship         *big.Int `json:"citizenship"`
 		TimestampUpperbound *big.Int `json:"timestampUpperbound"`
 	})
 	if !ok {
-		return nil, nil, biopassportvoting.BaseVotingUserData{}, fmt.Errorf("failed to cast userData to expected struct, got %T", userDataRaw)
+		return UserPayload{}, fmt.Errorf("failed to cast userData to expected struct, got %T", userDataRaw)
 	}
 
-	userData := biopassportvoting.BaseVotingUserData{
+	userData := idcardvoting.BaseVotingUserData{
 		Nullifier:                 userDataStruct.Nullifier,
 		Citizenship:               userDataStruct.Citizenship,
 		IdentityCreationTimestamp: userDataStruct.TimestampUpperbound,
 	}
 
-	return proposalID, vote, userData, nil
+	userPayload := UserPayload{
+		ProposalID: proposalID,
+		Vote:       vote,
+		UserData:   userData,
+	}
+
+	return userPayload, nil
 }
