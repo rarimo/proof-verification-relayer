@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"database/sql"
-	"encoding/hex"
 	"fmt"
 	"math/big"
 	"net/http"
@@ -67,6 +66,13 @@ func VoteV3(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userPayload, err := parseUserPayload(calldataInfo.UserPayload)
+	if err != nil {
+		Log(r).WithError(err).Error("Failed User Payload")
+		ape.RenderErr(w, problems.BadRequest(validation.Errors{
+			"tx_data": errors.New("invalid user payload data format"),
+		}.Filter())...)
+		return
+	}
 
 	proposalID := userPayload.ProposalID.Int64()
 	log := Log(r).WithFields(logan.F{
@@ -192,7 +198,6 @@ func parseNoirCallData(data []byte) (NoirVoteCalldata, error) {
 	config.CurrentDate = decoded[1].(*big.Int)
 	config.UserPayload = decoded[2].([]byte)
 	config.ProofBytes = decoded[3].([]byte)
-	fmt.Println("proof bytes: ", len(config.ProofBytes))
 
 	return config, nil
 }
@@ -206,10 +211,6 @@ func parseUserPayload(data []byte) (UserPayload, error) {
 		{Name: "timestampUpperbound", Type: "uint256"},
 	})
 
-	hexStr := hex.EncodeToString(data)
-	fmt.Println("hex:", hexStr)
-	fmt.Println("hexSTR len:", len(hexStr))
-
 	arguments := abi.Arguments{
 		{Type: uint256Type},
 		{Type: uint256Array},
@@ -217,7 +218,6 @@ func parseUserPayload(data []byte) (UserPayload, error) {
 	}
 
 	decoded, err := arguments.Unpack(data)
-	fmt.Println("decoded:", decoded)
 	if err != nil {
 		return UserPayload{}, err
 	}
