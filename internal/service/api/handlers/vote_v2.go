@@ -184,6 +184,7 @@ func confGas(r *http.Request, txd *txData, receiver *common.Address) (err error)
 	if err != nil {
 		return fmt.Errorf("failed to suggest gas price: %w", err)
 	}
+	txd.gasPrice = multiplyGasPrice(txd.gasPrice, Config(r).NetworkConfig().GasMultiplier)
 
 	txd.gas, err = VotingV2Config(r).RPC.EstimateGas(r.Context(), ethereum.CallMsg{
 		From:     crypto.PubkeyToAddress(VotingV2Config(r).PrivateKey.PublicKey),
@@ -194,6 +195,7 @@ func confGas(r *http.Request, txd *txData, receiver *common.Address) (err error)
 	if err != nil {
 		return fmt.Errorf("failed to estimate gas: %w", err)
 	}
+	txd.gas = uint64(float64(txd.gas) * Config(r).NetworkConfig().GasMultiplier)
 
 	return nil
 }

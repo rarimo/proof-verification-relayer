@@ -4,13 +4,8 @@ RUN apk add git build-base ca-certificates
 
 WORKDIR /go/src/github.com/rarimo/proof-verification-relayer
 
-COPY go.mod .
-COPY go.sum .
-RUN go mod download
-
 COPY . .
 
-RUN go mod tidy && go mod vendor
 RUN CGO_ENABLED=1 GO111MODULE=on GOOS=linux go build  -o /usr/local/bin/proof-verification-relayer /go/src/github.com/rarimo/proof-verification-relayer
 
 FROM scratch
